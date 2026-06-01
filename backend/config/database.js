@@ -17,7 +17,11 @@ module.exports = {
   pool,
   async query(sql, params) {
     try {
-      const [rows] = await pool.execute(sql, params);
+      // Use query() rather than execute() so that LIMIT/OFFSET bound
+      // parameters work: the binary prepared-statement protocol rejects
+      // placeholders for LIMIT/OFFSET with ER_WRONG_ARGUMENTS. Values are
+      // still escaped via ? placeholders.
+      const [rows] = await pool.query(sql, params);
       return rows;
     } catch (error) {
       console.error('Database query error:', error);

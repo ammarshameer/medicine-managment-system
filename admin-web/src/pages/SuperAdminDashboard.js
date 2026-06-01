@@ -35,7 +35,7 @@ const StatCard = ({ title, value, icon: Icon, trend, color }) => (
 const RecentBusinessCard = ({ business, onViewDetails }) => (
   <div className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow">
     <div className="flex items-center justify-between mb-3">
-      <h3 className="font-semibold text-gray-800">{business.Name}</h3>
+      <h3 className="font-semibold text-gray-800">{business.BusinessName}</h3>
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
         business.Status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
       }`}>
@@ -45,8 +45,8 @@ const RecentBusinessCard = ({ business, onViewDetails }) => (
     <div className="space-y-2 text-sm text-gray-600">
       <p><span className="font-medium">Email:</span> {business.Email}</p>
       <p><span className="font-medium">Phone:</span> {business.Phone}</p>
-      <p><span className="font-medium">Users:</span> {business.UserCount || 0}</p>
-      <p><span className="font-medium">Orders:</span> {business.OrderCount || 0}</p>
+      <p><span className="font-medium">Users:</span> {business.totalUsers || 0}</p>
+      <p><span className="font-medium">Orders:</span> {business.orderCount || 0}</p>
     </div>
     <button
       onClick={() => onViewDetails(business.BusinessId)}
@@ -83,7 +83,7 @@ export const SuperAdminDashboard = () => {
     );
   }
 
-  const stats = analytics?.stats || {};
+  const stats = analytics?.overview || {};
 
   return (
     <div className="p-6">
