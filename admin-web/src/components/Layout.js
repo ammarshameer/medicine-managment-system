@@ -14,6 +14,7 @@ import {
   X,
   LogOut,
   User,
+  UserPlus,
   ChevronDown
 } from 'lucide-react';
 
@@ -138,6 +139,16 @@ export const Layout = ({ children }) => {
                       <p className="text-sm font-medium text-gray-900">{user?.name}</p>
                       <p className="text-xs text-gray-500">{user?.email}</p>
                     </div>
+                    {user?.role === 'SUPER_ADMIN' && (
+                      <Link
+                        to="/super-admin/businesses/create"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        <UserPlus className="mr-3 h-4 w-4" />
+                        Add Business Owner
+                      </Link>
+                    )}
                     <button
                       onClick={handleLogout}
                       className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
