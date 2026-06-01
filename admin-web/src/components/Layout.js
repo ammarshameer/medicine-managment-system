@@ -10,6 +10,7 @@ import {
   FileText,
   Package,
   BarChart3,
+  Building2,
   Menu,
   X,
   LogOut,
@@ -25,7 +26,7 @@ export const Layout = ({ children }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
-  const navigation = [
+  const businessOwnerNavigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Medicines', href: '/medicines', icon: Pill },
     { name: 'Orders', href: '/orders', icon: ShoppingCart },
@@ -35,6 +36,13 @@ export const Layout = ({ children }) => {
     { name: 'Inventory', href: '/inventory', icon: Package },
     { name: 'Reports', href: '/reports', icon: BarChart3 },
   ];
+
+  const superAdminNavigation = [
+    { name: 'Dashboard', href: '/super-admin/dashboard', icon: LayoutDashboard },
+    { name: 'Businesses', href: '/super-admin/businesses', icon: Building2 },
+  ];
+
+  const navigation = user?.role === 'SUPER_ADMIN' ? superAdminNavigation : businessOwnerNavigation;
 
   const handleLogout = () => {
     logout();
@@ -58,7 +66,7 @@ export const Layout = ({ children }) => {
           </div>
           <nav className="flex-1 space-y-1 px-2 py-4">
             {navigation.map((item) => {
-              const isActive = location.pathname === item.href;
+              const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + '/');
               return (
                 <Link
                   key={item.name}
@@ -87,7 +95,7 @@ export const Layout = ({ children }) => {
           </div>
           <nav className="flex-1 space-y-1 px-2 py-4">
             {navigation.map((item) => {
-              const isActive = location.pathname === item.href;
+              const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + '/');
               return (
                 <Link
                   key={item.name}

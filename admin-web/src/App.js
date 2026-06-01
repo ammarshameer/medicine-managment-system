@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
@@ -27,6 +27,11 @@ const queryClient = new QueryClient({
   },
 });
 
+const HomeRedirect = () => {
+  const { user } = useAuth();
+  return <Navigate to={user?.role === 'SUPER_ADMIN' ? '/super-admin/dashboard' : '/dashboard'} replace />;
+};
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -40,7 +45,7 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <Routes>
-                      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                      <Route path="/" element={<HomeRedirect />} />
                       {/* Business Owner Routes */}
                       <Route path="/dashboard" element={<Dashboard />} />
                       <Route path="/medicines" element={<Medicines />} />

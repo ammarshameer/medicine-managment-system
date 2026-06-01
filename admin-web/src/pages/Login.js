@@ -10,10 +10,10 @@ export const Login = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={user?.role === 'SUPER_ADMIN' ? '/super-admin/dashboard' : '/dashboard'} replace />;
   }
 
   const handleChange = (e) => {

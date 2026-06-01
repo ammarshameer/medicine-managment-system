@@ -32,9 +32,9 @@ router.get('/analytics', async (req, res) => {
       'SELECT COUNT(*) as count FROM Orders'
     );
 
-    // Get total platform revenue
+    // Get total platform revenue (aggregated from all orders across every business)
     const totalRevenue = await query(
-      'SELECT SUM(Revenue) as revenue FROM Businesses'
+      'SELECT SUM(TotalAmount) as revenue FROM Orders'
     );
 
     // Get businesses by subscription plan
@@ -268,6 +268,7 @@ router.post('/businesses', [
   body('email').isEmail().normalizeEmail().withMessage('Valid email required'),
   body('phone').isLength({ min: 10, max: 20 }).withMessage('Valid phone number required'),
   body('subscriptionPlan').isIn(['Free', 'Basic', 'Premium']).withMessage('Invalid subscription plan'),
+  body('password').optional({ checkFalsy: true }).isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
   body('address').optional(),
   body('city').optional(),
   body('state').optional()
@@ -289,6 +290,7 @@ router.post('/businesses', [
       email,
       phone,
       subscriptionPlan = 'Free',
+      password,
       address,
       city,
       state
@@ -329,10 +331,10 @@ router.post('/businesses', [
 
     const businessId = businessResult.insertId;
 
-    // Generate default password for business owner
+    // Use the password provided by the super admin, or fall back to a default
     const bcrypt = require('bcryptjs');
-    const defaultPassword = 'ChangeMe123';
-    const passwordHash = await bcrypt.hash(defaultPassword, 10);
+    const ownerPassword = password && password.trim() ? password.trim() : 'ChangeMe123';
+    const passwordHash = await bcrypt.hash(ownerPassword, 10);
 
     // Create business owner user
     const userResult = await query(
@@ -381,7 +383,7 @@ router.post('/businesses', [
         businessCode,
         ownerName,
         email,
-        defaultPassword
+        password: ownerPassword
       }
     });
 
