@@ -30,7 +30,7 @@ export const Users = () => {
         limit,
         ...(searchQuery && { search: searchQuery })
       });
-      return axios.get(`/api/users?${params}`).then(res => res.data.data);
+      return axios.get(`/api/admin/users?${params}`).then(res => res.data.data);
     }
   );
 

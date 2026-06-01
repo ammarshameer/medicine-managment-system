@@ -368,9 +368,9 @@ router.post('/inventory/adjust', authenticateToken, requireAdmin, [
 
     // Record inventory transaction
     await dbQuery(`
-      INSERT INTO InventoryTransactions (MedicineId, TransactionType, Quantity, PreviousStock, NewStock, Reason, PerformedBy)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [medicineId, transactionType, Math.abs(quantity), previousStock, newStock, reason, performedBy]);
+      INSERT INTO InventoryTransactions (BusinessId, MedicineId, TransactionType, Quantity, PreviousStock, NewStock, Reason, PerformedBy)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `, [req.user.businessId, medicineId, transactionType, Math.abs(quantity), previousStock, newStock, reason, performedBy]);
 
     res.json({
       success: true,

@@ -16,7 +16,7 @@ import {
 export const Dashboard = () => {
   const { data: stats, isLoading: statsLoading } = useQuery(
     'business-analytics',
-    () => axios.get('/api/admin/analytics').then(res => res.data.data),
+    () => axios.get('/api/admin/dashboard').then(res => res.data.data),
     { enabled: true }
   );
 
@@ -40,7 +40,7 @@ export const Dashboard = () => {
     );
   }
 
-  const analytics = stats?.stats || {};
+  const analytics = stats || {};
   const lowStockItems = lowStockMedicines?.filter(m => m.stock < 10).slice(0, 5) || [];
   const orders = recentOrders || [];
 
