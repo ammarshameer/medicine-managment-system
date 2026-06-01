@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import {
   Plus,
   Search,
@@ -10,8 +11,20 @@ import {
   Package,
   Loader2,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  X
 } from 'lucide-react';
+
+const emptyForm = {
+  name: '',
+  categoryId: '',
+  description: '',
+  price: '',
+  stock: '',
+  expiryDate: '',
+  manufacturer: '',
+  requiresPrescription: false
+};
 
 export const Medicines = () => {
   const [search, setSearch] = useState('');
@@ -20,6 +33,9 @@ export const Medicines = () => {
   const [limit] = useState(10);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedMedicine, setSelectedMedicine] = useState(null);
+  const [showFormModal, setShowFormModal] = useState(false);
+  const [editingMedicine, setEditingMedicine] = useState(null);
+  const [formData, setFormData] = useState(emptyForm);
 
   const queryClient = useQueryClient();
 
@@ -53,10 +69,86 @@ export const Medicines = () => {
     }
   );
 
+  const saveMutation = useMutation(
+    (payload) => {
+      const body = {
+        name: payload.name.trim(),
+        price: parseFloat(payload.price),
+        stock: parseInt(payload.stock, 10),
+        requiresPrescription: !!payload.requiresPrescription,
+        ...(payload.description && { description: payload.description }),
+        ...(payload.manufacturer && { manufacturer: payload.manufacturer }),
+        ...(payload.categoryId && { categoryId: parseInt(payload.categoryId, 10) }),
+        ...(payload.expiryDate && { expiryDate: new Date(payload.expiryDate).toISOString() })
+      };
+      return editingMedicine
+        ? axios.put(`/api/medicines/${editingMedicine.id}`, body)
+        : axios.post('/api/medicines', body);
+    },
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('medicines');
+        toast.success(editingMedicine ? 'Medicine updated' : 'Medicine created');
+        closeFormModal();
+      },
+      onError: (err) => {
+        toast.error(err?.response?.data?.message || 'Failed to save medicine');
+      }
+    }
+  );
+
   const handleDelete = () => {
     if (selectedMedicine) {
       deleteMutation.mutate(selectedMedicine.id);
     }
+  };
+
+  const openAddModal = () => {
+    setEditingMedicine(null);
+    setFormData(emptyForm);
+    setShowFormModal(true);
+  };
+
+  const openEditModal = (medicine) => {
+    setEditingMedicine(medicine);
+    setFormData({
+      name: medicine.name || '',
+      categoryId: medicine.category?.id ? String(medicine.category.id) : '',
+      description: medicine.description || '',
+      price: medicine.price != null ? String(medicine.price) : '',
+      stock: medicine.stock != null ? String(medicine.stock) : '',
+      expiryDate: medicine.expiryDate ? medicine.expiryDate.slice(0, 10) : '',
+      manufacturer: medicine.manufacturer || '',
+      requiresPrescription: !!medicine.requiresPrescription
+    });
+    setShowFormModal(true);
+  };
+
+  const closeFormModal = () => {
+    setShowFormModal(false);
+    setEditingMedicine(null);
+  };
+
+  const handleFormChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+  };
+
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    if (!formData.name || formData.name.trim().length < 2) {
+      toast.error('Name must be at least 2 characters');
+      return;
+    }
+    if (formData.price === '' || isNaN(parseFloat(formData.price)) || parseFloat(formData.price) < 0) {
+      toast.error('Enter a valid price');
+      return;
+    }
+    if (formData.stock === '' || isNaN(parseInt(formData.stock, 10)) || parseInt(formData.stock, 10) < 0) {
+      toast.error('Enter a valid stock quantity');
+      return;
+    }
+    saveMutation.mutate(formData);
   };
 
   const handleSearch = (e) => {
@@ -74,7 +166,8 @@ export const Medicines = () => {
 
   const medicines = medicinesData?.medicines || [];
   const pagination = medicinesData?.pagination || { total: 0, pages: 0 };
-  const categories = ['All Categories', ...(categoriesData?.map(c => c.categoryName) || [])];
+  const categoryOptions = categoriesData || [];
+  const categories = ['All Categories', ...categoryOptions.map(c => c.name)];
   const lowStockCount = medicines.filter(m => m.stock < 10).length;
 
   return (
@@ -84,7 +177,10 @@ export const Medicines = () => {
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Medicine Management</h1>
         </div>
-        <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+        <button
+          onClick={openAddModal}
+          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Add New Medicine
         </button>
@@ -202,7 +298,7 @@ export const Medicines = () => {
                       {medicine.name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {medicine.category?.categoryName || 'N/A'}
+                      {medicine.category?.name || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       ${medicine.price?.toFixed(2) || '0.00'}
@@ -221,7 +317,7 @@ export const Medicines = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <div className="flex items-center space-x-3">
                         <button
-                          onClick={() => console.log('Edit medicine:', medicine.id)}
+                          onClick={() => openEditModal(medicine)}
                           className="text-blue-600 hover:text-blue-900"
                         >
                           <Edit className="h-4 w-4" />
@@ -310,6 +406,135 @@ export const Medicines = () => {
           </div>
         )}
       </div>
+
+      {/* Add / Edit Medicine Modal */}
+      {showFormModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-lg font-bold text-gray-800">
+                {editingMedicine ? 'Edit Medicine' : 'Add New Medicine'}
+              </h3>
+              <button onClick={closeFormModal} className="text-gray-400 hover:text-gray-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form onSubmit={handleFormSubmit} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleFormChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g. Paracetamol 500mg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select
+                  name="categoryId"
+                  value={formData.categoryId}
+                  onChange={handleFormChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select category</option>
+                  {categoryOptions.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Manufacturer</label>
+                <input
+                  type="text"
+                  name="manufacturer"
+                  value={formData.manufacturer}
+                  onChange={handleFormChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g. MediLab"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Price *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  name="price"
+                  value={formData.price}
+                  onChange={handleFormChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="0.00"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Stock *</label>
+                <input
+                  type="number"
+                  min="0"
+                  name="stock"
+                  value={formData.stock}
+                  onChange={handleFormChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date</label>
+                <input
+                  type="date"
+                  name="expiryDate"
+                  value={formData.expiryDate}
+                  onChange={handleFormChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="flex items-center mt-6">
+                <input
+                  type="checkbox"
+                  name="requiresPrescription"
+                  checked={formData.requiresPrescription}
+                  onChange={handleFormChange}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                  id="requiresPrescription"
+                />
+                <label htmlFor="requiresPrescription" className="ml-2 text-sm text-gray-700">
+                  Requires prescription
+                </label>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleFormChange}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Optional description"
+                />
+              </div>
+              <div className="md:col-span-2 flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={closeFormModal}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saveMutation.isLoading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {saveMutation.isLoading ? 'Saving...' : (editingMedicine ? 'Update Medicine' : 'Create Medicine')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && selectedMedicine && (
