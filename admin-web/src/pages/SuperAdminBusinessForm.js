@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import { 
   Building2, 
   ArrowLeft,
@@ -16,16 +17,17 @@ export const SuperAdminBusinessForm = () => {
   const isEdit = !!businessId;
 
   const [formData, setFormData] = useState({
-    name: '',
+    businessName: '',
+    businessCode: '',
+    ownerName: '',
     email: '',
     phone: '',
     address: '',
     city: '',
     state: '',
-    postalCode: '',
     country: 'Pakistan',
     subscriptionPlan: 'Basic',
-    status: 'Pending'
+    status: 'Active'
   });
 
   const [errors, setErrors] = useState({});
@@ -37,16 +39,17 @@ export const SuperAdminBusinessForm = () => {
       enabled: isEdit,
       onSuccess: (data) => {
         setFormData({
-          name: data.Name || '',
+          businessName: data.BusinessName || '',
+          businessCode: data.BusinessCode || '',
+          ownerName: data.OwnerName || '',
           email: data.Email || '',
           phone: data.Phone || '',
           address: data.Address || '',
           city: data.City || '',
           state: data.State || '',
-          postalCode: data.PostalCode || '',
           country: data.Country || 'Pakistan',
           subscriptionPlan: data.SubscriptionPlan || 'Basic',
-          status: data.Status || 'Pending'
+          status: data.Status || 'Active'
         });
       }
     }
@@ -55,9 +58,18 @@ export const SuperAdminBusinessForm = () => {
   const createMutation = useMutation(
     (data) => axios.post('/api/super-admin/businesses', data),
     {
-      onSuccess: () => {
+      onSuccess: (res) => {
         queryClient.invalidateQueries('businesses');
+        const defaultPassword = res?.data?.data?.defaultPassword;
+        toast.success(
+          defaultPassword
+            ? `Business owner created. Default password: ${defaultPassword}`
+            : 'Business owner created'
+        );
         navigate('/super-admin/businesses');
+      },
+      onError: (error) => {
+        toast.error(error.response?.data?.message || 'Failed to create business owner');
       }
     }
   );
@@ -68,7 +80,11 @@ export const SuperAdminBusinessForm = () => {
       onSuccess: () => {
         queryClient.invalidateQueries(['business', businessId]);
         queryClient.invalidateQueries('businesses');
+        toast.success('Business updated');
         navigate(`/super-admin/businesses/${businessId}`);
+      },
+      onError: (error) => {
+        toast.error(error.response?.data?.message || 'Failed to update business');
       }
     }
   );
@@ -76,8 +92,16 @@ export const SuperAdminBusinessForm = () => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = 'Business name is required';
+    if (!formData.businessName.trim()) {
+      newErrors.businessName = 'Business name is required';
+    }
+
+    if (!isEdit && !formData.businessCode.trim()) {
+      newErrors.businessCode = 'Business code is required';
+    }
+
+    if (!formData.ownerName.trim()) {
+      newErrors.ownerName = 'Owner name is required';
     }
 
     if (!formData.email.trim()) {
@@ -88,18 +112,8 @@ export const SuperAdminBusinessForm = () => {
 
     if (!formData.phone.trim()) {
       newErrors.phone = 'Phone number is required';
-    }
-
-    if (!formData.city.trim()) {
-      newErrors.city = 'City is required';
-    }
-
-    if (!formData.state.trim()) {
-      newErrors.state = 'State is required';
-    }
-
-    if (!formData.postalCode.trim()) {
-      newErrors.postalCode = 'Postal code is required';
+    } else if (formData.phone.trim().length < 10) {
+      newErrors.phone = 'Phone number must be at least 10 characters';
     }
 
     setErrors(newErrors);
@@ -114,16 +128,17 @@ export const SuperAdminBusinessForm = () => {
     }
 
     const payload = {
-      Name: formData.name,
-      Email: formData.email,
-      Phone: formData.phone,
-      Address: formData.address,
-      City: formData.city,
-      State: formData.state,
-      PostalCode: formData.postalCode,
-      Country: formData.country,
-      SubscriptionPlan: formData.subscriptionPlan,
-      Status: formData.status
+      businessName: formData.businessName,
+      businessCode: formData.businessCode,
+      ownerName: formData.ownerName,
+      email: formData.email,
+      phone: formData.phone,
+      address: formData.address,
+      city: formData.city,
+      state: formData.state,
+      country: formData.country,
+      subscriptionPlan: formData.subscriptionPlan,
+      status: formData.status
     };
 
     if (isEdit) {
@@ -182,40 +197,87 @@ export const SuperAdminBusinessForm = () => {
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Business Name */}
-            <div className="md:col-span-2">
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Business Name *
               </label>
               <input
                 type="text"
-                name="name"
-                value={formData.name}
+                name="businessName"
+                value={formData.businessName}
                 onChange={handleChange}
                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.name ? 'border-red-500' : 'border-gray-300'
+                  errors.businessName ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Enter business name"
               />
-              {errors.name && (
-                <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+              {errors.businessName && (
+                <p className="text-red-500 text-sm mt-1">{errors.businessName}</p>
+              )}
+            </div>
+
+            {/* Business Code */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Business Code *
+              </label>
+              <input
+                type="text"
+                name="businessCode"
+                value={formData.businessCode}
+                onChange={handleChange}
+                disabled={isEdit}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500 ${
+                  errors.businessCode ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="e.g. PHARM001"
+              />
+              {errors.businessCode ? (
+                <p className="text-red-500 text-sm mt-1">{errors.businessCode}</p>
+              ) : (
+                isEdit && <p className="text-gray-400 text-xs mt-1">Business code cannot be changed</p>
+              )}
+            </div>
+
+            {/* Owner Name */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Owner Name *
+              </label>
+              <input
+                type="text"
+                name="ownerName"
+                value={formData.ownerName}
+                onChange={handleChange}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.ownerName ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="Enter business owner's full name"
+              />
+              {errors.ownerName && (
+                <p className="text-red-500 text-sm mt-1">{errors.ownerName}</p>
               )}
             </div>
 
             {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email *
+                Owner Email *
               </label>
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                disabled={isEdit}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500 ${
                   errors.email ? 'border-red-500' : 'border-gray-300'
                 }`}
-                placeholder="business@example.com"
+                placeholder="owner@example.com"
               />
+              {!isEdit && !errors.email && (
+                <p className="text-gray-400 text-xs mt-1">Used as the owner's login email</p>
+              )}
               {errors.email && (
                 <p className="text-red-500 text-sm mt-1">{errors.email}</p>
               )}
@@ -296,26 +358,6 @@ export const SuperAdminBusinessForm = () => {
               )}
             </div>
 
-            {/* Postal Code */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Postal Code *
-              </label>
-              <input
-                type="text"
-                name="postalCode"
-                value={formData.postalCode}
-                onChange={handleChange}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.postalCode ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="74000"
-              />
-              {errors.postalCode && (
-                <p className="text-red-500 text-sm mt-1">{errors.postalCode}</p>
-              )}
-            </div>
-
             {/* Country */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -342,10 +384,9 @@ export const SuperAdminBusinessForm = () => {
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
+                <option value="Free">Free</option>
                 <option value="Basic">Basic</option>
-                <option value="Standard">Standard</option>
                 <option value="Premium">Premium</option>
-                <option value="Enterprise">Enterprise</option>
               </select>
             </div>
 
@@ -360,9 +401,9 @@ export const SuperAdminBusinessForm = () => {
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="Pending">Pending</option>
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
+                <option value="Suspended">Suspended</option>
               </select>
             </div>
           </div>
