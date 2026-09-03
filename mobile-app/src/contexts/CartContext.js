@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 const CartContext = createContext();
 
@@ -12,6 +12,7 @@ export const useCart = () => {
 
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
+  const [reorderedFromOrderId, setReorderedFromOrderId] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const addToCart = (medicine, quantity = 1) => {
@@ -49,8 +50,25 @@ export const CartProvider = ({ children }) => {
     );
   };
 
+  /**
+   * Load items from a previous order into cart (Reorder functionality)
+   * Pre-fills cart with items and quantities, allowing full editing before checkout
+   */
+  const loadCartItems = (items, fromOrderId = null) => {
+    const formatted = items.map(i => ({
+      id: i.medicineId || i.id,
+      name: i.name || i.medicineName || `Medicine #${i.medicineId || i.id}`,
+      price: parseFloat(i.price) || 0,
+      quantity: parseInt(i.quantity, 10) || 1,
+      imagePath: i.imagePath
+    }));
+    setCartItems(formatted);
+    setReorderedFromOrderId(fromOrderId);
+  };
+
   const clearCart = () => {
     setCartItems([]);
+    setReorderedFromOrderId(null);
   };
 
   const getCartTotal = () => {
@@ -63,9 +81,11 @@ export const CartProvider = ({ children }) => {
 
   const value = {
     cartItems,
+    reorderedFromOrderId,
     addToCart,
     removeFromCart,
     updateQuantity,
+    loadCartItems,
     clearCart,
     getCartTotal,
     getCartItemCount,

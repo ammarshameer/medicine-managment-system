@@ -75,6 +75,7 @@ CREATE TABLE Medicines (
     Name VARCHAR(200) NOT NULL,
     Description TEXT,
     Price DECIMAL(10,2) NOT NULL,
+    AverageCost DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     Stock INT NOT NULL DEFAULT 0,
     ExpiryDate DATE,
     Manufacturer VARCHAR(100),
@@ -117,23 +118,30 @@ CREATE TABLE Addresses (
 CREATE TABLE Orders (
     OrderId INT AUTO_INCREMENT PRIMARY KEY,
     BusinessId INT NOT NULL,
-    UserId INT NOT NULL,
+    UserId INT NULL,
     OrderDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     Status ENUM('Pending', 'Approved', 'Dispatched', 'Delivered', 'Cancelled') DEFAULT 'Pending',
+    Source ENUM('Online', 'POS') DEFAULT 'Online',
     TotalAmount DECIMAL(10,2) NOT NULL,
     DeliveryAddress VARCHAR(255),
-    PaymentMethod ENUM('Cash on Delivery', 'Credit Card', 'Bank Transfer', 'JazzCash', 'EasyPaisa') DEFAULT 'Cash on Delivery',
+    CustomerName VARCHAR(100) NULL,
+    CustomerPhone VARCHAR(20) NULL,
+    PaymentMethod ENUM('Cash on Delivery', 'Credit Card', 'Bank Transfer', 'JazzCash', 'EasyPaisa', 'Cash') DEFAULT 'Cash on Delivery',
     PaymentStatus ENUM('Pending', 'Paid', 'Failed', 'Refunded') DEFAULT 'Pending',
     PrescriptionId INT NULL,
     Notes TEXT,
+    CreatedBy INT NULL,
+    ReorderedFromOrderId INT NULL,
     CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_order_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE,
-    CONSTRAINT fk_order_user FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE CASCADE,
+    CONSTRAINT fk_order_user FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE SET NULL,
+    CONSTRAINT fk_order_creator FOREIGN KEY (CreatedBy) REFERENCES Users(UserId) ON DELETE SET NULL,
     INDEX idx_business_order (BusinessId),
     INDEX idx_user_orders (UserId),
     INDEX idx_status (Status),
-    INDEX idx_order_date (OrderDate)
+    INDEX idx_order_date (OrderDate),
+    INDEX idx_source (Source)
 );
 
 -- OrderItems table with businessId
@@ -144,6 +152,7 @@ CREATE TABLE OrderItems (
     MedicineId INT NOT NULL,
     Quantity INT NOT NULL,
     Price DECIMAL(10,2) NOT NULL,
+    CostPrice DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     Subtotal DECIMAL(10,2) NOT NULL,
     CONSTRAINT fk_orderitem_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE,
     CONSTRAINT fk_orderitem_order FOREIGN KEY (OrderId) REFERENCES Orders(OrderId) ON DELETE CASCADE,
@@ -192,6 +201,108 @@ CREATE TABLE InventoryTransactions (
     INDEX idx_medicine_transactions (MedicineId),
     INDEX idx_transaction_type (TransactionType),
     INDEX idx_performed_by (PerformedBy)
+);
+
+-- Vendors table
+CREATE TABLE IF NOT EXISTS Vendors (
+    VendorId INT AUTO_INCREMENT PRIMARY KEY,
+    BusinessId INT NOT NULL,
+    Name VARCHAR(150) NOT NULL,
+    ContactPerson VARCHAR(100),
+    Email VARCHAR(100),
+    Phone VARCHAR(20),
+    Address TEXT,
+    IsActive BOOLEAN DEFAULT TRUE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_vendor_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE,
+    INDEX idx_business_vendor (BusinessId),
+    INDEX idx_vendor_name (Name)
+);
+
+-- Purchase Orders table
+CREATE TABLE IF NOT EXISTS PurchaseOrders (
+    PurchaseOrderId INT AUTO_INCREMENT PRIMARY KEY,
+    BusinessId INT NOT NULL,
+    VendorId INT NOT NULL,
+    OrderNumber VARCHAR(50) NOT NULL,
+    OrderDate DATE NOT NULL,
+    Status ENUM('Draft', 'Ordered', 'Received', 'Cancelled') DEFAULT 'Draft',
+    TotalAmount DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    Notes TEXT,
+    ReceivedAt TIMESTAMP NULL,
+    CreatedBy INT NOT NULL,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_po_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE,
+    CONSTRAINT fk_po_vendor FOREIGN KEY (VendorId) REFERENCES Vendors(VendorId) ON DELETE RESTRICT,
+    CONSTRAINT fk_po_creator FOREIGN KEY (CreatedBy) REFERENCES Users(UserId) ON DELETE RESTRICT,
+    INDEX idx_business_po (BusinessId),
+    INDEX idx_po_vendor (VendorId),
+    INDEX idx_po_status (Status),
+    INDEX idx_po_number (OrderNumber)
+);
+
+-- Purchase Order Items table (UnitCost)
+CREATE TABLE IF NOT EXISTS PurchaseOrderItems (
+    PurchaseOrderItemId INT AUTO_INCREMENT PRIMARY KEY,
+    PurchaseOrderId INT NOT NULL,
+    BusinessId INT NOT NULL,
+    MedicineId INT NOT NULL,
+    Quantity INT NOT NULL,
+    UnitCost DECIMAL(10,2) NOT NULL,
+    Subtotal DECIMAL(12,2) NOT NULL,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_poi_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE,
+    CONSTRAINT fk_poi_order FOREIGN KEY (PurchaseOrderId) REFERENCES PurchaseOrders(PurchaseOrderId) ON DELETE CASCADE,
+    CONSTRAINT fk_poi_medicine FOREIGN KEY (MedicineId) REFERENCES Medicines(MedicineId) ON DELETE RESTRICT,
+    INDEX idx_poi_business (BusinessId),
+    INDEX idx_poi_order (PurchaseOrderId),
+    INDEX idx_poi_medicine (MedicineId)
+);
+
+-- Employees table
+CREATE TABLE IF NOT EXISTS Employees (
+    EmployeeId INT AUTO_INCREMENT PRIMARY KEY,
+    BusinessId INT NOT NULL,
+    UserId INT NOT NULL,
+    Designation VARCHAR(100) NOT NULL,
+    Department VARCHAR(100) DEFAULT 'Pharmacy',
+    JoiningDate DATE NOT NULL,
+    Salary DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    EmploymentStatus ENUM('Active', 'Inactive', 'Terminated', 'On Leave') DEFAULT 'Active',
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_employee_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE,
+    CONSTRAINT fk_employee_user FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE CASCADE,
+    UNIQUE KEY unique_business_user (BusinessId, UserId),
+    INDEX idx_business_employee (BusinessId),
+    INDEX idx_employee_status (EmploymentStatus)
+);
+
+-- Salaries / Payroll table
+CREATE TABLE IF NOT EXISTS Salaries (
+    SalaryId INT AUTO_INCREMENT PRIMARY KEY,
+    BusinessId INT NOT NULL,
+    EmployeeId INT NOT NULL,
+    Month INT NOT NULL,
+    Year INT NOT NULL,
+    BasicSalary DECIMAL(10,2) NOT NULL,
+    Allowances DECIMAL(10,2) DEFAULT 0.00,
+    Deductions DECIMAL(10,2) DEFAULT 0.00,
+    NetSalary DECIMAL(10,2) NOT NULL,
+    PaymentStatus ENUM('Pending', 'Paid', 'Cancelled') DEFAULT 'Pending',
+    PaymentDate DATE NULL,
+    PaymentMethod VARCHAR(50) NULL,
+    Notes TEXT NULL,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_salary_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE,
+    CONSTRAINT fk_salary_employee FOREIGN KEY (EmployeeId) REFERENCES Employees(EmployeeId) ON DELETE CASCADE,
+    INDEX idx_business_salary (BusinessId),
+    INDEX idx_salary_employee (EmployeeId),
+    INDEX idx_salary_period (Year, Month),
+    INDEX idx_salary_status (PaymentStatus)
 );
 
 -- Business Settings table

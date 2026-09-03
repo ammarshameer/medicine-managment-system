@@ -12,6 +12,9 @@ const adminRoutes = require('./routes/admin');
 const categoryRoutes = require('./routes/categories');
 const prescriptionRoutes = require('./routes/prescriptions');
 const superAdminRoutes = require('./routes/super-admin');
+const vendorRoutes = require('./routes/vendors');
+const purchaseOrderRoutes = require('./routes/purchase-orders');
+const hrmsRoutes = require('./routes/hrms');
 
 const app = express();
 
@@ -20,14 +23,14 @@ app.use(helmet());
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://yourdomain.com'] 
-    : ['http://localhost:3001', 'http://localhost:19006'],
+    : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:19006'],
   credentials: true
 }));
 
-// Rate limiting
+// Rate limiting with default fallbacks
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW) * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX), // limit each IP to 100 requests per windowMs
+  windowMs: (parseInt(process.env.RATE_LIMIT_WINDOW, 10) || 15) * 60 * 1000, // 15 minutes
+  max: parseInt(process.env.RATE_LIMIT_MAX, 10) || 1000, // limit each IP per windowMs
   message: 'Too many requests from this IP, please try again later.'
 });
 app.use('/api/', limiter);
@@ -48,6 +51,9 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/prescriptions', prescriptionRoutes);
 app.use('/api/super-admin', superAdminRoutes);
+app.use('/api/vendors', vendorRoutes);
+app.use('/api/purchase-orders', purchaseOrderRoutes);
+app.use('/api/hrms', hrmsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

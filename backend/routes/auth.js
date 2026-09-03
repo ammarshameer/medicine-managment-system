@@ -195,9 +195,12 @@ router.post('/login', [
 
   } catch (error) {
     console.error('Login error:', error);
+    const isConnRefused = error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED');
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: isConnRefused
+        ? `Database connection refused (${error.address || 'localhost'}:${error.port || 3306}). Please verify MySQL server is installed and running.`
+        : (process.env.NODE_ENV === 'production' ? 'Internal server error' : (error.message || 'Internal server error'))
     });
   }
 });

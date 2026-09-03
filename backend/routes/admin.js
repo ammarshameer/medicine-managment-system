@@ -1,79 +1,153 @@
 const express = require('express');
 const { query, validationResult } = require('express-validator');
 const { query: dbQuery } = require('../config/database');
-const { authenticateToken, requireAdmin, requireSuperAdmin } = require('../middleware/auth');
+const { authenticateToken, requireTenant, requireBusinessAccess, requireBusinessOwner } = require('../middleware/auth');
 const router = express.Router();
 
-// Dashboard statistics
-router.get('/dashboard', authenticateToken, requireAdmin, async (req, res) => {
+/**
+ * GET /api/admin/dashboard
+ * Role-branched dashboard summary (tenant isolated):
+ * - STAFF: Operational metrics ONLY (no revenue, cost, profit)
+ * - BUSINESS_OWNER: Operational metrics + Revenue, Cost, Profit, Top Selling Revenue
+ */
+router.get('/dashboard', authenticateToken, requireTenant, requireBusinessAccess, async (req, res) => {
   try {
+    const businessId = req.user.businessId;
+    const isStaff = req.user.Role === 'STAFF';
     const stats = {};
 
-    // Total users
-    const totalUsers = await dbQuery('SELECT COUNT(*) as count FROM Users');
-    stats.totalUsers = totalUsers[0].count;
-
-    // Total orders
-    const totalOrders = await dbQuery('SELECT COUNT(*) as count FROM Orders');
+    // 1. Total Orders (tenant scoped)
+    const totalOrders = await dbQuery(
+      'SELECT COUNT(*) as count FROM Orders WHERE BusinessId = ?',
+      [businessId]
+    );
     stats.totalOrders = totalOrders[0].count;
 
-    // Total revenue
-    const revenue = await dbQuery('SELECT SUM(TotalAmount) as total FROM Orders WHERE Status = "Delivered"');
-    stats.totalRevenue = parseFloat(revenue[0].total) || 0;
+    // 2. Pending Orders
+    const pendingOrders = await dbQuery(
+      'SELECT COUNT(*) as count FROM Orders WHERE BusinessId = ? AND Status = "Pending"',
+      [businessId]
+    );
+    stats.pendingOrders = pendingOrders[0].count;
 
-    // Low stock medicines (stock < 10)
-    const lowStock = await dbQuery('SELECT COUNT(*) as count FROM Medicines WHERE Stock < 10 AND IsActive = TRUE');
+    // 3. Low stock medicines (stock < 10)
+    const lowStock = await dbQuery(
+      'SELECT COUNT(*) as count FROM Medicines WHERE BusinessId = ? AND Stock < 10 AND IsActive = TRUE',
+      [businessId]
+    );
     stats.lowStockMedicines = lowStock[0].count;
 
-    // Recent orders
-    const recentOrders = await dbQuery(`
-      SELECT o.OrderId, o.OrderDate, o.Status, o.TotalAmount, u.Name as UserName
-      FROM Orders o
-      JOIN Users u ON o.UserId = u.UserId
-      ORDER BY o.OrderDate DESC
-      LIMIT 5
-    `);
-    stats.recentOrders = recentOrders.map(order => ({
-      id: order.OrderId,
-      date: order.OrderDate,
-      status: order.Status,
-      amount: parseFloat(order.TotalAmount),
-      customer: order.UserName
-    }));
+    // 4. Pending Prescriptions
+    const pendingPrescriptions = await dbQuery(
+      'SELECT COUNT(*) as count FROM Prescriptions WHERE BusinessId = ? AND Status = "Pending"',
+      [businessId]
+    );
+    stats.pendingPrescriptions = pendingPrescriptions[0].count;
 
-    // Orders by status
-    const ordersByStatus = await dbQuery(`
-      SELECT Status, COUNT(*) as count
-      FROM Orders
-      GROUP BY Status
-    `);
+    // 5. Orders by status
+    const ordersByStatus = await dbQuery(
+      `SELECT Status, COUNT(*) as count
+       FROM Orders
+       WHERE BusinessId = ?
+       GROUP BY Status`,
+      [businessId]
+    );
     stats.ordersByStatus = ordersByStatus.reduce((acc, item) => {
       acc[item.Status] = item.count;
       return acc;
     }, {});
 
-    // Top selling medicines
-    const topMedicines = await dbQuery(`
-      SELECT m.MedicineId, m.Name, SUM(oi.Quantity) as totalSold
-      FROM Medicines m
-      JOIN OrderItems oi ON m.MedicineId = oi.MedicineId
-      JOIN Orders o ON oi.OrderId = o.OrderId
-      WHERE o.Status = 'Delivered'
-      GROUP BY m.MedicineId, m.Name
-      ORDER BY totalSold DESC
-      LIMIT 5
-    `);
-    stats.topMedicines = topMedicines.map(medicine => ({
-      id: medicine.MedicineId,
-      name: medicine.Name,
-      sold: medicine.totalSold
+    // 6. Recent orders
+    const recentOrders = await dbQuery(
+      `SELECT 
+        o.OrderId, o.OrderDate, o.Status, o.Source, o.TotalAmount, o.CustomerName,
+        u.Name as RegisteredUserName,
+        COUNT(oi.OrderItemId) as ItemCount
+       FROM Orders o
+       LEFT JOIN Users u ON o.UserId = u.UserId
+       LEFT JOIN OrderItems oi ON o.OrderId = oi.OrderId
+       WHERE o.BusinessId = ?
+       GROUP BY o.OrderId
+       ORDER BY o.OrderDate DESC
+       LIMIT 5`,
+      [businessId]
+    );
+
+    stats.recentOrders = recentOrders.map(order => ({
+      id: order.OrderId,
+      date: order.OrderDate,
+      status: order.Status,
+      source: order.Source || 'Online',
+      customer: order.CustomerName || order.RegisteredUserName || 'Walk-in Customer',
+      itemCount: parseInt(order.ItemCount, 10) || 0,
+      // Only include amount for Business Owners
+      ...(!isStaff && { amount: parseFloat(order.TotalAmount) || 0 })
     }));
+
+    // 7. FINANCIAL METRICS — Strictly for BUSINESS_OWNER
+    if (!isStaff) {
+      // Total delivered orders revenue
+      const revenueRes = await dbQuery(
+        'SELECT SUM(TotalAmount) as total FROM Orders WHERE BusinessId = ? AND Status = "Delivered"',
+        [businessId]
+      );
+      const totalRevenue = parseFloat(revenueRes[0].total) || 0;
+      stats.totalRevenue = Math.round(totalRevenue * 100) / 100;
+
+      // Total Cost of Goods Sold from delivered OrderItems
+      const costRes = await dbQuery(
+        `SELECT SUM(oi.CostPrice * oi.Quantity) as totalCost
+         FROM OrderItems oi
+         JOIN Orders o ON oi.OrderId = o.OrderId
+         WHERE o.BusinessId = ? AND o.Status = "Delivered"`,
+        [businessId]
+      );
+      const totalCost = parseFloat(costRes[0].totalCost) || 0;
+      stats.totalCost = Math.round(totalCost * 100) / 100;
+
+      // Net Profit
+      stats.totalProfit = Math.round((totalRevenue - totalCost) * 100) / 100;
+      stats.profitMargin = totalRevenue > 0 
+        ? Math.round(((stats.totalProfit / totalRevenue) * 100) * 10) / 10 
+        : 0;
+
+      // Top selling medicines with sales & revenue
+      const topMedicines = await dbQuery(
+        `SELECT 
+          m.MedicineId, m.Name, 
+          SUM(oi.Quantity) as totalSold, 
+          SUM(oi.Subtotal) as totalRevenue,
+          SUM((oi.Price - oi.CostPrice) * oi.Quantity) as totalProfit
+         FROM Medicines m
+         JOIN OrderItems oi ON m.MedicineId = oi.MedicineId
+         JOIN Orders o ON oi.OrderId = o.OrderId
+         WHERE o.BusinessId = ? AND o.Status = 'Delivered'
+         GROUP BY m.MedicineId, m.Name
+         ORDER BY totalSold DESC
+         LIMIT 5`,
+        [businessId]
+      );
+
+      stats.topMedicines = topMedicines.map(m => ({
+        id: m.MedicineId,
+        name: m.Name,
+        sold: parseInt(m.totalSold, 10) || 0,
+        revenue: Math.round((parseFloat(m.totalRevenue) || 0) * 100) / 100,
+        profit: Math.round((parseFloat(m.totalProfit) || 0) * 100) / 100
+      }));
+
+      // Total registered customers
+      const totalUsers = await dbQuery(
+        'SELECT COUNT(*) as count FROM Users WHERE BusinessId = ? AND Role = "CUSTOMER"',
+        [businessId]
+      );
+      stats.totalUsers = totalUsers[0].count;
+    }
 
     res.json({
       success: true,
       data: stats
     });
-
   } catch (error) {
     console.error('Dashboard error:', error);
     res.status(500).json({
@@ -83,12 +157,14 @@ router.get('/dashboard', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-// User management
-router.get('/users', authenticateToken, requireAdmin, [
-  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
-  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
-  query('role').optional().isIn(['Patient', 'Super Admin', 'Pharmacy Admin', 'Inventory Manager', 'Delivery Manager']).withMessage('Invalid role'),
-  query('search').optional().isLength({ min: 1 }).withMessage('Search term cannot be empty')
+/**
+ * GET /api/admin/dashboard/analytics
+ * Time series analytics (Revenue, Cost, Net Profit trends)
+ * Strictly BUSINESS_OWNER only (403 for Staff)
+ */
+router.get('/dashboard/analytics', authenticateToken, requireTenant, requireBusinessOwner, [
+  query('period').optional().isIn(['month', 'quarter', 'year']),
+  query('year').optional().isInt({ min: 2020, max: 2100 })
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -100,15 +176,193 @@ router.get('/users', authenticateToken, requireAdmin, [
       });
     }
 
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const businessId = req.user.businessId;
+    const period = req.query.period || 'month';
+    const targetYear = parseInt(req.query.year, 10) || new Date().getFullYear();
+
+    let series = [];
+    let currentTotals = { revenue: 0, cost: 0, profit: 0, ordersCount: 0 };
+
+    if (period === 'month') {
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      
+      const rows = await dbQuery(
+        `SELECT 
+          MONTH(o.OrderDate) as monthNum,
+          COUNT(DISTINCT o.OrderId) as ordersCount,
+          SUM(o.TotalAmount) as revenue,
+          SUM(oi.CostPrice * oi.Quantity) as cost
+         FROM Orders o
+         LEFT JOIN OrderItems oi ON o.OrderId = oi.OrderId
+         WHERE o.BusinessId = ? AND o.Status = 'Delivered' AND YEAR(o.OrderDate) = ?
+         GROUP BY MONTH(o.OrderDate)
+         ORDER BY monthNum ASC`,
+        [businessId, targetYear]
+      );
+
+      const rowsMap = {};
+      rows.forEach(r => {
+        rowsMap[r.monthNum] = r;
+      });
+
+      series = monthNames.map((name, idx) => {
+        const mNum = idx + 1;
+        const row = rowsMap[mNum];
+        const rev = row ? Math.round((parseFloat(row.revenue) || 0) * 100) / 100 : 0;
+        const cst = row ? Math.round((parseFloat(row.cost) || 0) * 100) / 100 : 0;
+        const prf = Math.round((rev - cst) * 100) / 100;
+        const cnt = row ? parseInt(row.ordersCount, 10) || 0 : 0;
+
+        currentTotals.revenue += rev;
+        currentTotals.cost += cst;
+        currentTotals.profit += prf;
+        currentTotals.ordersCount += cnt;
+
+        return {
+          label: `${name} ${targetYear}`,
+          shortLabel: name,
+          revenue: rev,
+          cost: cst,
+          profit: prf,
+          ordersCount: cnt
+        };
+      });
+    } else if (period === 'quarter') {
+      const rows = await dbQuery(
+        `SELECT 
+          QUARTER(o.OrderDate) as qNum,
+          COUNT(DISTINCT o.OrderId) as ordersCount,
+          SUM(o.TotalAmount) as revenue,
+          SUM(oi.CostPrice * oi.Quantity) as cost
+         FROM Orders o
+         LEFT JOIN OrderItems oi ON o.OrderId = oi.OrderId
+         WHERE o.BusinessId = ? AND o.Status = 'Delivered' AND YEAR(o.OrderDate) = ?
+         GROUP BY QUARTER(o.OrderDate)
+         ORDER BY qNum ASC`,
+        [businessId, targetYear]
+      );
+
+      const rowsMap = {};
+      rows.forEach(r => {
+        rowsMap[r.qNum] = r;
+      });
+
+      series = [1, 2, 3, 4].map(q => {
+        const row = rowsMap[q];
+        const rev = row ? Math.round((parseFloat(row.revenue) || 0) * 100) / 100 : 0;
+        const cst = row ? Math.round((parseFloat(row.cost) || 0) * 100) / 100 : 0;
+        const prf = Math.round((rev - cst) * 100) / 100;
+        const cnt = row ? parseInt(row.ordersCount, 10) || 0 : 0;
+
+        currentTotals.revenue += rev;
+        currentTotals.cost += cst;
+        currentTotals.profit += prf;
+        currentTotals.ordersCount += cnt;
+
+        return {
+          label: `Q${q} ${targetYear}`,
+          shortLabel: `Q${q}`,
+          revenue: rev,
+          cost: cst,
+          profit: prf,
+          ordersCount: cnt
+        };
+      });
+    } else if (period === 'year') {
+      const startYear = targetYear - 4;
+      const rows = await dbQuery(
+        `SELECT 
+          YEAR(o.OrderDate) as yr,
+          COUNT(DISTINCT o.OrderId) as ordersCount,
+          SUM(o.TotalAmount) as revenue,
+          SUM(oi.CostPrice * oi.Quantity) as cost
+         FROM Orders o
+         LEFT JOIN OrderItems oi ON o.OrderId = oi.OrderId
+         WHERE o.BusinessId = ? AND o.Status = 'Delivered' AND YEAR(o.OrderDate) BETWEEN ? AND ?
+         GROUP BY YEAR(o.OrderDate)
+         ORDER BY yr ASC`,
+        [businessId, startYear, targetYear]
+      );
+
+      const rowsMap = {};
+      rows.forEach(r => {
+        rowsMap[r.yr] = r;
+      });
+
+      for (let y = startYear; y <= targetYear; y++) {
+        const row = rowsMap[y];
+        const rev = row ? Math.round((parseFloat(row.revenue) || 0) * 100) / 100 : 0;
+        const cst = row ? Math.round((parseFloat(row.cost) || 0) * 100) / 100 : 0;
+        const prf = Math.round((rev - cst) * 100) / 100;
+        const cnt = row ? parseInt(row.ordersCount, 10) || 0 : 0;
+
+        currentTotals.revenue += rev;
+        currentTotals.cost += cst;
+        currentTotals.profit += prf;
+        currentTotals.ordersCount += cnt;
+
+        series.push({
+          label: `${y}`,
+          shortLabel: `${y}`,
+          revenue: rev,
+          cost: cst,
+          profit: prf,
+          ordersCount: cnt
+        });
+      }
+    }
+
+    currentTotals.revenue = Math.round(currentTotals.revenue * 100) / 100;
+    currentTotals.cost = Math.round(currentTotals.cost * 100) / 100;
+    currentTotals.profit = Math.round(currentTotals.profit * 100) / 100;
+
+    res.json({
+      success: true,
+      data: {
+        period,
+        year: targetYear,
+        totals: currentTotals,
+        series
+      }
+    });
+  } catch (error) {
+    console.error('Analytics error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch analytics'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/users
+ * User management (tenant scoped)
+ */
+router.get('/users', authenticateToken, requireTenant, requireBusinessOwner, [
+  query('page').optional().isInt({ min: 1 }),
+  query('limit').optional().isInt({ min: 1, max: 100 }),
+  query('role').optional().isIn(['CUSTOMER', 'STAFF', 'BUSINESS_OWNER']),
+  query('search').optional().isLength({ min: 1 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation errors',
+        errors: errors.array()
+      });
+    }
+
+    const businessId = req.user.businessId;
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 20;
     const offset = (page - 1) * limit;
     const role = req.query.role;
     const search = req.query.search;
 
-    // Build WHERE clause
-    let whereClause = 'WHERE 1=1';
-    const params = [];
+    let whereClause = 'WHERE BusinessId = ?';
+    const params = [businessId];
 
     if (role) {
       whereClause += ' AND Role = ?';
@@ -116,24 +370,25 @@ router.get('/users', authenticateToken, requireAdmin, [
     }
 
     if (search) {
-      whereClause += ' AND (Name LIKE ? OR Email LIKE ?)';
-      params.push(`%${search}%`, `%${search}%`);
+      whereClause += ' AND (Name LIKE ? OR Email LIKE ? OR Phone LIKE ?)';
+      const s = `%${search}%`;
+      params.push(s, s, s);
     }
 
-    // Get total count
-    const countQuery = `SELECT COUNT(*) as total FROM Users ${whereClause}`;
-    const countResult = await dbQuery(countQuery, params);
+    const countResult = await dbQuery(
+      `SELECT COUNT(*) as total FROM Users ${whereClause}`,
+      params
+    );
     const total = countResult[0].total;
 
-    // Get users
-    const usersQuery = `
-      SELECT UserId, Name, Email, Phone, Role, IsActive, CreatedAt
-      FROM Users 
-      ${whereClause}
-      ORDER BY CreatedAt DESC
-      LIMIT ? OFFSET ?
-    `;
-    const users = await dbQuery(usersQuery, [...params, limit, offset]);
+    const users = await dbQuery(
+      `SELECT UserId, Name, Email, Phone, Role, IsActive, CreatedAt
+       FROM Users 
+       ${whereClause}
+       ORDER BY CreatedAt DESC
+       LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
 
     res.json({
       success: true,
@@ -144,7 +399,7 @@ router.get('/users', authenticateToken, requireAdmin, [
           email: user.Email,
           phone: user.Phone,
           role: user.Role,
-          isActive: user.IsActive,
+          isActive: Boolean(user.IsActive),
           createdAt: user.CreatedAt
         })),
         pagination: {
@@ -155,7 +410,6 @@ router.get('/users', authenticateToken, requireAdmin, [
         }
       }
     });
-
   } catch (error) {
     console.error('Get users error:', error);
     res.status(500).json({
@@ -165,8 +419,11 @@ router.get('/users', authenticateToken, requireAdmin, [
   }
 });
 
-// Block/Unblock user
-router.patch('/users/:id/status', authenticateToken, requireAdmin, [
+/**
+ * PATCH /api/admin/users/:id/status
+ * Block/Unblock user in business
+ */
+router.patch('/users/:id/status', authenticateToken, requireTenant, requireBusinessOwner, [
   query('isActive').isBoolean().withMessage('IsActive must be boolean')
 ], async (req, res) => {
   try {
@@ -179,34 +436,38 @@ router.patch('/users/:id/status', authenticateToken, requireAdmin, [
       });
     }
 
-    const userId = req.params.id;
-    const { isActive } = req.query;
+    const businessId = req.user.businessId;
+    const userId = parseInt(req.params.id, 10);
+    const isActive = req.query.isActive === 'true';
 
-    // Check if user exists
-    const users = await dbQuery('SELECT UserId, Role FROM Users WHERE UserId = ?', [userId]);
+    const users = await dbQuery(
+      'SELECT UserId, Role FROM Users WHERE UserId = ? AND BusinessId = ?',
+      [userId, businessId]
+    );
+
     if (users.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: 'User not found in your business'
       });
     }
 
-    // Prevent blocking super admin (only super admin can do this)
-    if (users[0].Role === 'Super Admin' && req.user.Role !== 'Super Admin') {
-      return res.status(403).json({
+    if (users[0].Role === 'BUSINESS_OWNER' && userId === req.user.UserId) {
+      return res.status(400).json({
         success: false,
-        message: 'Cannot block super admin'
+        message: 'Cannot deactivate your own account'
       });
     }
 
-    // Update user status
-    await dbQuery('UPDATE Users SET IsActive = ?, UpdatedAt = CURRENT_TIMESTAMP WHERE UserId = ?', [isActive === 'true', userId]);
+    await dbQuery(
+      'UPDATE Users SET IsActive = ?, UpdatedAt = CURRENT_TIMESTAMP WHERE UserId = ? AND BusinessId = ?',
+      [isActive, userId, businessId]
+    );
 
     res.json({
       success: true,
-      message: `User ${isActive === 'true' ? 'unblocked' : 'blocked'} successfully`
+      message: `User ${isActive ? 'unblocked' : 'blocked'} successfully`
     });
-
   } catch (error) {
     console.error('Update user status error:', error);
     res.status(500).json({
@@ -216,12 +477,15 @@ router.patch('/users/:id/status', authenticateToken, requireAdmin, [
   }
 });
 
-// Inventory management
-router.get('/inventory', authenticateToken, requireAdmin, [
-  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
-  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
-  query('lowStock').optional().isBoolean().withMessage('Low stock must be boolean'),
-  query('search').optional().isLength({ min: 1 }).withMessage('Search term cannot be empty')
+/**
+ * GET /api/admin/inventory
+ * Inventory list with low stock filter
+ */
+router.get('/inventory', authenticateToken, requireTenant, requireBusinessAccess, [
+  query('page').optional().isInt({ min: 1 }),
+  query('limit').optional().isInt({ min: 1, max: 100 }),
+  query('lowStock').optional().isBoolean(),
+  query('search').optional().isString()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -233,15 +497,15 @@ router.get('/inventory', authenticateToken, requireAdmin, [
       });
     }
 
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const businessId = req.user.businessId;
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 20;
     const offset = (page - 1) * limit;
     const lowStock = req.query.lowStock === 'true';
     const search = req.query.search;
 
-    // Build WHERE clause
-    let whereClause = 'WHERE m.IsActive = TRUE';
-    const params = [];
+    let whereClause = 'WHERE m.BusinessId = ? AND m.IsActive = TRUE';
+    const params = [businessId];
 
     if (lowStock) {
       whereClause += ' AND m.Stock < 10';
@@ -252,21 +516,18 @@ router.get('/inventory', authenticateToken, requireAdmin, [
       params.push(`%${search}%`, `%${search}%`);
     }
 
-    // Get total count
-    const countQuery = `
-      SELECT COUNT(*) as total 
-      FROM Medicines m 
-      ${whereClause}
-    `;
-    const countResult = await dbQuery(countQuery, params);
+    const countResult = await dbQuery(
+      `SELECT COUNT(*) as total FROM Medicines m ${whereClause}`,
+      params
+    );
     const total = countResult[0].total;
 
-    // Get medicines with category
-    const medicinesQuery = `
-      SELECT 
+    const medicines = await dbQuery(
+      `SELECT 
         m.MedicineId,
         m.Name,
         m.Price,
+        m.AverageCost,
         m.Stock,
         m.ExpiryDate,
         m.Manufacturer,
@@ -275,21 +536,22 @@ router.get('/inventory', authenticateToken, requireAdmin, [
       LEFT JOIN Categories c ON m.CategoryId = c.CategoryId
       ${whereClause}
       ORDER BY m.Stock ASC, m.Name ASC
-      LIMIT ? OFFSET ?
-    `;
-    const medicines = await dbQuery(medicinesQuery, [...params, limit, offset]);
+      LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
 
     res.json({
       success: true,
       data: {
-        medicines: medicines.map(medicine => ({
-          id: medicine.MedicineId,
-          name: medicine.Name,
-          price: parseFloat(medicine.Price),
-          stock: medicine.Stock,
-          expiryDate: medicine.ExpiryDate,
-          manufacturer: medicine.Manufacturer,
-          category: medicine.CategoryName
+        medicines: medicines.map(m => ({
+          id: m.MedicineId,
+          name: m.Name,
+          price: parseFloat(m.Price),
+          averageCost: parseFloat(m.AverageCost) || 0,
+          stock: m.Stock,
+          expiryDate: m.ExpiryDate,
+          manufacturer: m.Manufacturer,
+          category: m.CategoryName
         })),
         pagination: {
           page,
@@ -299,7 +561,6 @@ router.get('/inventory', authenticateToken, requireAdmin, [
         }
       }
     });
-
   } catch (error) {
     console.error('Get inventory error:', error);
     res.status(500).json({
@@ -309,8 +570,11 @@ router.get('/inventory', authenticateToken, requireAdmin, [
   }
 });
 
-// Stock adjustment
-router.post('/inventory/adjust', authenticateToken, requireAdmin, [
+/**
+ * POST /api/admin/inventory/adjust
+ * Stock adjustment with inventory transaction logging
+ */
+router.post('/inventory/adjust', authenticateToken, requireTenant, requireBusinessAccess, [
   query('medicineId').isInt({ min: 1 }).withMessage('Invalid medicine ID'),
   query('quantity').isInt().withMessage('Quantity must be integer'),
   query('reason').trim().isLength({ min: 1 }).withMessage('Reason is required')
@@ -325,13 +589,17 @@ router.post('/inventory/adjust', authenticateToken, requireAdmin, [
       });
     }
 
-    const medicineId = parseInt(req.query.medicineId);
-    const quantity = parseInt(req.query.quantity);
+    const businessId = req.user.businessId;
+    const medicineId = parseInt(req.query.medicineId, 10);
+    const quantity = parseInt(req.query.quantity, 10);
     const reason = req.query.reason;
     const performedBy = req.user.UserId;
 
-    // Get current stock
-    const medicines = await dbQuery('SELECT MedicineId, Name, Stock FROM Medicines WHERE MedicineId = ?', [medicineId]);
+    const medicines = await dbQuery(
+      'SELECT MedicineId, Name, Stock FROM Medicines WHERE MedicineId = ? AND BusinessId = ?',
+      [medicineId, businessId]
+    );
+
     if (medicines.length === 0) {
       return res.status(404).json({
         success: false,
@@ -350,27 +618,18 @@ router.post('/inventory/adjust', authenticateToken, requireAdmin, [
       });
     }
 
-    // Determine transaction type
-    let transactionType;
-    if (quantity > 0) {
-      transactionType = 'Stock In';
-    } else if (quantity < 0) {
-      transactionType = 'Stock Out';
-    } else {
-      return res.status(400).json({
-        success: false,
-        message: 'Quantity cannot be zero'
-      });
-    }
+    const transactionType = quantity >= 0 ? 'Stock In' : 'Stock Out';
 
-    // Update medicine stock
-    await dbQuery('UPDATE Medicines SET Stock = ?, UpdatedAt = CURRENT_TIMESTAMP WHERE MedicineId = ?', [newStock, medicineId]);
+    await dbQuery(
+      'UPDATE Medicines SET Stock = ?, UpdatedAt = CURRENT_TIMESTAMP WHERE MedicineId = ? AND BusinessId = ?',
+      [newStock, medicineId, businessId]
+    );
 
-    // Record inventory transaction
-    await dbQuery(`
-      INSERT INTO InventoryTransactions (BusinessId, MedicineId, TransactionType, Quantity, PreviousStock, NewStock, Reason, PerformedBy)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `, [req.user.businessId, medicineId, transactionType, Math.abs(quantity), previousStock, newStock, reason, performedBy]);
+    await dbQuery(
+      `INSERT INTO InventoryTransactions (BusinessId, MedicineId, TransactionType, Quantity, PreviousStock, NewStock, Reason, PerformedBy)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [businessId, medicineId, transactionType, Math.abs(quantity), previousStock, newStock, reason, performedBy]
+    );
 
     res.json({
       success: true,
@@ -384,7 +643,6 @@ router.post('/inventory/adjust', authenticateToken, requireAdmin, [
         transactionType
       }
     });
-
   } catch (error) {
     console.error('Stock adjustment error:', error);
     res.status(500).json({
@@ -394,8 +652,11 @@ router.post('/inventory/adjust', authenticateToken, requireAdmin, [
   }
 });
 
-// Reports
-router.get('/reports/sales', authenticateToken, requireAdmin, [
+/**
+ * GET /api/admin/reports/sales
+ * Sales reporting strictly tenant scoped (BUSINESS_OWNER only)
+ */
+router.get('/reports/sales', authenticateToken, requireTenant, requireBusinessOwner, [
   query('startDate').isISO8601().withMessage('Invalid start date format'),
   query('endDate').isISO8601().withMessage('Invalid end date format')
 ], async (req, res) => {
@@ -409,41 +670,42 @@ router.get('/reports/sales', authenticateToken, requireAdmin, [
       });
     }
 
+    const businessId = req.user.businessId;
     const startDate = req.query.startDate;
     const endDate = req.query.endDate;
 
-    // Sales by date
-    const salesByDate = await dbQuery(`
-      SELECT DATE(OrderDate) as date, COUNT(*) as orders, SUM(TotalAmount) as revenue
-      FROM Orders
-      WHERE OrderDate BETWEEN ? AND ? AND Status = 'Delivered'
-      GROUP BY DATE(OrderDate)
-      ORDER BY date ASC
-    `, [startDate, endDate]);
+    const salesByDate = await dbQuery(
+      `SELECT DATE(OrderDate) as date, COUNT(*) as orders, SUM(TotalAmount) as revenue
+       FROM Orders
+       WHERE BusinessId = ? AND OrderDate BETWEEN ? AND ? AND Status = 'Delivered'
+       GROUP BY DATE(OrderDate)
+       ORDER BY date ASC`,
+      [businessId, startDate, endDate]
+    );
 
-    // Top medicines
-    const topMedicines = await dbQuery(`
-      SELECT m.MedicineId, m.Name, SUM(oi.Quantity) as totalSold, SUM(oi.Subtotal) as revenue
-      FROM Medicines m
-      JOIN OrderItems oi ON m.MedicineId = oi.MedicineId
-      JOIN Orders o ON oi.OrderId = o.OrderId
-      WHERE o.OrderDate BETWEEN ? AND ? AND o.Status = 'Delivered'
-      GROUP BY m.MedicineId, m.Name
-      ORDER BY totalSold DESC
-      LIMIT 10
-    `, [startDate, endDate]);
+    const topMedicines = await dbQuery(
+      `SELECT m.MedicineId, m.Name, SUM(oi.Quantity) as totalSold, SUM(oi.Subtotal) as revenue
+       FROM Medicines m
+       JOIN OrderItems oi ON m.MedicineId = oi.MedicineId
+       JOIN Orders o ON oi.OrderId = o.OrderId
+       WHERE o.BusinessId = ? AND o.OrderDate BETWEEN ? AND ? AND o.Status = 'Delivered'
+       GROUP BY m.MedicineId, m.Name
+       ORDER BY totalSold DESC
+       LIMIT 10`,
+      [businessId, startDate, endDate]
+    );
 
-    // Sales by category
-    const salesByCategory = await dbQuery(`
-      SELECT c.CategoryName, COUNT(oi.OrderItemId) as items, SUM(oi.Subtotal) as revenue
-      FROM Categories c
-      JOIN Medicines m ON c.CategoryId = m.CategoryId
-      JOIN OrderItems oi ON m.MedicineId = oi.MedicineId
-      JOIN Orders o ON oi.OrderId = o.OrderId
-      WHERE o.OrderDate BETWEEN ? AND ? AND o.Status = 'Delivered'
-      GROUP BY c.CategoryId, c.CategoryName
-      ORDER BY revenue DESC
-    `, [startDate, endDate]);
+    const salesByCategory = await dbQuery(
+      `SELECT c.CategoryName, COUNT(oi.OrderItemId) as items, SUM(oi.Subtotal) as revenue
+       FROM Categories c
+       JOIN Medicines m ON c.CategoryId = m.CategoryId
+       JOIN OrderItems oi ON m.MedicineId = oi.MedicineId
+       JOIN Orders o ON oi.OrderId = o.OrderId
+       WHERE o.BusinessId = ? AND o.OrderDate BETWEEN ? AND ? AND o.Status = 'Delivered'
+       GROUP BY c.CategoryId, c.CategoryName
+       ORDER BY revenue DESC`,
+      [businessId, startDate, endDate]
+    );
 
     res.json({
       success: true,
@@ -451,22 +713,21 @@ router.get('/reports/sales', authenticateToken, requireAdmin, [
         salesByDate: salesByDate.map(item => ({
           date: item.date,
           orders: item.orders,
-          revenue: parseFloat(item.revenue)
+          revenue: parseFloat(item.revenue) || 0
         })),
         topMedicines: topMedicines.map(item => ({
           id: item.MedicineId,
           name: item.Name,
-          sold: item.totalSold,
-          revenue: parseFloat(item.revenue)
+          sold: parseInt(item.totalSold, 10) || 0,
+          revenue: parseFloat(item.revenue) || 0
         })),
         salesByCategory: salesByCategory.map(item => ({
           category: item.CategoryName,
-          items: item.items,
-          revenue: parseFloat(item.revenue)
+          items: parseInt(item.items, 10) || 0,
+          revenue: parseFloat(item.revenue) || 0
         }))
       }
     });
-
   } catch (error) {
     console.error('Sales report error:', error);
     res.status(500).json({

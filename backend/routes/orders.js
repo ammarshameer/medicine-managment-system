@@ -1,11 +1,13 @@
 const express = require('express');
 const { body, query, validationResult } = require('express-validator');
-const { query: dbQuery } = require('../config/database');
+const { query: dbQuery, pool } = require('../config/database');
 const { authenticateToken, requireTenant, requireBusinessAccess, requireCustomer } = require('../middleware/auth');
-const { uploadSingle } = require('../middleware/upload');
 const router = express.Router();
 
-// Get user's orders (with tenant filtering)
+/**
+ * GET /api/orders/my-orders
+ * Customer view: Get logged-in user's orders
+ */
 router.get('/my-orders', authenticateToken, requireTenant, [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
@@ -21,14 +23,13 @@ router.get('/my-orders', authenticateToken, requireTenant, [
       });
     }
 
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
     const offset = (page - 1) * limit;
     const status = req.query.status;
     const userId = req.user.UserId;
     const businessId = req.user.businessId;
 
-    // Build WHERE clause with tenant filtering
     let whereClause = 'WHERE o.UserId = ? AND o.BusinessId = ?';
     const params = [userId, businessId];
 
@@ -37,38 +38,35 @@ router.get('/my-orders', authenticateToken, requireTenant, [
       params.push(status);
     }
 
-    // Get total count
-    const countQuery = `
-      SELECT COUNT(*) as total 
-      FROM Orders o 
-      ${whereClause}
-    `;
-    const countResult = await dbQuery(countQuery, params);
+    const countResult = await dbQuery(
+      `SELECT COUNT(*) as total FROM Orders o ${whereClause}`,
+      params
+    );
     const total = countResult[0].total;
 
-    // Get orders with items
-    const ordersQuery = `
+    const orders = await dbQuery(`
       SELECT 
         o.OrderId,
         o.BusinessId,
         o.OrderDate,
         o.Status,
+        o.Source,
         o.TotalAmount,
         o.DeliveryAddress,
         o.PaymentMethod,
         o.PaymentStatus,
         o.Notes,
+        o.ReorderedFromOrderId,
         p.PrescriptionId,
-        p.Status as PrescriptionStatus
+        p.Status as PrescriptionStatus,
+        p.ImagePath as PrescriptionImagePath
       FROM Orders o
       LEFT JOIN Prescriptions p ON o.PrescriptionId = p.PrescriptionId
       ${whereClause}
       ORDER BY o.OrderDate DESC
       LIMIT ? OFFSET ?
-    `;
-    const orders = await dbQuery(ordersQuery, [...params, limit, offset]);
+    `, [...params, limit, offset]);
 
-    // Get order items for each order
     const ordersWithItems = await Promise.all(orders.map(async (order) => {
       const items = await dbQuery(`
         SELECT 
@@ -89,25 +87,26 @@ router.get('/my-orders', authenticateToken, requireTenant, [
         businessId: order.BusinessId,
         orderDate: order.OrderDate,
         status: order.Status,
-        totalAmount: parseFloat(order.TotalAmount),
+        source: order.Source || 'Online',
+        totalAmount: parseFloat(order.TotalAmount) || 0,
         deliveryAddress: order.DeliveryAddress,
         paymentMethod: order.PaymentMethod,
         paymentStatus: order.PaymentStatus,
         notes: order.Notes,
+        reorderedFromOrderId: order.ReorderedFromOrderId,
         prescription: order.PrescriptionId ? {
           id: order.PrescriptionId,
-          status: order.PrescriptionStatus
+          status: order.PrescriptionStatus,
+          imagePath: order.PrescriptionImagePath
         } : null,
         items: items.map(item => ({
           id: item.OrderItemId,
+          medicineId: item.MedicineId,
+          name: item.MedicineName,
           quantity: item.Quantity,
           price: parseFloat(item.Price),
           subtotal: parseFloat(item.Subtotal),
-          medicine: {
-            id: item.MedicineId,
-            name: item.MedicineName,
-            imagePath: item.ImagePath
-          }
+          imagePath: item.ImagePath
         }))
       };
     }));
@@ -124,7 +123,6 @@ router.get('/my-orders', authenticateToken, requireTenant, [
         }
       }
     });
-
   } catch (error) {
     console.error('Get user orders error:', error);
     res.status(500).json({
@@ -134,15 +132,428 @@ router.get('/my-orders', authenticateToken, requireTenant, [
   }
 });
 
-// Create new order (with tenant isolation)
-router.post('/', authenticateToken, requireTenant, requireCustomer, [
-  body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
-  body('items.*.medicineId').isInt({ min: 1 }).withMessage('Invalid medicine ID'),
+/**
+ * POST /api/orders/pos
+ * Point of Sale (POS) checkout for walk-in counter sales
+ * Guarded explicitly by requireBusinessAccess (both STAFF and BUSINESS_OWNER)
+ */
+router.post('/pos', authenticateToken, requireTenant, requireBusinessAccess, [
+  body('items').isArray({ min: 1 }).withMessage('At least one item is required in cart'),
+  body('items.*.medicineId').isInt({ min: 1 }).withMessage('Valid medicine ID is required'),
   body('items.*.quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
-  body('deliveryAddress').trim().isLength({ min: 5 }).withMessage('Delivery address is required'),
-  body('paymentMethod').isIn(['Cash on Delivery', 'Credit Card', 'Bank Transfer', 'JazzCash', 'EasyPaisa']).withMessage('Invalid payment method'),
-  body('prescriptionId').optional().isInt().withMessage('Invalid prescription ID'),
-  body('notes').optional().trim().isLength({ max: 500 }).withMessage('Notes too long')
+  body('paymentMethod').optional().isIn(['Cash', 'Credit Card', 'Debit Card', 'JazzCash', 'EasyPaisa', 'Bank Transfer', 'Cash on Delivery']),
+  body('customerName').optional().trim(),
+  body('customerPhone').optional().trim(),
+  body('userId').optional().isInt().withMessage('Valid user ID if provided'),
+  body('notes').optional().trim()
+], async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      connection.release();
+      return res.status(400).json({
+        success: false,
+        message: 'Validation errors',
+        errors: errors.array()
+      });
+    }
+
+    const businessId = req.user.businessId;
+    const staffUserId = req.user.UserId;
+    const {
+      items,
+      paymentMethod = 'Cash',
+      customerName = 'Walk-in Customer',
+      customerPhone = null,
+      userId = null,
+      notes = null
+    } = req.body;
+
+    await connection.beginTransaction();
+
+    // 1. Fetch medicines with lock FOR UPDATE
+    const medicineIds = items.map(i => i.medicineId);
+    const [medicines] = await connection.query(
+      `SELECT MedicineId, Name, Price, AverageCost, Stock, IsActive 
+       FROM Medicines 
+       WHERE BusinessId = ? AND MedicineId IN (?)
+       FOR UPDATE`,
+      [businessId, medicineIds]
+    );
+
+    if (medicines.length !== medicineIds.length) {
+      await connection.rollback();
+      connection.release();
+      return res.status(400).json({
+        success: false,
+        message: 'One or more medicines could not be found in your business'
+      });
+    }
+
+    let totalAmount = 0;
+    const lineItemsToInsert = [];
+
+    // 2. Validate stock and compute totals
+    for (const item of items) {
+      const med = medicines.find(m => m.MedicineId === item.medicineId);
+      if (!med.IsActive) {
+        await connection.rollback();
+        connection.release();
+        return res.status(400).json({
+          success: false,
+          message: `Medicine "${med.Name}" is currently deactivated`
+        });
+      }
+
+      const reqQty = parseInt(item.quantity, 10);
+      const currentStock = parseInt(med.Stock, 10) || 0;
+      if (currentStock < reqQty) {
+        await connection.rollback();
+        connection.release();
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient stock for "${med.Name}". Available: ${currentStock}, Requested: ${reqQty}`
+        });
+      }
+
+      const retailPrice = parseFloat(med.Price);
+      const costPrice = parseFloat(med.AverageCost) || 0;
+      const subtotal = Math.round(retailPrice * reqQty * 100) / 100;
+      totalAmount += subtotal;
+
+      lineItemsToInsert.push({
+        medicineId: med.MedicineId,
+        medicineName: med.Name,
+        quantity: reqQty,
+        price: retailPrice,
+        costPrice: costPrice,
+        subtotal: subtotal,
+        currentStock: currentStock,
+        newStock: currentStock - reqQty
+      });
+    }
+
+    totalAmount = Math.round(totalAmount * 100) / 100;
+
+    // 3. Create Orders record (Source = 'POS', Status = 'Delivered', PaymentStatus = 'Paid')
+    const [orderResult] = await connection.query(
+      `INSERT INTO Orders 
+       (BusinessId, UserId, Status, Source, TotalAmount, DeliveryAddress, CustomerName, CustomerPhone, PaymentMethod, PaymentStatus, CreatedBy, Notes)
+       VALUES (?, ?, 'Delivered', 'POS', ?, 'Counter Sale (POS)', ?, ?, ?, 'Paid', ?, ?)`,
+      [
+        businessId,
+        userId || null,
+        totalAmount,
+        customerName || 'Walk-in Customer',
+        customerPhone || null,
+        paymentMethod,
+        staffUserId,
+        notes
+      ]
+    );
+
+    const orderId = orderResult.insertId;
+
+    // 4. Insert OrderItems and update stock + log InventoryTransactions
+    for (const line of lineItemsToInsert) {
+      await connection.query(
+        `INSERT INTO OrderItems (BusinessId, OrderId, MedicineId, Quantity, Price, CostPrice, Subtotal)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [businessId, orderId, line.medicineId, line.quantity, line.price, line.costPrice, line.subtotal]
+      );
+
+      // Deduct stock
+      await connection.query(
+        `UPDATE Medicines SET Stock = ?, UpdatedAt = CURRENT_TIMESTAMP WHERE MedicineId = ? AND BusinessId = ?`,
+        [line.newStock, line.medicineId, businessId]
+      );
+
+      // Log inventory transaction
+      await connection.query(
+        `INSERT INTO InventoryTransactions 
+         (BusinessId, MedicineId, TransactionType, Quantity, PreviousStock, NewStock, Reason, PerformedBy)
+         VALUES (?, ?, 'Stock Out', ?, ?, ?, ?, ?)`,
+        [
+          businessId,
+          line.medicineId,
+          line.quantity,
+          line.currentStock,
+          line.newStock,
+          `POS Sale #${orderId} (${customerName})`,
+          staffUserId
+        ]
+      );
+    }
+
+    // 5. Fetch Business info for receipt header
+    const [businesses] = await connection.query(
+      `SELECT BusinessName, Phone, Email, Address, City, State FROM Businesses WHERE BusinessId = ?`,
+      [businessId]
+    );
+
+    await connection.commit();
+    connection.release();
+
+    const business = businesses[0] || {};
+
+    res.status(201).json({
+      success: true,
+      message: 'POS checkout completed successfully',
+      data: {
+        orderId,
+        orderNumber: `POS-${orderId}`,
+        orderDate: new Date().toISOString(),
+        source: 'POS',
+        status: 'Delivered',
+        paymentStatus: 'Paid',
+        paymentMethod,
+        totalAmount,
+        customer: {
+          name: customerName,
+          phone: customerPhone,
+          userId: userId || null
+        },
+        cashier: {
+          id: req.user.UserId,
+          name: req.user.Name
+        },
+        business: {
+          name: business.BusinessName,
+          phone: business.Phone,
+          email: business.Email,
+          address: `${business.Address || ''}, ${business.City || ''}`.trim()
+        },
+        items: lineItemsToInsert.map(i => ({
+          medicineId: i.medicineId,
+          name: i.medicineName,
+          quantity: i.quantity,
+          price: i.price,
+          subtotal: i.subtotal
+        }))
+      }
+    });
+  } catch (error) {
+    await connection.rollback();
+    connection.release();
+    console.error('POS Checkout error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to complete POS checkout'
+    });
+  }
+});
+
+/**
+ * POST /api/orders
+ * Customer online order creation (supports catalog items or prescription-only orders, reordering)
+ */
+router.post('/', authenticateToken, requireTenant, requireCustomer, [
+  body('items').optional().isArray(),
+  body('deliveryAddress').trim().isLength({ min: 3 }).withMessage('Delivery address is required'),
+  body('paymentMethod').optional().isIn(['Cash on Delivery', 'Credit Card', 'Bank Transfer', 'JazzCash', 'EasyPaisa', 'Cash']),
+  body('prescriptionId').optional().isInt(),
+  body('reorderedFromOrderId').optional().isInt(),
+  body('notes').optional().trim()
+], async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      connection.release();
+      return res.status(400).json({
+        success: false,
+        message: 'Validation errors',
+        errors: errors.array()
+      });
+    }
+
+    const {
+      items = [],
+      deliveryAddress,
+      paymentMethod = 'Cash on Delivery',
+      prescriptionId = null,
+      reorderedFromOrderId = null,
+      notes = null
+    } = req.body;
+
+    const userId = req.user.UserId;
+    const businessId = req.user.businessId;
+
+    if (items.length === 0 && !prescriptionId) {
+      connection.release();
+      return res.status(400).json({
+        success: false,
+        message: 'Order must contain either items or an approved prescription'
+      });
+    }
+
+    await connection.beginTransaction();
+
+    let totalAmount = 0;
+    const orderItems = [];
+
+    if (items.length > 0) {
+      const medicineIds = items.map(item => item.medicineId);
+      const [medicines] = await connection.query(
+        `SELECT MedicineId, BusinessId, Name, Price, AverageCost, Stock, RequiresPrescription, IsActive
+         FROM Medicines 
+         WHERE MedicineId IN (?) AND BusinessId = ?
+         FOR UPDATE`,
+        [medicineIds, businessId]
+      );
+
+      if (medicines.length !== medicineIds.length) {
+        await connection.rollback();
+        connection.release();
+        return res.status(400).json({
+          success: false,
+          message: 'One or more selected medicines could not be found'
+        });
+      }
+
+      for (const item of items) {
+        const medicine = medicines.find(m => m.MedicineId === item.medicineId);
+        if (!medicine.IsActive) {
+          await connection.rollback();
+          connection.release();
+          return res.status(400).json({
+            success: false,
+            message: `Medicine "${medicine.Name}" is currently unavailable`
+          });
+        }
+
+        const qty = parseInt(item.quantity, 10);
+        const currentStock = parseInt(medicine.Stock, 10) || 0;
+        if (currentStock < qty) {
+          await connection.rollback();
+          connection.release();
+          return res.status(400).json({
+            success: false,
+            message: `Insufficient stock for "${medicine.Name}". Available: ${currentStock}`
+          });
+        }
+
+        if (medicine.RequiresPrescription && !prescriptionId) {
+          await connection.rollback();
+          connection.release();
+          return res.status(400).json({
+            success: false,
+            message: `Prescription required for "${medicine.Name}"`
+          });
+        }
+
+        const subtotal = Math.round(parseFloat(medicine.Price) * qty * 100) / 100;
+        totalAmount += subtotal;
+
+        orderItems.push({
+          medicineId: item.medicineId,
+          medicineName: medicine.Name,
+          quantity: qty,
+          price: parseFloat(medicine.Price),
+          costPrice: parseFloat(medicine.AverageCost) || 0,
+          subtotal,
+          currentStock,
+          newStock: currentStock - qty
+        });
+      }
+    }
+
+    // Verify prescription if provided
+    if (prescriptionId) {
+      const [prescriptions] = await connection.query(
+        `SELECT PrescriptionId, Status FROM Prescriptions 
+         WHERE PrescriptionId = ? AND UserId = ? AND BusinessId = ?`,
+        [prescriptionId, userId, businessId]
+      );
+
+      if (prescriptions.length === 0) {
+        await connection.rollback();
+        connection.release();
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid prescription selected'
+        });
+      }
+    }
+
+    // Insert Order
+    const [orderResult] = await connection.query(
+      `INSERT INTO Orders 
+       (BusinessId, UserId, Status, Source, TotalAmount, DeliveryAddress, PaymentMethod, PaymentStatus, PrescriptionId, ReorderedFromOrderId, Notes)
+       VALUES (?, ?, 'Pending', 'Online', ?, ?, ?, 'Pending', ?, ?, ?)`,
+      [businessId, userId, totalAmount, deliveryAddress, paymentMethod, prescriptionId || null, reorderedFromOrderId || null, notes]
+    );
+
+    const orderId = orderResult.insertId;
+
+    // Insert OrderItems and deduct stock
+    for (const item of orderItems) {
+      await connection.query(
+        `INSERT INTO OrderItems (BusinessId, OrderId, MedicineId, Quantity, Price, CostPrice, Subtotal)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [businessId, orderId, item.medicineId, item.quantity, item.price, item.costPrice, item.subtotal]
+      );
+
+      await connection.query(
+        `UPDATE Medicines SET Stock = ?, UpdatedAt = CURRENT_TIMESTAMP WHERE MedicineId = ? AND BusinessId = ?`,
+        [item.newStock, item.medicineId, businessId]
+      );
+
+      await connection.query(
+        `INSERT INTO InventoryTransactions 
+         (BusinessId, MedicineId, TransactionType, Quantity, PreviousStock, NewStock, Reason, PerformedBy)
+         VALUES (?, ?, 'Stock Out', ?, ?, ?, ?, ?)`,
+        [
+          businessId,
+          item.medicineId,
+          item.quantity,
+          item.currentStock,
+          item.newStock,
+          `Online Order #${orderId}`,
+          userId
+        ]
+      );
+    }
+
+    await connection.commit();
+    connection.release();
+
+    res.status(201).json({
+      success: true,
+      message: 'Order placed successfully',
+      data: {
+        id: orderId,
+        orderNumber: `#${orderId}`,
+        totalAmount,
+        status: 'Pending',
+        source: 'Online',
+        itemsCount: orderItems.length,
+        prescriptionId: prescriptionId || null,
+        reorderedFromOrderId: reorderedFromOrderId || null
+      }
+    });
+  } catch (error) {
+    await connection.rollback();
+    connection.release();
+    console.error('Create order error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Internal server error'
+    });
+  }
+});
+
+/**
+ * GET /api/orders/admin/all
+ * Staff & Business Owner: List orders with filters (Source, Status, Search)
+ */
+router.get('/admin/all', authenticateToken, requireTenant, requireBusinessAccess, [
+  query('page').optional().isInt({ min: 1 }),
+  query('limit').optional().isInt({ min: 1, max: 100 }),
+  query('status').optional().isIn(['Pending', 'Approved', 'Dispatched', 'Delivered', 'Cancelled', 'all']),
+  query('source').optional().isIn(['Online', 'POS', 'all']),
+  query('search').optional().isString()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -154,174 +565,117 @@ router.post('/', authenticateToken, requireTenant, requireCustomer, [
       });
     }
 
-    const { items, deliveryAddress, paymentMethod, prescriptionId, notes } = req.body;
-    const userId = req.user.UserId;
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 20;
+    const offset = (page - 1) * limit;
+    const status = req.query.status;
+    const source = req.query.source;
+    const search = req.query.search;
     const businessId = req.user.businessId;
 
-    if (!businessId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Business ID is required'
-      });
+    let whereClause = 'WHERE o.BusinessId = ?';
+    const params = [businessId];
+
+    if (status && status !== 'all') {
+      whereClause += ' AND o.Status = ?';
+      params.push(status);
     }
 
-    // Verify all medicines exist and have sufficient stock (with tenant filtering)
-    const medicineIds = items.map(item => item.medicineId);
-    const medicines = await dbQuery(`
-      SELECT MedicineId, BusinessId, Name, Price, Stock, RequiresPrescription, IsActive
-      FROM Medicines 
-      WHERE MedicineId IN (${medicineIds.map(() => '?').join(',')}) AND BusinessId = ?
-    `, [...medicineIds, businessId]);
-
-    if (medicines.length !== medicineIds.length) {
-      return res.status(400).json({
-        success: false,
-        message: 'One or more medicines not found'
-      });
+    if (source && source !== 'all') {
+      whereClause += ' AND o.Source = ?';
+      params.push(source);
     }
 
-    // Check stock availability and prescription requirements
-    let totalAmount = 0;
-    const orderItems = [];
-
-    for (const item of items) {
-      const medicine = medicines.find(m => m.MedicineId === item.medicineId);
-      
-      if (!medicine.IsActive) {
-        return res.status(400).json({
-          success: false,
-          message: `Medicine "${medicine.Name}" is not available`
-        });
-      }
-
-      if (medicine.Stock < item.quantity) {
-        return res.status(400).json({
-          success: false,
-          message: `Insufficient stock for "${medicine.Name}". Available: ${medicine.Stock}`
-        });
-      }
-
-      if (medicine.RequiresPrescription && !prescriptionId) {
-        return res.status(400).json({
-          success: false,
-          message: `Prescription required for "${medicine.Name}"`
-        });
-      }
-
-      const subtotal = parseFloat(medicine.Price) * item.quantity;
-      totalAmount += subtotal;
-
-      orderItems.push({
-        medicineId: item.medicineId,
-        quantity: item.quantity,
-        price: parseFloat(medicine.Price),
-        subtotal
-      });
+    if (search) {
+      whereClause += ' AND (o.OrderId = ? OR o.CustomerName LIKE ? OR o.CustomerPhone LIKE ? OR u.Name LIKE ? OR u.Email LIKE ?)';
+      const searchNum = parseInt(search, 10) || 0;
+      const searchLike = `%${search}%`;
+      params.push(searchNum, searchLike, searchLike, searchLike, searchLike);
     }
 
-    // Verify prescription if provided (with tenant filtering)
-    if (prescriptionId) {
-      const prescriptions = await dbQuery(`
-        SELECT PrescriptionId, Status 
-        FROM Prescriptions 
-        WHERE PrescriptionId = ? AND UserId = ? AND BusinessId = ?
-      `, [prescriptionId, userId, businessId]);
+    const countResult = await dbQuery(
+      `SELECT COUNT(*) as total 
+       FROM Orders o
+       LEFT JOIN Users u ON o.UserId = u.UserId
+       ${whereClause}`,
+      params
+    );
+    const total = countResult[0].total;
 
-      if (prescriptions.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid prescription'
-        });
-      }
-
-      if (prescriptions[0].Status !== 'Approved') {
-        return res.status(400).json({
-          success: false,
-          message: 'Prescription must be approved before placing order'
-        });
-      }
-    }
-
-    // Create order with businessId
-    const orderResult = await dbQuery(`
-      INSERT INTO Orders (BusinessId, UserId, TotalAmount, DeliveryAddress, PaymentMethod, PrescriptionId, Notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [businessId, userId, totalAmount, deliveryAddress, paymentMethod, prescriptionId || null, notes || null]);
-
-    const orderId = orderResult.insertId;
-
-    // Create order items with businessId
-    for (const item of orderItems) {
-      await dbQuery(`
-        INSERT INTO OrderItems (BusinessId, OrderId, MedicineId, Quantity, Price, Subtotal)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `, [businessId, orderId, item.medicineId, item.quantity, item.price, item.subtotal]);
-
-      // Update medicine stock
-      await dbQuery(`
-        UPDATE Medicines 
-        SET Stock = Stock - ?, UpdatedAt = CURRENT_TIMESTAMP 
-        WHERE MedicineId = ?
-      `, [item.quantity, item.medicineId]);
-    }
-
-    // Get created order with items
-    const createdOrder = await dbQuery(`
+    const orders = await dbQuery(`
       SELECT 
         o.OrderId,
+        o.BusinessId,
         o.OrderDate,
         o.Status,
+        o.Source,
         o.TotalAmount,
         o.DeliveryAddress,
+        o.CustomerName,
+        o.CustomerPhone,
         o.PaymentMethod,
         o.PaymentStatus,
-        o.Notes
+        o.Notes,
+        o.CreatedBy,
+        o.ReorderedFromOrderId,
+        u.UserId,
+        u.Name as RegisteredUserName,
+        u.Email as RegisteredUserEmail,
+        creator.Name as CreatorName,
+        p.PrescriptionId,
+        p.Status as PrescriptionStatus,
+        COUNT(oi.OrderItemId) as ItemCount
       FROM Orders o
-      WHERE o.OrderId = ?
-    `, [orderId]);
+      LEFT JOIN Users u ON o.UserId = u.UserId
+      LEFT JOIN Users creator ON o.CreatedBy = creator.UserId
+      LEFT JOIN Prescriptions p ON o.PrescriptionId = p.PrescriptionId
+      LEFT JOIN OrderItems oi ON o.OrderId = oi.OrderId
+      ${whereClause}
+      GROUP BY o.OrderId
+      ORDER BY o.OrderDate DESC
+      LIMIT ? OFFSET ?
+    `, [...params, limit, offset]);
 
-    const orderItemsResult = await dbQuery(`
-      SELECT 
-        oi.OrderItemId,
-        oi.Quantity,
-        oi.Price,
-        oi.Subtotal,
-        m.MedicineId,
-        m.Name as MedicineName,
-        m.ImagePath
-      FROM OrderItems oi
-      JOIN Medicines m ON oi.MedicineId = m.MedicineId
-      WHERE oi.OrderId = ?
-    `, [orderId]);
-
-    res.status(201).json({
+    res.json({
       success: true,
-      message: 'Order placed successfully',
       data: {
-        id: createdOrder[0].OrderId,
-        orderDate: createdOrder[0].OrderDate,
-        status: createdOrder[0].Status,
-        totalAmount: parseFloat(createdOrder[0].TotalAmount),
-        deliveryAddress: createdOrder[0].DeliveryAddress,
-        paymentMethod: createdOrder[0].PaymentMethod,
-        paymentStatus: createdOrder[0].PaymentStatus,
-        notes: createdOrder[0].Notes,
-        items: orderItemsResult.map(item => ({
-          id: item.OrderItemId,
-          quantity: item.Quantity,
-          price: parseFloat(item.Price),
-          subtotal: parseFloat(item.Subtotal),
-          medicine: {
-            id: item.MedicineId,
-            name: item.MedicineName,
-            imagePath: item.ImagePath
-          }
-        }))
+        orders: orders.map(order => ({
+          id: order.OrderId,
+          businessId: order.BusinessId,
+          orderDate: order.OrderDate,
+          status: order.Status,
+          source: order.Source || 'Online',
+          totalAmount: parseFloat(order.TotalAmount) || 0,
+          deliveryAddress: order.DeliveryAddress,
+          customerName: order.CustomerName || order.RegisteredUserName || 'Walk-in Customer',
+          customerPhone: order.CustomerPhone,
+          paymentMethod: order.PaymentMethod,
+          paymentStatus: order.PaymentStatus,
+          notes: order.Notes,
+          itemCount: parseInt(order.ItemCount, 10) || 0,
+          createdBy: order.CreatedBy,
+          creatorName: order.CreatorName,
+          reorderedFromOrderId: order.ReorderedFromOrderId,
+          user: order.UserId ? {
+            id: order.UserId,
+            name: order.RegisteredUserName,
+            email: order.RegisteredUserEmail
+          } : null,
+          prescription: order.PrescriptionId ? {
+            id: order.PrescriptionId,
+            status: order.PrescriptionStatus
+          } : null
+        })),
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit)
+        }
       }
     });
-
   } catch (error) {
-    console.error('Create order error:', error);
+    console.error('Get all orders error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -329,18 +683,19 @@ router.post('/', authenticateToken, requireTenant, requireCustomer, [
   }
 });
 
-// Get single order by ID (with tenant filtering)
+/**
+ * GET /api/orders/:id
+ * Get single order details
+ */
 router.get('/:id', authenticateToken, requireTenant, async (req, res) => {
   try {
-    const orderId = req.params.id;
+    const orderId = parseInt(req.params.id, 10);
     const userId = req.user.UserId;
     const businessId = req.user.businessId;
 
-    // Get order with tenant filtering
     let whereClause = 'WHERE o.OrderId = ?';
     const params = [orderId];
 
-    // Customers can only see their own orders, business owners can see orders from their business
     if (req.user.Role === 'CUSTOMER') {
       whereClause += ' AND o.UserId = ?';
       params.push(userId);
@@ -356,15 +711,26 @@ router.get('/:id', authenticateToken, requireTenant, async (req, res) => {
         o.BusinessId,
         o.OrderDate,
         o.Status,
+        o.Source,
         o.TotalAmount,
         o.DeliveryAddress,
+        o.CustomerName,
+        o.CustomerPhone,
         o.PaymentMethod,
         o.PaymentStatus,
         o.Notes,
         o.UserId,
+        o.CreatedBy,
+        o.ReorderedFromOrderId,
+        u.Name as RegisteredUserName,
+        u.Email as RegisteredUserEmail,
+        creator.Name as CreatorName,
         p.PrescriptionId,
-        p.Status as PrescriptionStatus
+        p.Status as PrescriptionStatus,
+        p.ImagePath as PrescriptionImagePath
       FROM Orders o
+      LEFT JOIN Users u ON o.UserId = u.UserId
+      LEFT JOIN Users creator ON o.CreatedBy = creator.UserId
       LEFT JOIN Prescriptions p ON o.PrescriptionId = p.PrescriptionId
       ${whereClause}
     `, params);
@@ -378,12 +744,12 @@ router.get('/:id', authenticateToken, requireTenant, async (req, res) => {
 
     const order = orders[0];
 
-    // Get order items
     const items = await dbQuery(`
       SELECT 
         oi.OrderItemId,
         oi.Quantity,
         oi.Price,
+        oi.CostPrice,
         oi.Subtotal,
         m.MedicineId,
         m.Name as MedicineName,
@@ -400,29 +766,38 @@ router.get('/:id', authenticateToken, requireTenant, async (req, res) => {
         businessId: order.BusinessId,
         orderDate: order.OrderDate,
         status: order.Status,
-        totalAmount: parseFloat(order.TotalAmount),
+        source: order.Source || 'Online',
+        totalAmount: parseFloat(order.TotalAmount) || 0,
         deliveryAddress: order.DeliveryAddress,
+        customerName: order.CustomerName || order.RegisteredUserName || 'Walk-in Customer',
+        customerPhone: order.CustomerPhone,
         paymentMethod: order.PaymentMethod,
         paymentStatus: order.PaymentStatus,
         notes: order.Notes,
+        createdBy: order.CreatedBy,
+        creatorName: order.CreatorName,
+        reorderedFromOrderId: order.ReorderedFromOrderId,
+        user: order.UserId ? {
+          id: order.UserId,
+          name: order.RegisteredUserName,
+          email: order.RegisteredUserEmail
+        } : null,
         prescription: order.PrescriptionId ? {
           id: order.PrescriptionId,
-          status: order.PrescriptionStatus
+          status: order.PrescriptionStatus,
+          imagePath: order.PrescriptionImagePath
         } : null,
         items: items.map(item => ({
           id: item.OrderItemId,
+          medicineId: item.MedicineId,
+          name: item.MedicineName,
           quantity: item.Quantity,
           price: parseFloat(item.Price),
           subtotal: parseFloat(item.Subtotal),
-          medicine: {
-            id: item.MedicineId,
-            name: item.MedicineName,
-            imagePath: item.ImagePath
-          }
+          imagePath: item.ImagePath
         }))
       }
     });
-
   } catch (error) {
     console.error('Get order error:', error);
     res.status(500).json({
@@ -432,189 +807,10 @@ router.get('/:id', authenticateToken, requireTenant, async (req, res) => {
   }
 });
 
-// Cancel order (with tenant filtering)
-router.patch('/:id/cancel', authenticateToken, requireTenant, async (req, res) => {
-  try {
-    const orderId = req.params.id;
-    const userId = req.user.UserId;
-    const businessId = req.user.businessId;
-
-    // Get order with tenant filtering
-    let whereClause = 'WHERE OrderId = ?';
-    const params = [orderId];
-
-    if (req.user.Role === 'CUSTOMER') {
-      whereClause += ' AND UserId = ?';
-      params.push(userId);
-    }
-    if (req.user.Role !== 'SUPER_ADMIN') {
-      whereClause += ' AND BusinessId = ?';
-      params.push(businessId);
-    }
-
-    const orders = await dbQuery(`SELECT OrderId, Status, UserId, BusinessId FROM Orders ${whereClause}`, params);
-    if (orders.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Order not found'
-      });
-    }
-
-    const order = orders[0];
-
-    // Check if order can be cancelled
-    if (order.Status === 'Delivered' || order.Status === 'Cancelled') {
-      return res.status(400).json({
-        success: false,
-        message: 'Order cannot be cancelled'
-      });
-    }
-
-    // Update order status
-    await dbQuery('UPDATE Orders SET Status = ?, UpdatedAt = CURRENT_TIMESTAMP WHERE OrderId = ?', ['Cancelled', orderId]);
-
-    // Restore stock for cancelled order
-    const orderItems = await dbQuery('SELECT MedicineId, Quantity FROM OrderItems WHERE OrderId = ?', [orderId]);
-    for (const item of orderItems) {
-      await dbQuery('UPDATE Medicines SET Stock = Stock + ?, UpdatedAt = CURRENT_TIMESTAMP WHERE MedicineId = ?', [item.Quantity, item.MedicineId]);
-    }
-
-    res.json({
-      success: true,
-      message: 'Order cancelled successfully'
-    });
-
-  } catch (error) {
-    console.error('Cancel order error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
-  }
-});
-
-// Get all orders (business owner/staff only with tenant filtering)
-router.get('/admin/all', authenticateToken, requireTenant, requireBusinessAccess, [
-  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
-  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
-  query('status').optional().isIn(['Pending', 'Approved', 'Dispatched', 'Delivered', 'Cancelled']).withMessage('Invalid status'),
-  query('userId').optional().isInt().withMessage('Invalid user ID')
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation errors',
-        errors: errors.array()
-      });
-    }
-
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const offset = (page - 1) * limit;
-    const status = req.query.status;
-    const userId = req.query.userId;
-    const businessId = req.user.Role === 'SUPER_ADMIN' 
-      ? (req.body.businessId || req.user.businessId) 
-      : req.user.businessId;
-
-    // Build WHERE clause with tenant filtering
-    let whereClause = 'WHERE 1=1';
-    const params = [];
-
-    if (req.user.Role !== 'SUPER_ADMIN') {
-      whereClause += ' AND o.BusinessId = ?';
-      params.push(businessId);
-    }
-
-    if (status) {
-      whereClause += ' AND o.Status = ?';
-      params.push(status);
-    }
-
-    if (userId) {
-      whereClause += ' AND o.UserId = ?';
-      params.push(userId);
-    }
-
-    // Get total count
-    const countQuery = `
-      SELECT COUNT(*) as total 
-      FROM Orders o 
-      ${whereClause}
-    `;
-    const countResult = await dbQuery(countQuery, params);
-    const total = countResult[0].total;
-
-    // Get orders with user info
-    const ordersQuery = `
-      SELECT 
-        o.OrderId,
-        o.BusinessId,
-        o.OrderDate,
-        o.Status,
-        o.TotalAmount,
-        o.DeliveryAddress,
-        o.PaymentMethod,
-        o.PaymentStatus,
-        o.Notes,
-        u.UserId,
-        u.Name as UserName,
-        u.Email,
-        p.PrescriptionId,
-        p.Status as PrescriptionStatus
-      FROM Orders o
-      JOIN Users u ON o.UserId = u.UserId
-      LEFT JOIN Prescriptions p ON o.PrescriptionId = p.PrescriptionId
-      ${whereClause}
-      ORDER BY o.OrderDate DESC
-      LIMIT ? OFFSET ?
-    `;
-    const orders = await dbQuery(ordersQuery, [...params, limit, offset]);
-
-    res.json({
-      success: true,
-      data: {
-        orders: orders.map(order => ({
-          id: order.OrderId,
-          businessId: order.BusinessId,
-          orderDate: order.OrderDate,
-          status: order.Status,
-          totalAmount: parseFloat(order.TotalAmount),
-          deliveryAddress: order.DeliveryAddress,
-          paymentMethod: order.PaymentMethod,
-          paymentStatus: order.PaymentStatus,
-          notes: order.Notes,
-          user: {
-            id: order.UserId,
-            name: order.UserName,
-            email: order.Email
-          },
-          prescription: order.PrescriptionId ? {
-            id: order.PrescriptionId,
-            status: order.PrescriptionStatus
-          } : null
-        })),
-        pagination: {
-          page,
-          limit,
-          total,
-          pages: Math.ceil(total / limit)
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Get all orders error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
-  }
-});
-
-// Update order status (business owner/staff only with tenant filtering)
+/**
+ * PATCH /api/orders/:id/status
+ * Update order status (Staff & Business Owner)
+ */
 router.patch('/:id/status', authenticateToken, requireTenant, requireBusinessAccess, [
   body('status').isIn(['Pending', 'Approved', 'Dispatched', 'Delivered', 'Cancelled']).withMessage('Invalid status')
 ], async (req, res) => {
@@ -628,22 +824,15 @@ router.patch('/:id/status', authenticateToken, requireTenant, requireBusinessAcc
       });
     }
 
-    const orderId = req.params.id;
+    const orderId = parseInt(req.params.id, 10);
     const { status } = req.body;
-    const businessId = req.user.Role === 'SUPER_ADMIN' 
-      ? (req.body.businessId || req.user.businessId) 
-      : req.user.businessId;
+    const businessId = req.user.businessId;
 
-    // Get order with tenant filtering
-    let whereClause = 'WHERE OrderId = ?';
-    const params = [orderId];
+    const orders = await dbQuery(
+      'SELECT OrderId, Status FROM Orders WHERE OrderId = ? AND BusinessId = ?',
+      [orderId, businessId]
+    );
 
-    if (req.user.Role !== 'SUPER_ADMIN') {
-      whereClause += ' AND BusinessId = ?';
-      params.push(businessId);
-    }
-
-    const orders = await dbQuery(`SELECT OrderId, Status, BusinessId FROM Orders ${whereClause}`, params);
     if (orders.length === 0) {
       return res.status(404).json({
         success: false,
@@ -651,16 +840,118 @@ router.patch('/:id/status', authenticateToken, requireTenant, requireBusinessAcc
       });
     }
 
-    // Update order status
-    await dbQuery('UPDATE Orders SET Status = ?, UpdatedAt = CURRENT_TIMESTAMP WHERE OrderId = ?', [status, orderId]);
+    await dbQuery(
+      'UPDATE Orders SET Status = ?, UpdatedAt = CURRENT_TIMESTAMP WHERE OrderId = ? AND BusinessId = ?',
+      [status, orderId, businessId]
+    );
 
     res.json({
       success: true,
       message: 'Order status updated successfully'
     });
-
   } catch (error) {
     console.error('Update order status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+/**
+ * PATCH /api/orders/:id/cancel
+ * Cancel order
+ */
+router.patch('/:id/cancel', authenticateToken, requireTenant, async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const orderId = parseInt(req.params.id, 10);
+    const userId = req.user.UserId;
+    const businessId = req.user.businessId;
+
+    await connection.beginTransaction();
+
+    let whereClause = 'WHERE OrderId = ?';
+    const params = [orderId];
+
+    if (req.user.Role === 'CUSTOMER') {
+      whereClause += ' AND UserId = ?';
+      params.push(userId);
+    }
+    if (req.user.Role !== 'SUPER_ADMIN') {
+      whereClause += ' AND BusinessId = ?';
+      params.push(businessId);
+    }
+
+    const [orders] = await connection.query(
+      `SELECT OrderId, Status, BusinessId FROM Orders ${whereClause} FOR UPDATE`,
+      params
+    );
+
+    if (orders.length === 0) {
+      await connection.rollback();
+      connection.release();
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    const order = orders[0];
+    if (order.Status === 'Delivered' || order.Status === 'Cancelled') {
+      await connection.rollback();
+      connection.release();
+      return res.status(400).json({
+        success: false,
+        message: `Order cannot be cancelled as it is already ${order.Status}`
+      });
+    }
+
+    await connection.query(
+      'UPDATE Orders SET Status = "Cancelled", UpdatedAt = CURRENT_TIMESTAMP WHERE OrderId = ?',
+      [orderId]
+    );
+
+    // Restore stock
+    const [orderItems] = await connection.query(
+      'SELECT MedicineId, Quantity FROM OrderItems WHERE OrderId = ?',
+      [orderId]
+    );
+
+    for (const item of orderItems) {
+      await connection.query(
+        'UPDATE Medicines SET Stock = Stock + ?, UpdatedAt = CURRENT_TIMESTAMP WHERE MedicineId = ?',
+        [item.Quantity, item.MedicineId]
+      );
+
+      await connection.query(
+        `INSERT INTO InventoryTransactions 
+         (BusinessId, MedicineId, TransactionType, Quantity, PreviousStock, NewStock, Reason, PerformedBy)
+         SELECT ?, ?, 'Stock In', ?, Stock - ?, Stock, ?, ?
+         FROM Medicines WHERE MedicineId = ?`,
+        [
+          order.BusinessId,
+          item.MedicineId,
+          item.Quantity,
+          item.Quantity,
+          `Cancelled Order #${orderId} Restock`,
+          userId,
+          item.MedicineId
+        ]
+      );
+    }
+
+    await connection.commit();
+    connection.release();
+
+    res.json({
+      success: true,
+      message: 'Order cancelled successfully and inventory restored'
+    });
+  } catch (error) {
+    await connection.rollback();
+    connection.release();
+    console.error('Cancel order error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
