@@ -53,6 +53,7 @@ export const Layout = ({ children }) => {
     { name: 'POS Counter', href: '/pos', icon: Calculator, badge: 'Active' },
     { name: 'Medicines', href: '/medicines', icon: Pill },
     { name: 'Orders', href: '/orders', icon: ShoppingCart },
+    { name: 'Customers', href: '/users', icon: Users },
     { name: 'Prescriptions', href: '/prescriptions', icon: FileText },
     { name: 'Inventory', href: '/inventory', icon: Package },
   ];

@@ -56,6 +56,7 @@ function App() {
                       <Route path="/pos" element={<POS />} />
                       <Route path="/medicines" element={<Medicines />} />
                       <Route path="/orders" element={<Orders />} />
+                      <Route path="/users" element={<Users />} />
                       <Route path="/prescriptions" element={<Prescriptions />} />
                       <Route path="/inventory" element={<Inventory />} />
 
@@ -81,14 +82,6 @@ function App() {
                         element={
                           <ProtectedRoute allowedRoles={['BUSINESS_OWNER']}>
                             <HRMS />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/users"
-                        element={
-                          <ProtectedRoute allowedRoles={['BUSINESS_OWNER']}>
-                            <Users />
                           </ProtectedRoute>
                         }
                       />

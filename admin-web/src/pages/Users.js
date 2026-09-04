@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { useAuth } from '../contexts/AuthContext';
 import {
   Plus,
   Search,
@@ -22,7 +23,7 @@ import {
 } from 'lucide-react';
 
 // Add User / Customer Modal
-const AddUserModal = ({ onClose }) => {
+const AddUserModal = ({ isStaff, onClose }) => {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     name: '',
@@ -66,9 +67,11 @@ const AddUserModal = ({ onClose }) => {
           <div>
             <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
               <Plus className="w-5 h-5 text-blue-600" />
-              Add New User / Customer
+              {isStaff ? 'Add New Customer' : 'Add New User / Customer'}
             </h3>
-            <p className="text-xs text-gray-500 mt-0.5">Register customer or staff account in your business</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {isStaff ? 'Register a new customer account in your pharmacy' : 'Register customer or staff account in your business'}
+            </p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
@@ -76,20 +79,22 @@ const AddUserModal = ({ onClose }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
-          <div>
-            <label className="font-semibold text-gray-700 block mb-1">
-              Account Role <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white font-medium"
-            >
-              <option value="CUSTOMER">Customer (Online / Regular buyer)</option>
-              <option value="STAFF">Staff (POS & Counter Operator)</option>
-              <option value="BUSINESS_OWNER">Business Owner (Full Access)</option>
-            </select>
-          </div>
+          {!isStaff && (
+            <div>
+              <label className="font-semibold text-gray-700 block mb-1">
+                Account Role <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white font-medium"
+              >
+                <option value="CUSTOMER">Customer (Online / Regular buyer)</option>
+                <option value="STAFF">Staff (POS & Counter Operator)</option>
+                <option value="BUSINESS_OWNER">Business Owner (Full Access)</option>
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="font-semibold text-gray-700 block mb-1">
@@ -172,7 +177,7 @@ const AddUserModal = ({ onClose }) => {
 };
 
 // Edit User Profile Modal
-const EditUserModal = ({ user, onClose }) => {
+const EditUserModal = ({ user, isStaff, onClose }) => {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     name: user.name,
@@ -203,25 +208,29 @@ const EditUserModal = ({ user, onClose }) => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <h3 className="text-lg font-bold text-gray-900">Edit User: {user.name}</h3>
+          <h3 className="text-lg font-bold text-gray-900">
+            {isStaff ? 'Edit Customer' : 'Edit User'}: {user.name}
+          </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
-          <div>
-            <label className="font-semibold text-gray-700 block mb-1">Role</label>
-            <select
-              value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white font-medium"
-            >
-              <option value="CUSTOMER">Customer</option>
-              <option value="STAFF">Staff</option>
-              <option value="BUSINESS_OWNER">Business Owner</option>
-            </select>
-          </div>
+          {!isStaff && (
+            <div>
+              <label className="font-semibold text-gray-700 block mb-1">Role</label>
+              <select
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white font-medium"
+              >
+                <option value="CUSTOMER">Customer</option>
+                <option value="STAFF">Staff</option>
+                <option value="BUSINESS_OWNER">Business Owner</option>
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="font-semibold text-gray-700 block mb-1">Full Name</label>
@@ -348,8 +357,11 @@ const ResetPasswordModal = ({ user, onClose }) => {
 
 export const Users = () => {
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
+  const isStaff = currentUser?.role === 'STAFF';
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState(isStaff ? 'CUSTOMER' : 'all');
   const [selectedUser, setSelectedUser] = useState(null);
   const [addUserModalOpen, setAddUserModalOpen] = useState(false);
   const [editUser, setEditUser] = useState(null);
@@ -406,6 +418,15 @@ export const Users = () => {
     setPage(1);
   };
 
+  const roleTabs = isStaff
+    ? [{ id: 'CUSTOMER', label: 'Customers' }, { id: 'all', label: 'All Users' }]
+    : [
+        { id: 'all', label: 'All Roles' },
+        { id: 'CUSTOMER', label: 'Customers' },
+        { id: 'STAFF', label: 'Staff' },
+        { id: 'BUSINESS_OWNER', label: 'Owners' }
+      ];
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -413,10 +434,12 @@ export const Users = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <UsersIcon className="w-7 h-7 text-blue-600" />
-            User & Customer Directory
+            {isStaff ? 'Customer Directory' : 'User & Customer Directory'}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Manage customer accounts, pharmacy staff, credentials, and access permissions
+            {isStaff
+              ? 'View registered pharmacy customers, search accounts, and register new customers'
+              : 'Manage customer accounts, pharmacy staff, credentials, and access permissions'}
           </p>
         </div>
         <button
@@ -424,7 +447,7 @@ export const Users = () => {
           className="inline-flex items-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-colors gap-1.5"
         >
           <Plus className="h-4 w-4" />
-          Add User / Customer
+          {isStaff ? 'Add New Customer' : 'Add User / Customer'}
         </button>
       </div>
 
@@ -432,18 +455,18 @@ export const Users = () => {
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row gap-3 justify-between items-center">
         {/* Role Filter Tabs */}
         <div className="flex bg-gray-100 p-1 rounded-xl text-xs font-bold w-full md:w-auto">
-          {['all', 'CUSTOMER', 'STAFF', 'BUSINESS_OWNER'].map((r) => (
+          {roleTabs.map((tab) => (
             <button
-              key={r}
+              key={tab.id}
               onClick={() => {
-                setRoleFilter(r);
+                setRoleFilter(tab.id);
                 setPage(1);
               }}
               className={`px-3 py-1.5 rounded-lg transition-all ${
-                roleFilter === r ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                roleFilter === tab.id ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              {r === 'all' ? 'All Roles' : r === 'CUSTOMER' ? 'Customers' : r === 'STAFF' ? 'Staff' : 'Owners'}
+              {tab.label}
             </button>
           ))}
         </div>
@@ -533,19 +556,23 @@ export const Users = () => {
                       >
                         View
                       </button>
-                      <button
-                        onClick={() => setEditUser(user)}
-                        className="px-2.5 py-1 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => setPasswordUser(user)}
-                        className="px-2.5 py-1 text-xs font-bold text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
-                        title="Reset Password / 4-digit PIN"
-                      >
-                        Reset PIN
-                      </button>
+                      {(!isStaff || user.role === 'CUSTOMER') && (
+                        <>
+                          <button
+                            onClick={() => setEditUser(user)}
+                            className="px-2.5 py-1 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => setPasswordUser(user)}
+                            className="px-2.5 py-1 text-xs font-bold text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                            title="Reset Password / 4-digit PIN"
+                          >
+                            Reset PIN
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -630,50 +657,54 @@ export const Users = () => {
                 </div>
               </div>
 
-              <div className="mt-5 grid grid-cols-2 gap-2 text-xs">
-                <button
-                  onClick={() => {
-                    const u = selectedUser;
-                    setSelectedUser(null);
-                    setEditUser(u);
-                  }}
-                  className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold"
-                >
-                  <Edit className="h-4 w-4 mr-1.5" />
-                  Edit Profile
-                </button>
-                <button
-                  onClick={() => {
-                    const u = selectedUser;
-                    setSelectedUser(null);
-                    setPasswordUser(u);
-                  }}
-                  className="flex items-center justify-center px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-bold"
-                >
-                  <Key className="h-4 w-4 mr-1.5" />
-                  Reset PIN
-                </button>
-              </div>
+              {(!isStaff || selectedUser.role === 'CUSTOMER') && (
+                <>
+                  <div className="mt-5 grid grid-cols-2 gap-2 text-xs">
+                    <button
+                      onClick={() => {
+                        const u = selectedUser;
+                        setSelectedUser(null);
+                        setEditUser(u);
+                      }}
+                      className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold"
+                    >
+                      <Edit className="h-4 w-4 mr-1.5" />
+                      Edit Profile
+                    </button>
+                    <button
+                      onClick={() => {
+                        const u = selectedUser;
+                        setSelectedUser(null);
+                        setPasswordUser(u);
+                      }}
+                      className="flex items-center justify-center px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-bold"
+                    >
+                      <Key className="h-4 w-4 mr-1.5" />
+                      Reset PIN
+                    </button>
+                  </div>
 
-              <div className="mt-2">
-                <button
-                  onClick={() => {
-                    toggleStatusMutation.mutate({
-                      userId: selectedUser.id,
-                      isActive: !selectedUser.isActive
-                    });
-                    setSelectedUser(null);
-                  }}
-                  className={`w-full flex items-center justify-center px-4 py-2 text-xs font-bold rounded-lg transition-colors ${
-                    selectedUser.isActive
-                      ? 'bg-red-50 text-red-700 hover:bg-red-100'
-                      : 'bg-green-50 text-green-700 hover:bg-green-100'
-                  }`}
-                >
-                  <Ban className="h-4 w-4 mr-1.5" />
-                  {selectedUser.isActive ? 'Deactivate Account' : 'Activate Account'}
-                </button>
-              </div>
+                  <div className="mt-2">
+                    <button
+                      onClick={() => {
+                        toggleStatusMutation.mutate({
+                          userId: selectedUser.id,
+                          isActive: !selectedUser.isActive
+                        });
+                        setSelectedUser(null);
+                      }}
+                      className={`w-full flex items-center justify-center px-4 py-2 text-xs font-bold rounded-lg transition-colors ${
+                        selectedUser.isActive
+                          ? 'bg-red-50 text-red-700 hover:bg-red-100'
+                          : 'bg-green-50 text-green-700 hover:bg-green-100'
+                      }`}
+                    >
+                      <Ban className="h-4 w-4 mr-1.5" />
+                      {selectedUser.isActive ? 'Deactivate Account' : 'Activate Account'}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -681,12 +712,12 @@ export const Users = () => {
 
       {/* Add User Modal */}
       {addUserModalOpen && (
-        <AddUserModal onClose={() => setAddUserModalOpen(false)} />
+        <AddUserModal isStaff={isStaff} onClose={() => setAddUserModalOpen(false)} />
       )}
 
       {/* Edit User Modal */}
       {editUser && (
-        <EditUserModal user={editUser} onClose={() => setEditUser(null)} />
+        <EditUserModal user={editUser} isStaff={isStaff} onClose={() => setEditUser(null)} />
       )}
 
       {/* Reset Password Modal */}

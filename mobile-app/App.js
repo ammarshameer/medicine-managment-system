@@ -1,4 +1,5 @@
 import React from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -17,7 +18,7 @@ import MedicineDetailScreen from './src/screens/MedicineDetailScreen';
 import PrescriptionScreen from './src/screens/PrescriptionScreen';
 
 // Import context
-import { AuthProvider } from './src/contexts/AuthContext';
+import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { CartProvider } from './src/contexts/CartContext';
 
 const Stack = createStackNavigator();
@@ -58,40 +59,51 @@ const MainTabNavigator = () => {
   );
 };
 
+const AppNavigator = () => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }}>
+        <ActivityIndicator size="large" color="#1976d2" />
+      </View>
+    );
+  }
+
+  return (
+    <NavigationContainer>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {!isAuthenticated ? (
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Register" component={RegisterScreen} />
+          </>
+        ) : (
+          <>
+            <Stack.Screen name="Main" component={MainTabNavigator} />
+            <Stack.Screen 
+              name="MedicineDetail" 
+              component={MedicineDetailScreen}
+              options={{ headerShown: true, title: 'Medicine Details' }}
+            />
+            <Stack.Screen 
+              name="Prescription" 
+              component={PrescriptionScreen}
+              options={{ headerShown: true, title: 'Prescription' }}
+            />
+          </>
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+};
+
 const App = () => {
   return (
     <PaperProvider>
       <AuthProvider>
         <CartProvider>
-          <NavigationContainer>
-            <Stack.Navigator initialRouteName="Login">
-              <Stack.Screen 
-                name="Login" 
-                component={LoginScreen} 
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen 
-                name="Register" 
-                component={RegisterScreen} 
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen 
-                name="Main" 
-                component={MainTabNavigator} 
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen 
-                name="MedicineDetail" 
-                component={MedicineDetailScreen}
-                options={{ title: 'Medicine Details' }}
-              />
-              <Stack.Screen 
-                name="Prescription" 
-                component={PrescriptionScreen}
-                options={{ title: 'Prescription' }}
-              />
-            </Stack.Navigator>
-          </NavigationContainer>
+          <AppNavigator />
         </CartProvider>
       </AuthProvider>
     </PaperProvider>
@@ -99,3 +111,4 @@ const App = () => {
 };
 
 export default App;
+

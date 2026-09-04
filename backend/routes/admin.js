@@ -337,9 +337,9 @@ router.get('/dashboard/analytics', authenticateToken, requireTenant, requireBusi
 
 /**
  * GET /api/admin/users
- * User management (tenant scoped)
+ * User & Customer management (tenant scoped, accessible by Business Owner & Staff)
  */
-router.get('/users', authenticateToken, requireTenant, requireBusinessOwner, [
+router.get('/users', authenticateToken, requireTenant, requireBusinessAccess, [
   query('page').optional().isInt({ min: 1 }),
   query('limit').optional().isInt({ min: 1, max: 100 }),
   query('role').optional().isIn(['CUSTOMER', 'STAFF', 'BUSINESS_OWNER']),
@@ -424,7 +424,7 @@ router.get('/users', authenticateToken, requireTenant, requireBusinessOwner, [
  * PATCH /api/admin/users/:id/status
  * Block/Unblock user in business
  */
-router.patch('/users/:id/status', authenticateToken, requireTenant, requireBusinessOwner, [
+router.patch('/users/:id/status', authenticateToken, requireTenant, requireBusinessAccess, [
   query('isActive').isBoolean().withMessage('IsActive must be boolean')
 ], async (req, res) => {
   try {
@@ -450,6 +450,14 @@ router.patch('/users/:id/status', authenticateToken, requireTenant, requireBusin
       return res.status(404).json({
         success: false,
         message: 'User not found in your business'
+      });
+    }
+
+    // Staff can only manage CUSTOMER status
+    if (req.user.Role === 'STAFF' && users[0].Role !== 'CUSTOMER') {
+      return res.status(403).json({
+        success: false,
+        message: 'Staff can only manage customer accounts'
       });
     }
 
@@ -480,9 +488,9 @@ router.patch('/users/:id/status', authenticateToken, requireTenant, requireBusin
 
 /**
  * POST /api/admin/users
- * Add a new user (Customer, Staff, or Business Owner) to the current business
+ * Add a new user (Customer or Staff) to the current business (accessible by Business Owner & Staff)
  */
-router.post('/users', authenticateToken, requireTenant, requireBusinessOwner, [
+router.post('/users', authenticateToken, requireTenant, requireBusinessAccess, [
   body('name').trim().isLength({ min: 2, max: 100 }).withMessage('Name must be between 2 and 100 characters'),
   body('email').isEmail().normalizeEmail().withMessage('Valid email required'),
   body('phone').optional().trim(),
@@ -500,7 +508,12 @@ router.post('/users', authenticateToken, requireTenant, requireBusinessOwner, [
     }
 
     const businessId = req.user.businessId;
-    const { name, email, phone, password, role = 'CUSTOMER' } = req.body;
+    let { name, email, phone, password, role = 'CUSTOMER' } = req.body;
+
+    // Staff can only create CUSTOMER accounts
+    if (req.user.Role === 'STAFF') {
+      role = 'CUSTOMER';
+    }
 
     // Check if user already exists with this email in this business
     const existing = await dbQuery(
@@ -550,7 +563,7 @@ router.post('/users', authenticateToken, requireTenant, requireBusinessOwner, [
  * PUT /api/admin/users/:id
  * Update user details (Name, Phone, Role)
  */
-router.put('/users/:id', authenticateToken, requireTenant, requireBusinessOwner, [
+router.put('/users/:id', authenticateToken, requireTenant, requireBusinessAccess, [
   body('name').optional().trim().notEmpty().withMessage('Name cannot be empty'),
   body('phone').optional().trim(),
   body('role').optional().isIn(['CUSTOMER', 'STAFF', 'BUSINESS_OWNER'])
@@ -567,7 +580,7 @@ router.put('/users/:id', authenticateToken, requireTenant, requireBusinessOwner,
 
     const businessId = req.user.businessId;
     const userId = parseInt(req.params.id, 10);
-    const { name, phone, role } = req.body;
+    let { name, phone, role } = req.body;
 
     const existing = await dbQuery(
       'SELECT UserId, Role FROM Users WHERE UserId = ? AND BusinessId = ?',
@@ -581,6 +594,17 @@ router.put('/users/:id', authenticateToken, requireTenant, requireBusinessOwner,
       });
     }
 
+    // Staff can only update CUSTOMER accounts
+    if (req.user.Role === 'STAFF') {
+      if (existing[0].Role !== 'CUSTOMER') {
+        return res.status(403).json({
+          success: false,
+          message: 'Staff can only edit customer profiles'
+        });
+      }
+      role = 'CUSTOMER'; // staff cannot change role
+    }
+
     const updates = [];
     const params = [];
 
@@ -592,7 +616,7 @@ router.put('/users/:id', authenticateToken, requireTenant, requireBusinessOwner,
       updates.push('Phone = ?');
       params.push(phone);
     }
-    if (role !== undefined) {
+    if (role !== undefined && req.user.Role !== 'STAFF') {
       updates.push('Role = ?');
       params.push(role);
     }
@@ -622,7 +646,7 @@ router.put('/users/:id', authenticateToken, requireTenant, requireBusinessOwner,
  * PUT /api/admin/users/:id/password
  * Reset/Set user password (supports 4+ digit PINs and passwords)
  */
-router.put('/users/:id/password', authenticateToken, requireTenant, requireBusinessOwner, [
+router.put('/users/:id/password', authenticateToken, requireTenant, requireBusinessAccess, [
   body('newPassword').isLength({ min: 4 }).withMessage('Password must be at least 4 characters or digits')
 ], async (req, res) => {
   try {
@@ -640,7 +664,7 @@ router.put('/users/:id/password', authenticateToken, requireTenant, requireBusin
     const { newPassword } = req.body;
 
     const existing = await dbQuery(
-      'SELECT UserId FROM Users WHERE UserId = ? AND BusinessId = ?',
+      'SELECT UserId, Role FROM Users WHERE UserId = ? AND BusinessId = ?',
       [userId, businessId]
     );
 
@@ -648,6 +672,14 @@ router.put('/users/:id/password', authenticateToken, requireTenant, requireBusin
       return res.status(404).json({
         success: false,
         message: 'User not found in your business'
+      });
+    }
+
+    // Staff can only reset CUSTOMER passwords
+    if (req.user.Role === 'STAFF' && existing[0].Role !== 'CUSTOMER') {
+      return res.status(403).json({
+        success: false,
+        message: 'Staff can only reset passwords for customer accounts'
       });
     }
 

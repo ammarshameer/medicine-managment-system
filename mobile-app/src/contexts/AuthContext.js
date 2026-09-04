@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
@@ -17,8 +18,12 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Configure axios base URL
-  axios.defaults.baseURL = 'http://localhost:3000/api';
+  // Configure axios base URL (port 5000 backend; 10.0.2.2 for Android emulator)
+  const API_BASE_URL = Platform.OS === 'android'
+    ? 'http://10.0.2.2:5000/api'
+    : 'http://localhost:5000/api';
+
+  axios.defaults.baseURL = API_BASE_URL;
 
   useEffect(() => {
     const loadToken = async () => {
