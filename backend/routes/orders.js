@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, query, validationResult } = require('express-validator');
 const { query: dbQuery, pool } = require('../config/database');
-const { authenticateToken, requireTenant, requireBusinessAccess, requireCustomer } = require('../middleware/auth');
+const { authenticateToken, requireTenant, requireBusinessAccess, requireCustomer, requireRole } = require('../middleware/auth');
 const router = express.Router();
 
 /**
@@ -346,14 +346,17 @@ router.post('/pos', authenticateToken, requireTenant, requireBusinessAccess, [
 
 /**
  * POST /api/orders
- * Customer online order creation (supports catalog items or prescription-only orders, reordering)
+ * Customer & Admin order creation (supports catalog items, walk-in/custom customers, reordering)
  */
-router.post('/', authenticateToken, requireTenant, requireCustomer, [
+router.post('/', authenticateToken, requireTenant, requireRole(['CUSTOMER', 'BUSINESS_OWNER', 'STAFF']), [
   body('items').optional().isArray(),
-  body('deliveryAddress').trim().isLength({ min: 3 }).withMessage('Delivery address is required'),
+  body('deliveryAddress').optional().trim(),
   body('paymentMethod').optional().isIn(['Cash on Delivery', 'Credit Card', 'Bank Transfer', 'JazzCash', 'EasyPaisa', 'Cash']),
   body('prescriptionId').optional().isInt(),
   body('reorderedFromOrderId').optional().isInt(),
+  body('userId').optional().isInt(),
+  body('customerName').optional().trim(),
+  body('customerPhone').optional().trim(),
   body('notes').optional().trim()
 ], async (req, res) => {
   const connection = await pool.getConnection();
@@ -370,15 +373,20 @@ router.post('/', authenticateToken, requireTenant, requireCustomer, [
 
     const {
       items = [],
-      deliveryAddress,
+      deliveryAddress = 'Direct / Counter Pickup',
       paymentMethod = 'Cash on Delivery',
       prescriptionId = null,
       reorderedFromOrderId = null,
-      notes = null
+      notes = null,
+      customerName = null,
+      customerPhone = null
     } = req.body;
 
-    const userId = req.user.UserId;
     const businessId = req.user.businessId;
+    const isCustomer = req.user.Role === 'CUSTOMER';
+    const targetUserId = isCustomer ? req.user.UserId : (req.body.userId || null);
+    const finalCustomerName = customerName || (isCustomer ? req.user.Name : null);
+    const finalCustomerPhone = customerPhone || (isCustomer ? req.user.Phone : null);
 
     if (items.length === 0 && !prescriptionId) {
       connection.release();
@@ -434,7 +442,7 @@ router.post('/', authenticateToken, requireTenant, requireCustomer, [
           });
         }
 
-        if (medicine.RequiresPrescription && !prescriptionId) {
+        if (medicine.RequiresPrescription && !prescriptionId && isCustomer) {
           await connection.rollback();
           connection.release();
           return res.status(400).json({
@@ -463,8 +471,8 @@ router.post('/', authenticateToken, requireTenant, requireCustomer, [
     if (prescriptionId) {
       const [prescriptions] = await connection.query(
         `SELECT PrescriptionId, Status FROM Prescriptions 
-         WHERE PrescriptionId = ? AND UserId = ? AND BusinessId = ?`,
-        [prescriptionId, userId, businessId]
+         WHERE PrescriptionId = ? AND BusinessId = ?`,
+        [prescriptionId, businessId]
       );
 
       if (prescriptions.length === 0) {
@@ -480,9 +488,21 @@ router.post('/', authenticateToken, requireTenant, requireCustomer, [
     // Insert Order
     const [orderResult] = await connection.query(
       `INSERT INTO Orders 
-       (BusinessId, UserId, Status, Source, TotalAmount, DeliveryAddress, PaymentMethod, PaymentStatus, PrescriptionId, ReorderedFromOrderId, Notes)
-       VALUES (?, ?, 'Pending', 'Online', ?, ?, ?, 'Pending', ?, ?, ?)`,
-      [businessId, userId, totalAmount, deliveryAddress, paymentMethod, prescriptionId || null, reorderedFromOrderId || null, notes]
+       (BusinessId, UserId, CustomerName, CustomerPhone, Status, Source, TotalAmount, DeliveryAddress, PaymentMethod, PaymentStatus, PrescriptionId, ReorderedFromOrderId, Notes, CreatedBy)
+       VALUES (?, ?, ?, ?, 'Pending', 'Online', ?, ?, ?, 'Pending', ?, ?, ?, ?)`,
+      [
+        businessId,
+        targetUserId,
+        finalCustomerName,
+        finalCustomerPhone,
+        totalAmount,
+        deliveryAddress,
+        paymentMethod,
+        prescriptionId || null,
+        reorderedFromOrderId || null,
+        notes,
+        req.user.UserId
+      ]
     );
 
     const orderId = orderResult.insertId;
@@ -511,7 +531,7 @@ router.post('/', authenticateToken, requireTenant, requireCustomer, [
           item.currentStock,
           item.newStock,
           `Online Order #${orderId}`,
-          userId
+          req.user.UserId
         ]
       );
     }

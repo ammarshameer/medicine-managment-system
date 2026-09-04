@@ -268,7 +268,7 @@ router.post('/businesses', [
   body('email').isEmail().normalizeEmail().withMessage('Valid email required'),
   body('phone').isLength({ min: 10, max: 20 }).withMessage('Valid phone number required'),
   body('subscriptionPlan').isIn(['Free', 'Basic', 'Premium']).withMessage('Invalid subscription plan'),
-  body('password').optional({ checkFalsy: true }).isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('password').optional({ checkFalsy: true }).isLength({ min: 4 }).withMessage('Password must be at least 4 characters'),
   body('address').optional(),
   body('city').optional(),
   body('state').optional()

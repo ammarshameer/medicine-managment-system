@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -19,8 +20,350 @@ import {
   Phone,
   CheckCircle2,
   Clock,
-  Printer
+  Printer,
+  Plus,
+  Trash2,
+  Package
 } from 'lucide-react';
+
+const CreateOrderModal = ({ onClose }) => {
+  const queryClient = useQueryClient();
+  const [customerMode, setCustomerMode] = useState('walkin'); // 'walkin' | 'registered'
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState('Counter / Direct Order');
+  const [paymentMethod, setPaymentMethod] = useState('Cash');
+  const [notes, setNotes] = useState('');
+  const [items, setItems] = useState([{ medicineId: '', quantity: 1, price: 0, maxStock: 0, name: '' }]);
+
+  // Fetch registered customers
+  const { data: customersData } = useQuery(
+    'order-customers-list',
+    () => axios.get('/api/admin/users?role=CUSTOMER&limit=100').then(res => res.data.data.users || [])
+  );
+
+  // Fetch medicines list
+  const { data: medicinesData } = useQuery(
+    'order-medicines-list',
+    () => axios.get('/api/medicines?limit=150').then(res => res.data.data.medicines || [])
+  );
+
+  const medicines = medicinesData || [];
+  const customers = customersData || [];
+
+  const handleMedicineChange = (index, medicineId) => {
+    const med = medicines.find(m => m.id === parseInt(medicineId, 10));
+    const newItems = [...items];
+    if (med) {
+      newItems[index] = {
+        medicineId: med.id,
+        name: med.name,
+        price: med.price,
+        maxStock: med.stock,
+        quantity: 1
+      };
+    } else {
+      newItems[index] = { medicineId: '', name: '', price: 0, maxStock: 0, quantity: 1 };
+    }
+    setItems(newItems);
+  };
+
+  const handleQtyChange = (index, qty) => {
+    const newItems = [...items];
+    const val = Math.max(1, parseInt(qty, 10) || 1);
+    newItems[index].quantity = val;
+    setItems(newItems);
+  };
+
+  const addItemRow = () => {
+    setItems([...items, { medicineId: '', quantity: 1, price: 0, maxStock: 0, name: '' }]);
+  };
+
+  const removeItemRow = (index) => {
+    if (items.length === 1) {
+      toast.error('Order must have at least one item');
+      return;
+    }
+    setItems(items.filter((_, idx) => idx !== index));
+  };
+
+  const grandTotal = items.reduce((sum, item) => sum + (parseFloat(item.price || 0) * (item.quantity || 1)), 0);
+
+  const createOrderMutation = useMutation(
+    (payload) => axios.post('/api/orders', payload),
+    {
+      onSuccess: () => {
+        toast.success('Order created successfully!');
+        queryClient.invalidateQueries('orders');
+        onClose();
+      },
+      onError: (err) => {
+        toast.error(err.response?.data?.message || 'Failed to create order');
+      }
+    }
+  );
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    const validItems = items.filter(i => i.medicineId && i.quantity > 0);
+    if (validItems.length === 0) {
+      toast.error('Please add at least one valid medicine item');
+      return;
+    }
+
+    // Check stock limits
+    for (const it of validItems) {
+      if (it.quantity > it.maxStock) {
+        toast.error(`Quantity for "${it.name}" exceeds available stock (${it.maxStock})`);
+        return;
+      }
+    }
+
+    let finalName = customerName;
+    let finalPhone = customerPhone;
+    let finalUserId = null;
+
+    if (customerMode === 'registered') {
+      if (!selectedUserId) {
+        toast.error('Please select a registered customer');
+        return;
+      }
+      const cust = customers.find(c => c.id === parseInt(selectedUserId, 10));
+      finalUserId = cust?.id;
+      finalName = cust?.name;
+      finalPhone = cust?.phone;
+    } else {
+      if (!customerName.trim()) {
+        toast.error('Please provide customer name');
+        return;
+      }
+    }
+
+    createOrderMutation.mutate({
+      userId: finalUserId,
+      customerName: finalName,
+      customerPhone: finalPhone,
+      deliveryAddress,
+      paymentMethod,
+      notes,
+      items: validItems.map(i => ({ medicineId: i.medicineId, quantity: i.quantity }))
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <Plus className="w-5 h-5 text-blue-600" />
+              Create Direct / Manual Order
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">Place an order with customer details and line items</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-1">
+            <X className="h-6 w-6" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 text-xs">
+          {/* Customer Mode Switcher */}
+          <div>
+            <label className="font-bold text-gray-700 block mb-1.5">Customer Type</label>
+            <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-xl font-bold text-xs">
+              <button
+                type="button"
+                onClick={() => setCustomerMode('walkin')}
+                className={`py-2 rounded-lg transition-all ${customerMode === 'walkin' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-600'}`}
+              >
+                Walk-in / Custom Customer
+              </button>
+              <button
+                type="button"
+                onClick={() => setCustomerMode('registered')}
+                className={`py-2 rounded-lg transition-all ${customerMode === 'registered' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-600'}`}
+              >
+                Registered Customer ({customers.length})
+              </button>
+            </div>
+          </div>
+
+          {/* Customer Details */}
+          {customerMode === 'registered' ? (
+            <div>
+              <label className="font-semibold text-gray-700 block mb-1">Select Customer <span className="text-red-500">*</span></label>
+              <select
+                required
+                value={selectedUserId}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="">-- Choose Registered Customer --</option>
+                {customers.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.email}) {c.phone ? `- ${c.phone}` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="font-semibold text-gray-700 block mb-1">Customer Name <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Tariq Mehmood"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="font-semibold text-gray-700 block mb-1">Customer Phone</label>
+                <input
+                  type="text"
+                  placeholder="03001234567"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Medicine Line Items */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="font-bold text-gray-800">Order Items (Medicines) <span className="text-red-500">*</span></label>
+              <button
+                type="button"
+                onClick={addItemRow}
+                className="inline-flex items-center text-blue-600 hover:text-blue-700 font-bold gap-1"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add Medicine
+              </button>
+            </div>
+
+            <div className="space-y-2 border border-gray-200 p-3 rounded-xl bg-gray-50 max-h-56 overflow-y-auto">
+              {items.map((item, idx) => (
+                <div key={idx} className="flex items-center gap-2 bg-white p-2 rounded-lg border border-gray-200">
+                  <div className="flex-1">
+                    <select
+                      required
+                      value={item.medicineId}
+                      onChange={(e) => handleMedicineChange(idx, e.target.value)}
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-xs bg-white outline-none focus:ring-1 focus:ring-blue-500 font-medium"
+                    >
+                      <option value="">-- Choose Medicine --</option>
+                      {medicines.map(m => (
+                        <option key={m.id} value={m.id} disabled={m.stock <= 0}>
+                          {m.name} — PKR {parseFloat(m.price).toFixed(2)} (Stock: {m.stock})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="w-20">
+                    <input
+                      type="number"
+                      min="1"
+                      max={item.maxStock || 999}
+                      value={item.quantity}
+                      onChange={(e) => handleQtyChange(idx, e.target.value)}
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-xs text-center font-bold outline-none focus:ring-1 focus:ring-blue-500"
+                      placeholder="Qty"
+                    />
+                  </div>
+
+                  <div className="w-24 text-right font-mono font-bold text-gray-900">
+                    PKR {(parseFloat(item.price || 0) * (item.quantity || 1)).toFixed(2)}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => removeItemRow(idx)}
+                    className="p-1.5 text-gray-400 hover:text-red-500 rounded transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Total Row */}
+            <div className="flex justify-between items-center mt-3 p-3 bg-blue-50 rounded-xl border border-blue-100">
+              <span className="font-bold text-blue-900 uppercase">Estimated Grand Total:</span>
+              <span className="font-bold text-base font-mono text-blue-900">PKR {grandTotal.toFixed(2)}</span>
+            </div>
+          </div>
+
+          {/* Delivery and Payment Details */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="font-semibold text-gray-700 block mb-1">Delivery Address / Destination</label>
+              <input
+                type="text"
+                placeholder="Direct Pickup or Delivery Address"
+                value={deliveryAddress}
+                onChange={(e) => setDeliveryAddress(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="font-semibold text-gray-700 block mb-1">Payment Method</label>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="Cash">Cash</option>
+                <option value="Cash on Delivery">Cash on Delivery</option>
+                <option value="Credit Card">Credit Card</option>
+                <option value="Bank Transfer">Bank Transfer</option>
+                <option value="JazzCash">JazzCash</option>
+                <option value="EasyPaisa">EasyPaisa</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="font-semibold text-gray-700 block mb-1">Order Notes / Instructions (Optional)</label>
+            <textarea
+              rows="2"
+              placeholder="e.g. Special dosage requests or packaging notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 font-semibold rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={createOrderMutation.isLoading || items.length === 0}
+              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold rounded-lg shadow-sm transition-all inline-flex items-center gap-1.5"
+            >
+              {createOrderMutation.isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              {createOrderMutation.isLoading ? 'Creating Order...' : 'Submit Order'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
 
 const OrderDetailsModal = ({ order, onClose }) => {
   const [status, setStatus] = useState(order.status);
@@ -197,6 +540,7 @@ export const Orders = () => {
   const [source, setSource] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const { data: ordersData, isLoading } = useQuery(
     ['orders', page, limit, status, source, searchTerm],
@@ -235,14 +579,34 @@ export const Orders = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <ShoppingCart className="w-7 h-7 text-blue-600" />
-          Orders Management
-        </h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Monitor online customer orders, POS counter sales, and fulfillment status
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <ShoppingCart className="w-7 h-7 text-blue-600" />
+            Orders Management
+          </h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Monitor online customer orders, POS counter sales, and fulfillment status
+          </p>
+        </div>
+
+        {/* Action Buttons: POS & Direct Order */}
+        <div className="flex items-center gap-3">
+          <Link
+            to="/pos"
+            className="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all gap-1.5"
+          >
+            <Calculator className="w-4 h-4" />
+            Open POS Counter
+          </Link>
+          <button
+            onClick={() => setCreateModalOpen(true)}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all gap-1.5"
+          >
+            <Plus className="w-4 h-4" />
+            Create Direct Order
+          </button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -422,6 +786,13 @@ export const Orders = () => {
         <OrderDetailsModal
           order={selectedOrder}
           onClose={() => setSelectedOrder(null)}
+        />
+      )}
+
+      {/* Create Order Modal */}
+      {createModalOpen && (
+        <CreateOrderModal
+          onClose={() => setCreateModalOpen(false)}
         />
       )}
     </div>

@@ -257,6 +257,7 @@ export const HRMS = () => {
         name: empForm.name,
         phone: empForm.phone,
         role: empForm.role,
+        ...(empForm.password ? { password: empForm.password } : {}),
         designation: empForm.designation,
         department: empForm.department,
         joiningDate: empForm.joiningDate,
@@ -725,7 +726,7 @@ export const HRMS = () => {
                     />
                   </div>
 
-                  {!editingEmployee && (
+                  {!editingEmployee ? (
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="font-semibold text-gray-700 block mb-1">Email <span className="text-red-500">*</span></label>
@@ -739,17 +740,31 @@ export const HRMS = () => {
                         />
                       </div>
                       <div>
-                        <label className="font-semibold text-gray-700 block mb-1">Password <span className="text-red-500">*</span></label>
+                        <label className="font-semibold text-gray-700 block mb-1">Password / PIN <span className="text-red-500">*</span></label>
                         <input
                           type="password"
                           required
-                          minLength="6"
-                          placeholder="Min 6 characters"
+                          minLength="4"
+                          placeholder="Min 4 digits / PIN"
                           value={empForm.password}
                           onChange={(e) => setEmpForm({ ...empForm, password: e.target.value })}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="font-semibold text-gray-700 block mb-1">
+                        Reset Password / 4-Digit PIN <span className="text-gray-400 font-normal">(Leave blank to keep unchanged)</span>
+                      </label>
+                      <input
+                        type="password"
+                        minLength="4"
+                        placeholder="Enter new 4+ digit PIN / password"
+                        value={empForm.password}
+                        onChange={(e) => setEmpForm({ ...empForm, password: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                      />
                     </div>
                   )}
 

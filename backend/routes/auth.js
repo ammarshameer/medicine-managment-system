@@ -11,7 +11,7 @@ router.post('/register', [
   body('name').trim().isLength({ min: 2, max: 100 }).withMessage('Name must be between 2 and 100 characters'),
   body('email').isEmail().normalizeEmail().withMessage('Valid email required'),
   body('phone').optional().isMobilePhone('any').withMessage('Valid phone number required'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
+  body('password').isLength({ min: 4 }).withMessage('Password must be at least 4 characters long'),
   body('businessCode').optional().isLength({ min: 3, max: 50 }).withMessage('Business code required')
 ], async (req, res) => {
   try {
@@ -253,7 +253,7 @@ router.post('/forgot-password', [
 // Change password endpoint (requires authentication)
 router.post('/change-password', authenticateToken, [
   body('currentPassword').notEmpty().withMessage('Current password is required'),
-  body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters long')
+  body('newPassword').isLength({ min: 4 }).withMessage('New password must be at least 4 characters long')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

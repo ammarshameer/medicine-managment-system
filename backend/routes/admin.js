@@ -1,5 +1,6 @@
 const express = require('express');
-const { query, validationResult } = require('express-validator');
+const bcrypt = require('bcryptjs');
+const { body, query, validationResult } = require('express-validator');
 const { query: dbQuery } = require('../config/database');
 const { authenticateToken, requireTenant, requireBusinessAccess, requireBusinessOwner } = require('../middleware/auth');
 const router = express.Router();
@@ -473,6 +474,200 @@ router.patch('/users/:id/status', authenticateToken, requireTenant, requireBusin
     res.status(500).json({
       success: false,
       message: 'Internal server error'
+    });
+  }
+});
+
+/**
+ * POST /api/admin/users
+ * Add a new user (Customer, Staff, or Business Owner) to the current business
+ */
+router.post('/users', authenticateToken, requireTenant, requireBusinessOwner, [
+  body('name').trim().isLength({ min: 2, max: 100 }).withMessage('Name must be between 2 and 100 characters'),
+  body('email').isEmail().normalizeEmail().withMessage('Valid email required'),
+  body('phone').optional().trim(),
+  body('password').isLength({ min: 4 }).withMessage('Password must be at least 4 characters or digits'),
+  body('role').optional().isIn(['CUSTOMER', 'STAFF', 'BUSINESS_OWNER'])
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation errors',
+        errors: errors.array()
+      });
+    }
+
+    const businessId = req.user.businessId;
+    const { name, email, phone, password, role = 'CUSTOMER' } = req.body;
+
+    // Check if user already exists with this email in this business
+    const existing = await dbQuery(
+      'SELECT UserId FROM Users WHERE Email = ? AND (BusinessId = ? OR BusinessId IS NULL)',
+      [email, businessId]
+    );
+
+    if (existing.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: 'A user with this email address already exists'
+      });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    const result = await dbQuery(
+      `INSERT INTO Users (BusinessId, Name, Email, Phone, PasswordHash, Role, IsActive)
+       VALUES (?, ?, ?, ?, ?, ?, TRUE)`,
+      [businessId, name, email, phone || null, passwordHash, role]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: `${role === 'CUSTOMER' ? 'Customer' : 'User'} created successfully`,
+      data: {
+        id: result.insertId,
+        businessId,
+        name,
+        email,
+        phone,
+        role,
+        isActive: true
+      }
+    });
+  } catch (error) {
+    console.error('Create user error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to create user'
+    });
+  }
+});
+
+/**
+ * PUT /api/admin/users/:id
+ * Update user details (Name, Phone, Role)
+ */
+router.put('/users/:id', authenticateToken, requireTenant, requireBusinessOwner, [
+  body('name').optional().trim().notEmpty().withMessage('Name cannot be empty'),
+  body('phone').optional().trim(),
+  body('role').optional().isIn(['CUSTOMER', 'STAFF', 'BUSINESS_OWNER'])
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation errors',
+        errors: errors.array()
+      });
+    }
+
+    const businessId = req.user.businessId;
+    const userId = parseInt(req.params.id, 10);
+    const { name, phone, role } = req.body;
+
+    const existing = await dbQuery(
+      'SELECT UserId, Role FROM Users WHERE UserId = ? AND BusinessId = ?',
+      [userId, businessId]
+    );
+
+    if (existing.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found in your business'
+      });
+    }
+
+    const updates = [];
+    const params = [];
+
+    if (name !== undefined) {
+      updates.push('Name = ?');
+      params.push(name);
+    }
+    if (phone !== undefined) {
+      updates.push('Phone = ?');
+      params.push(phone);
+    }
+    if (role !== undefined) {
+      updates.push('Role = ?');
+      params.push(role);
+    }
+
+    if (updates.length > 0) {
+      params.push(userId, businessId);
+      await dbQuery(
+        `UPDATE Users SET ${updates.join(', ')}, UpdatedAt = CURRENT_TIMESTAMP WHERE UserId = ? AND BusinessId = ?`,
+        params
+      );
+    }
+
+    res.json({
+      success: true,
+      message: 'User profile updated successfully'
+    });
+  } catch (error) {
+    console.error('Update user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update user profile'
+    });
+  }
+});
+
+/**
+ * PUT /api/admin/users/:id/password
+ * Reset/Set user password (supports 4+ digit PINs and passwords)
+ */
+router.put('/users/:id/password', authenticateToken, requireTenant, requireBusinessOwner, [
+  body('newPassword').isLength({ min: 4 }).withMessage('Password must be at least 4 characters or digits')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation errors',
+        errors: errors.array()
+      });
+    }
+
+    const businessId = req.user.businessId;
+    const userId = parseInt(req.params.id, 10);
+    const { newPassword } = req.body;
+
+    const existing = await dbQuery(
+      'SELECT UserId FROM Users WHERE UserId = ? AND BusinessId = ?',
+      [userId, businessId]
+    );
+
+    if (existing.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found in your business'
+      });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+
+    await dbQuery(
+      'UPDATE Users SET PasswordHash = ?, UpdatedAt = CURRENT_TIMESTAMP WHERE UserId = ? AND BusinessId = ?',
+      [passwordHash, userId, businessId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Password updated successfully'
+    });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reset password'
     });
   }
 });

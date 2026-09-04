@@ -141,7 +141,7 @@ router.post('/employees', [
   body('userId').if(body('mode').equals('link_existing')).isInt().withMessage('Valid user ID required when linking existing user'),
   body('name').if(body('mode').not().equals('link_existing')).trim().notEmpty().withMessage('Name is required for new user'),
   body('email').if(body('mode').not().equals('link_existing')).isEmail().withMessage('Valid email is required for new user'),
-  body('password').if(body('mode').not().equals('link_existing')).isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('password').if(body('mode').not().equals('link_existing')).isLength({ min: 4 }).withMessage('Password must be at least 4 characters'),
   body('phone').optional().trim(),
   body('role').optional().isIn(['STAFF', 'BUSINESS_OWNER', 'CUSTOMER'])
 ], async (req, res) => {
@@ -289,6 +289,7 @@ router.put('/employees/:id', [
   body('employmentStatus').optional().isIn(['Active', 'Inactive', 'Terminated', 'On Leave']),
   body('name').optional().trim().notEmpty(),
   body('phone').optional().trim(),
+  body('password').optional({ checkFalsy: true }).isLength({ min: 4 }).withMessage('Password must be at least 4 characters'),
   body('role').optional().isIn(['STAFF', 'BUSINESS_OWNER', 'CUSTOMER'])
 ], async (req, res) => {
   const connection = await pool.getConnection();
@@ -356,6 +357,12 @@ router.put('/employees/:id', [
     if (req.body.role !== undefined) {
       userUpdates.push('Role = ?');
       userParams.push(req.body.role);
+    }
+    if (req.body.password) {
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(req.body.password, salt);
+      userUpdates.push('PasswordHash = ?');
+      userParams.push(passwordHash);
     }
     if (req.body.employmentStatus !== undefined) {
       const isUserActive = req.body.employmentStatus === 'Active' || req.body.employmentStatus === 'On Leave';

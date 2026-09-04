@@ -1,46 +1,387 @@
 import React, { useState } from 'react';
-import { useQuery } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import {
   Plus,
   Search,
   Edit,
   Key,
   Ban,
+  CheckCircle2,
   User as UserIcon,
   Calendar,
   Mail,
   Phone,
   Loader2,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  X,
+  UserCheck,
+  Users as UsersIcon
 } from 'lucide-react';
 
+// Add User / Customer Modal
+const AddUserModal = ({ onClose }) => {
+  const queryClient = useQueryClient();
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    role: 'CUSTOMER'
+  });
+
+  const addUserMutation = useMutation(
+    (payload) => axios.post('/api/admin/users', payload),
+    {
+      onSuccess: (res) => {
+        toast.success(res.data.message || 'User created successfully');
+        queryClient.invalidateQueries('users');
+        onClose();
+      },
+      onError: (err) => {
+        toast.error(err.response?.data?.message || 'Failed to create user');
+      }
+    }
+  );
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!formData.name.trim() || !formData.email.trim() || !formData.password) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    if (formData.password.length < 4) {
+      toast.error('Password must be at least 4 characters or digits');
+      return;
+    }
+    addUserMutation.mutate(formData);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Plus className="w-5 h-5 text-blue-600" />
+              Add New User / Customer
+            </h3>
+            <p className="text-xs text-gray-500 mt-0.5">Register customer or staff account in your business</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
+          <div>
+            <label className="font-semibold text-gray-700 block mb-1">
+              Account Role <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white font-medium"
+            >
+              <option value="CUSTOMER">Customer (Online / Regular buyer)</option>
+              <option value="STAFF">Staff (POS & Counter Operator)</option>
+              <option value="BUSINESS_OWNER">Business Owner (Full Access)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="font-semibold text-gray-700 block mb-1">
+              Full Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Asim Raza"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="font-semibold text-gray-700 block mb-1">
+              Email Address <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="email"
+              required
+              placeholder="user@example.com"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="font-semibold text-gray-700 block mb-1">
+              Phone Number (Optional)
+            </label>
+            <input
+              type="text"
+              placeholder="03001234567"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="font-semibold text-gray-700 block mb-1">
+              Password / PIN <span className="text-red-500">*</span> (Min 4 digits)
+            </label>
+            <input
+              type="password"
+              required
+              minLength="4"
+              placeholder="e.g. 1234 or secure password"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <p className="text-[11px] text-gray-400 mt-1">4-digit PINs like 1234 or passwords are fully supported.</p>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 font-semibold rounded-lg"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={addUserMutation.isLoading}
+              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold rounded-lg shadow-sm inline-flex items-center gap-1.5"
+            >
+              {addUserMutation.isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              {addUserMutation.isLoading ? 'Saving...' : 'Add Account'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Edit User Profile Modal
+const EditUserModal = ({ user, onClose }) => {
+  const queryClient = useQueryClient();
+  const [formData, setFormData] = useState({
+    name: user.name,
+    phone: user.phone || '',
+    role: user.role
+  });
+
+  const editUserMutation = useMutation(
+    (payload) => axios.put(`/api/admin/users/${user.id}`, payload),
+    {
+      onSuccess: () => {
+        toast.success('User profile updated');
+        queryClient.invalidateQueries('users');
+        onClose();
+      },
+      onError: (err) => {
+        toast.error(err.response?.data?.message || 'Failed to update user');
+      }
+    }
+  );
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    editUserMutation.mutate(formData);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100">
+          <h3 className="text-lg font-bold text-gray-900">Edit User: {user.name}</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
+          <div>
+            <label className="font-semibold text-gray-700 block mb-1">Role</label>
+            <select
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white font-medium"
+            >
+              <option value="CUSTOMER">Customer</option>
+              <option value="STAFF">Staff</option>
+              <option value="BUSINESS_OWNER">Business Owner</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="font-semibold text-gray-700 block mb-1">Full Name</label>
+            <input
+              type="text"
+              required
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="font-semibold text-gray-700 block mb-1">Phone Number</label>
+            <input
+              type="text"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 font-semibold rounded-lg"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={editUserMutation.isLoading}
+              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold rounded-lg shadow-sm inline-flex items-center gap-1.5"
+            >
+              {editUserMutation.isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Reset Password Modal
+const ResetPasswordModal = ({ user, onClose }) => {
+  const [newPassword, setNewPassword] = useState('');
+
+  const resetMutation = useMutation(
+    (payload) => axios.put(`/api/admin/users/${user.id}/password`, payload),
+    {
+      onSuccess: () => {
+        toast.success(`Password for ${user.name} has been updated`);
+        onClose();
+      },
+      onError: (err) => {
+        toast.error(err.response?.data?.message || 'Failed to update password');
+      }
+    }
+  );
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (newPassword.length < 4) {
+      toast.error('Password must be at least 4 characters or digits');
+      return;
+    }
+    resetMutation.mutate({ newPassword });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Key className="w-5 h-5 text-blue-600" />
+              Reset Password
+            </h3>
+            <p className="text-xs text-gray-500 mt-0.5">{user.name} ({user.email})</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
+          <div>
+            <label className="font-semibold text-gray-700 block mb-1">
+              New Password / 4-Digit PIN <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="password"
+              required
+              minLength="4"
+              placeholder="Enter new 4+ digit PIN / password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 font-semibold rounded-lg"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={resetMutation.isLoading || newPassword.length < 4}
+              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold rounded-lg shadow-sm"
+            >
+              {resetMutation.isLoading ? 'Updating...' : 'Set Password'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 export const Users = () => {
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
   const [selectedUser, setSelectedUser] = useState(null);
+  const [addUserModalOpen, setAddUserModalOpen] = useState(false);
+  const [editUser, setEditUser] = useState(null);
+  const [passwordUser, setPasswordUser] = useState(null);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
   const { data: usersData, isLoading } = useQuery(
-    ['users', page, limit, searchQuery],
+    ['users', page, limit, searchQuery, roleFilter],
     () => {
       const params = new URLSearchParams({
         page,
         limit,
-        ...(searchQuery && { search: searchQuery })
+        ...(searchQuery && { search: searchQuery }),
+        ...(roleFilter !== 'all' && { role: roleFilter })
       });
       return axios.get(`/api/admin/users?${params}`).then(res => res.data.data);
     }
   );
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-      </div>
-    );
-  }
+  const toggleStatusMutation = useMutation(
+    ({ userId, isActive }) => axios.patch(`/api/admin/users/${userId}/status?isActive=${isActive}`),
+    {
+      onSuccess: () => {
+        toast.success('User status updated');
+        queryClient.invalidateQueries('users');
+      },
+      onError: (err) => {
+        toast.error(err.response?.data?.message || 'Failed to update user status');
+      }
+    }
+  );
 
   const users = usersData?.users || [];
   const pagination = usersData?.pagination || { total: 0, pages: 0 };
@@ -67,295 +408,290 @@ export const Users = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">User Management</h1>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <UsersIcon className="w-7 h-7 text-blue-600" />
+            User & Customer Directory
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Manage customer accounts, pharmacy staff, credentials, and access permissions
+          </p>
         </div>
-        <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-          <Plus className="h-4 w-4 mr-2" />
-          Add New User
+        <button
+          onClick={() => setAddUserModalOpen(true)}
+          className="inline-flex items-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-colors gap-1.5"
+        >
+          <Plus className="h-4 w-4" />
+          Add User / Customer
         </button>
       </div>
 
-      <div className="bg-white shadow rounded-lg p-4">
-        <form onSubmit={handleSearch} className="flex gap-4">
+      {/* Filter and Search Bar */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row gap-3 justify-between items-center">
+        {/* Role Filter Tabs */}
+        <div className="flex bg-gray-100 p-1 rounded-xl text-xs font-bold w-full md:w-auto">
+          {['all', 'CUSTOMER', 'STAFF', 'BUSINESS_OWNER'].map((r) => (
+            <button
+              key={r}
+              onClick={() => {
+                setRoleFilter(r);
+                setPage(1);
+              }}
+              className={`px-3 py-1.5 rounded-lg transition-all ${
+                roleFilter === r ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              {r === 'all' ? 'All Roles' : r === 'CUSTOMER' ? 'Customers' : r === 'STAFF' ? 'Staff' : 'Owners'}
+            </button>
+          ))}
+        </div>
+
+        {/* Search */}
+        <form onSubmit={handleSearch} className="flex gap-2 w-full md:w-80">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by name, email, or role..."
+              placeholder="Search by name, email, phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
+              className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
             />
           </div>
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            className="px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700"
           >
             Search
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setSearchQuery('');
-              setPage(1);
-            }}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
-          >
-            Clear
           </button>
         </form>
       </div>
 
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Registered Users</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Phone
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Role
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {users.length === 0 ? (
+      {/* Users Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          </div>
+        ) : users.length === 0 ? (
+          <div className="text-center py-16 text-gray-500">
+            <UserIcon className="w-12 h-12 mx-auto text-gray-300 mb-2" />
+            <p className="text-base font-semibold">No users found</p>
+            <p className="text-xs text-gray-400 mt-1">Click "Add User / Customer" to register your first customer or staff member</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm divide-y divide-gray-200">
+              <thead className="bg-gray-50 text-xs font-semibold text-gray-500 uppercase">
                 <tr>
-                  <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
-                    No users found
-                  </td>
+                  <th className="px-6 py-3">User</th>
+                  <th className="px-6 py-3">Role</th>
+                  <th className="px-6 py-3">Phone</th>
+                  <th className="px-6 py-3">Status</th>
+                  <th className="px-6 py-3">Joined Date</th>
+                  <th className="px-6 py-3 text-right">Actions</th>
                 </tr>
-              ) : (
-                users.map((user) => (
-                  <tr
-                    key={user.id}
-                    className={`hover:bg-gray-50 ${
-                      selectedUser?.id === user.id ? 'bg-blue-50' : ''
-                    }`}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {users.map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4">
                       <div className="flex items-center">
-                        {user.imagePath ? (
-                          <img
-                            src={user.imagePath}
-                            alt={user.name}
-                            className="h-8 w-8 rounded-full mr-3"
-                          />
-                        ) : (
-                          <div className="h-8 w-8 bg-gray-200 rounded-full mr-3 flex items-center justify-center">
-                            <UserIcon className="h-4 w-4 text-gray-400" />
-                          </div>
-                        )}
-                        <span className="text-sm font-medium text-gray-900">
-                          {user.name}
-                        </span>
+                        <div className="h-9 w-9 bg-blue-100 text-blue-700 font-bold rounded-full flex items-center justify-center mr-3 text-sm">
+                          {user.name?.charAt(0)?.toUpperCase() || 'U'}
+                        </div>
+                        <div>
+                          <div className="font-bold text-gray-900">{user.name}</div>
+                          <div className="text-xs text-gray-500">{user.email}</div>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.email}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.phone || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getRoleBadgeClass(user.role)}`}>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex px-2 py-0.5 text-xs font-bold rounded-full ${getRoleBadgeClass(user.role)}`}>
                         {user.role}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                    <td className="px-6 py-4 text-xs font-medium text-gray-600">
+                      {user.phone || '—'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2 py-0.5 text-xs font-bold rounded-full ${
                         user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
-                        {user.isActive ? 'Active' : 'Inactive'}
+                        {user.isActive ? 'Active' : 'Deactivated'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 text-xs text-gray-500">
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 text-right space-x-2">
                       <button
                         onClick={() => setSelectedUser(user)}
-                        className="text-blue-600 hover:text-blue-900 font-medium"
+                        className="px-2.5 py-1 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       >
-                        View Details
+                        View
+                      </button>
+                      <button
+                        onClick={() => setEditUser(user)}
+                        className="px-2.5 py-1 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => setPasswordUser(user)}
+                        className="px-2.5 py-1 text-xs font-bold text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                        title="Reset Password / 4-digit PIN"
+                      >
+                        Reset PIN
                       </button>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
+        {/* Pagination */}
         {pagination.pages > 1 && (
           <div className="bg-white px-6 py-3 flex items-center justify-between border-t border-gray-200">
-            <div className="flex-1 flex justify-between sm:hidden">
+            <div className="text-xs text-gray-500">
+              Showing <span className="font-bold">{(page - 1) * limit + 1}</span> to{' '}
+              <span className="font-bold">{Math.min(page * limit, pagination.total)}</span> of{' '}
+              <span className="font-bold">{pagination.total}</span> users
+            </div>
+            <div className="flex items-center gap-1">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                className="px-3 py-1 border border-gray-300 rounded-md text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
               >
                 Previous
               </button>
+              <span className="px-3 text-xs font-bold text-gray-700">Page {page} of {pagination.pages}</span>
               <button
                 onClick={() => setPage(p => Math.min(pagination.pages, p + 1))}
                 disabled={page === pagination.pages}
-                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                className="px-3 py-1 border border-gray-300 rounded-md text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
               >
                 Next
               </button>
-            </div>
-            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm text-gray-700">
-                  Showing <span className="font-medium">{(page - 1) * limit + 1}</span> to{' '}
-                  <span className="font-medium">{Math.min(page * limit, pagination.total)}</span> of{' '}
-                  <span className="font-medium">{pagination.total}</span> results
-                </p>
-              </div>
-              <div>
-                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                  <button
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
-                    const pageNum = Math.max(1, page - 2) + i;
-                    if (pageNum > pagination.pages) return null;
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setPage(pageNum)}
-                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                          page === pageNum
-                            ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
-                  <button
-                    onClick={() => setPage(p => Math.min(pagination.pages, p + 1))}
-                    disabled={page === pagination.pages}
-                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </nav>
-              </div>
             </div>
           </div>
         )}
       </div>
 
+      {/* Details Modal */}
       {selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-md mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-lg font-medium text-gray-900">User Details</h3>
-              <button
-                onClick={() => setSelectedUser(null)}
-                className="text-gray-400 hover:text-gray-500"
-              >
-                <Ban className="h-5 w-5" />
+              <h3 className="text-lg font-bold text-gray-900">User Profile</h3>
+              <button onClick={() => setSelectedUser(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="h-5 w-5" />
               </button>
             </div>
             <div className="p-6">
               <div className="text-center mb-6">
-                {selectedUser.imagePath ? (
-                  <img
-                    src={selectedUser.imagePath}
-                    alt={selectedUser.name}
-                    className="h-20 w-20 rounded-full mx-auto mb-4"
-                  />
-                ) : (
-                  <div className="h-20 w-20 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
-                    <UserIcon className="h-10 w-10 text-gray-400" />
-                  </div>
-                )}
-                <h4 className="text-lg font-medium text-gray-900">{selectedUser.name}</h4>
-                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full mt-2 ${getRoleBadgeClass(selectedUser.role)}`}>
+                <div className="h-16 w-16 bg-blue-100 text-blue-700 font-bold rounded-full mx-auto mb-3 flex items-center justify-center text-2xl">
+                  {selectedUser.name?.charAt(0)?.toUpperCase() || 'U'}
+                </div>
+                <h4 className="text-lg font-bold text-gray-900">{selectedUser.name}</h4>
+                <span className={`inline-flex px-2 py-0.5 text-xs font-bold rounded-full mt-1 ${getRoleBadgeClass(selectedUser.role)}`}>
                   {selectedUser.role}
                 </span>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-100 text-xs">
                 <div className="flex items-center">
                   <Mail className="h-4 w-4 text-gray-400 mr-3" />
                   <div>
-                    <p className="text-sm text-gray-500">Email</p>
-                    <p className="text-sm text-gray-900">{selectedUser.email}</p>
+                    <p className="text-gray-400">Email Address</p>
+                    <p className="font-semibold text-gray-900">{selectedUser.email}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center">
                   <Phone className="h-4 w-4 text-gray-400 mr-3" />
                   <div>
-                    <p className="text-sm text-gray-500">Phone</p>
-                    <p className="text-sm text-gray-900">{selectedUser.phone || 'N/A'}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center">
-                  <UserIcon className="h-4 w-4 text-gray-400 mr-3" />
-                  <div>
-                    <p className="text-sm text-gray-500">Status</p>
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                      selectedUser.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {selectedUser.isActive ? 'Active' : 'Inactive'}
-                    </span>
+                    <p className="text-gray-400">Phone</p>
+                    <p className="font-semibold text-gray-900">{selectedUser.phone || 'N/A'}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center">
                   <Calendar className="h-4 w-4 text-gray-400 mr-3" />
                   <div>
-                    <p className="text-sm text-gray-500">Member Since</p>
-                    <p className="text-sm text-gray-900">{new Date(selectedUser.createdAt).toLocaleDateString()}</p>
+                    <p className="text-gray-400">Registered On</p>
+                    <p className="font-semibold text-gray-900">{new Date(selectedUser.createdAt).toLocaleDateString()}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-6 space-y-3">
+              <div className="mt-5 grid grid-cols-2 gap-2 text-xs">
                 <button
-                  onClick={() => console.log('Edit profile:', selectedUser.name)}
-                  className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  onClick={() => {
+                    const u = selectedUser;
+                    setSelectedUser(null);
+                    setEditUser(u);
+                  }}
+                  className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold"
                 >
-                  <Edit className="h-4 w-4 mr-2" />
+                  <Edit className="h-4 w-4 mr-1.5" />
                   Edit Profile
                 </button>
                 <button
-                  onClick={() => console.log('Reset password:', selectedUser.name)}
-                  className="w-full flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+                  onClick={() => {
+                    const u = selectedUser;
+                    setSelectedUser(null);
+                    setPasswordUser(u);
+                  }}
+                  className="flex items-center justify-center px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-bold"
                 >
-                  <Key className="h-4 w-4 mr-2" />
-                  Reset Password
+                  <Key className="h-4 w-4 mr-1.5" />
+                  Reset PIN
+                </button>
+              </div>
+
+              <div className="mt-2">
+                <button
+                  onClick={() => {
+                    toggleStatusMutation.mutate({
+                      userId: selectedUser.id,
+                      isActive: !selectedUser.isActive
+                    });
+                    setSelectedUser(null);
+                  }}
+                  className={`w-full flex items-center justify-center px-4 py-2 text-xs font-bold rounded-lg transition-colors ${
+                    selectedUser.isActive
+                      ? 'bg-red-50 text-red-700 hover:bg-red-100'
+                      : 'bg-green-50 text-green-700 hover:bg-green-100'
+                  }`}
+                >
+                  <Ban className="h-4 w-4 mr-1.5" />
+                  {selectedUser.isActive ? 'Deactivate Account' : 'Activate Account'}
                 </button>
               </div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Add User Modal */}
+      {addUserModalOpen && (
+        <AddUserModal onClose={() => setAddUserModalOpen(false)} />
+      )}
+
+      {/* Edit User Modal */}
+      {editUser && (
+        <EditUserModal user={editUser} onClose={() => setEditUser(null)} />
+      )}
+
+      {/* Reset Password Modal */}
+      {passwordUser && (
+        <ResetPasswordModal user={passwordUser} onClose={() => setPasswordUser(null)} />
       )}
     </div>
   );
