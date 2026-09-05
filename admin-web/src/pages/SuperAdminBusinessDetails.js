@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
-  Building2, 
   Mail, 
   Phone, 
   MapPin, 
@@ -15,7 +14,6 @@ import {
   ArrowLeft,
   CheckCircle,
   XCircle,
-  Clock,
   TrendingUp
 } from 'lucide-react';
 
@@ -207,10 +205,56 @@ export const SuperAdminBusinessDetails = () => {
           </div>
         </div>
 
-        {/* Business Analytics */}
+        {/* Market, Currency & Compliance Card */}
         <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Market & Compliance Settings</h2>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Country & Currency</p>
+                <p className="font-semibold text-gray-900 mt-0.5">
+                  {business.Country || 'United States'} ({business.Currency || 'USD'})
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Tax Engine Status</p>
+                <p className="font-semibold text-gray-900 mt-0.5">
+                  {business.TaxEnabled ? `Enabled (${((parseFloat(business.TaxRate) || 0) * 100).toFixed(2)}%)` : 'Tax Disabled / Exempt'}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100">
+              <div>
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">TRN / EIN (Tax ID)</p>
+                <p className="font-mono text-sm font-semibold text-gray-900 mt-0.5">
+                  {business.TaxRegistrationNumber || 'Not specified'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Pharmacy License #</p>
+                <p className="font-mono text-sm font-semibold text-gray-900 mt-0.5">
+                  {business.LicenseNumber || 'Not specified'}
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-gray-100">
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Pharmacist-in-Charge (PIC)</p>
+              <p className="font-medium text-gray-900 mt-0.5">
+                {business.PharmacistInChargeName || 'Not assigned'}
+              </p>
+              {business.LicenseAuthority && (
+                <p className="text-xs text-gray-500 mt-0.5">Authority: {business.LicenseAuthority}</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Business Analytics */}
+        <div className="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
           <h2 className="text-xl font-bold text-gray-800 mb-4">Business Analytics</h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="bg-blue-50 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Users className="w-5 h-5 text-blue-600" />
@@ -237,7 +281,7 @@ export const SuperAdminBusinessDetails = () => {
                 <TrendingUp className="w-5 h-5 text-yellow-600" />
                 <p className="text-sm text-gray-600">Revenue</p>
               </div>
-              <p className="text-2xl font-bold text-gray-800">${(stats.totalRevenue || 0).toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-800">{business.Currency || '$'} {(stats.totalRevenue || 0).toLocaleString()}</p>
             </div>
           </div>
         </div>

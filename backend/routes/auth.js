@@ -12,7 +12,9 @@ router.post('/register', [
   body('email').isEmail().normalizeEmail().withMessage('Valid email required'),
   body('phone').optional().isMobilePhone('any').withMessage('Valid phone number required'),
   body('password').isLength({ min: 4 }).withMessage('Password must be at least 4 characters long'),
-  body('businessCode').optional().isLength({ min: 3, max: 50 }).withMessage('Business code required')
+  body('businessCode').optional().isLength({ min: 3, max: 50 }).withMessage('Business code required'),
+  body('emiratesId').optional().trim(),
+  body('nationalIdLast4').optional().trim().isLength({ min: 4, max: 4 }).withMessage('National ID Last 4 must be exactly 4 digits')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -24,13 +26,16 @@ router.post('/register', [
       });
     }
 
-    const { name, email, phone, password, businessCode } = req.body;
+    const { name, email, phone, password, businessCode, emiratesId, nationalIdLast4 } = req.body;
 
     // If businessCode is provided, verify it exists and is active
     let businessId = null;
+    let businessRecord = null;
     if (businessCode) {
       const businesses = await query(
-        'SELECT BusinessId, Status FROM Businesses WHERE BusinessCode = ?',
+        `SELECT BusinessId, BusinessName, BusinessCode, Country, Currency, TaxEnabled, TaxRate, 
+                TaxRegistrationNumber, LicenseNumber, LicenseAuthority, Locale, Timezone, PharmacistInChargeName, Status 
+         FROM Businesses WHERE BusinessCode = ?`,
         [businessCode]
       );
 
@@ -48,7 +53,8 @@ router.post('/register', [
         });
       }
 
-      businessId = businesses[0].BusinessId;
+      businessRecord = businesses[0];
+      businessId = businessRecord.BusinessId;
     }
 
     // Check if user already exists (globally or within business)
@@ -75,13 +81,13 @@ router.post('/register', [
 
     // Insert new user
     const result = await query(
-      'INSERT INTO Users (BusinessId, Name, Email, Phone, PasswordHash, Role) VALUES (?, ?, ?, ?, ?, ?)',
-      [businessId, name, email, phone, passwordHash, 'CUSTOMER']
+      'INSERT INTO Users (BusinessId, Name, Email, Phone, EmiratesId, NationalIdLast4, PasswordHash, Role) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [businessId, name, email, phone, emiratesId || null, nationalIdLast4 || null, passwordHash, 'CUSTOMER']
     );
 
     // Get the created user
     const users = await query(
-      'SELECT UserId, BusinessId, Name, Email, Phone, Role, IsActive, CreatedAt FROM Users WHERE UserId = ?',
+      'SELECT UserId, BusinessId, Name, Email, Phone, EmiratesId, NationalIdLast4, Role, IsActive, CreatedAt FROM Users WHERE UserId = ?',
       [result.insertId]
     );
 
@@ -104,14 +110,30 @@ router.post('/register', [
           name: user.Name,
           email: user.Email,
           phone: user.Phone,
+          emiratesId: user.EmiratesId,
+          nationalIdLast4: user.NationalIdLast4,
           role: user.Role,
           isActive: user.IsActive,
-          createdAt: user.CreatedAt
+          createdAt: user.CreatedAt,
+          business: businessRecord ? {
+            id: businessRecord.BusinessId,
+            name: businessRecord.BusinessName,
+            code: businessRecord.BusinessCode,
+            country: businessRecord.Country,
+            currency: businessRecord.Currency,
+            taxEnabled: Boolean(businessRecord.TaxEnabled !== 0),
+            taxRate: parseFloat(businessRecord.TaxRate) || 0,
+            taxRegistrationNumber: businessRecord.TaxRegistrationNumber,
+            licenseNumber: businessRecord.LicenseNumber,
+            licenseAuthority: businessRecord.LicenseAuthority,
+            locale: businessRecord.Locale,
+            timezone: businessRecord.Timezone,
+            pharmacistInChargeName: businessRecord.PharmacistInChargeName
+          } : null
         },
         token
       }
     });
-
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({
@@ -176,6 +198,35 @@ router.post('/login', [
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
 
+    // Load tenant business configuration if user belongs to a business
+    let businessConfig = null;
+    if (user.BusinessId) {
+      const bizRows = await query(
+        `SELECT BusinessId, BusinessName, BusinessCode, Country, Currency, TaxEnabled, TaxRate, 
+                TaxRegistrationNumber, LicenseNumber, LicenseAuthority, Locale, Timezone, PharmacistInChargeName 
+         FROM Businesses WHERE BusinessId = ?`,
+        [user.BusinessId]
+      );
+      if (bizRows.length > 0) {
+        const b = bizRows[0];
+        businessConfig = {
+          id: b.BusinessId,
+          name: b.BusinessName,
+          code: b.BusinessCode,
+          country: b.Country || 'USA',
+          currency: b.Currency || 'USD',
+          taxEnabled: Boolean(b.TaxEnabled !== 0),
+          taxRate: parseFloat(b.TaxRate) || 0,
+          taxRegistrationNumber: b.TaxRegistrationNumber,
+          licenseNumber: b.LicenseNumber,
+          licenseAuthority: b.LicenseAuthority,
+          locale: b.Locale || 'en-US',
+          timezone: b.Timezone || 'America/New_York',
+          pharmacistInChargeName: b.PharmacistInChargeName
+        };
+      }
+    }
+
     res.json({
       success: true,
       message: 'Login successful',
@@ -187,7 +238,8 @@ router.post('/login', [
           email: user.Email,
           phone: user.Phone,
           role: user.Role,
-          isActive: user.IsActive
+          isActive: user.IsActive,
+          business: businessConfig
         },
         token
       }
@@ -342,18 +394,48 @@ router.get('/verify', async (req, res) => {
       });
     }
 
+    const user = users[0];
+    let businessConfig = null;
+    if (user.BusinessId) {
+      const bizRows = await query(
+        `SELECT BusinessId, BusinessName, BusinessCode, Country, Currency, TaxEnabled, TaxRate, 
+                TaxRegistrationNumber, LicenseNumber, LicenseAuthority, Locale, Timezone, PharmacistInChargeName 
+         FROM Businesses WHERE BusinessId = ?`,
+        [user.BusinessId]
+      );
+      if (bizRows.length > 0) {
+        const b = bizRows[0];
+        businessConfig = {
+          id: b.BusinessId,
+          name: b.BusinessName,
+          code: b.BusinessCode,
+          country: b.Country || 'USA',
+          currency: b.Currency || 'USD',
+          taxEnabled: Boolean(b.TaxEnabled !== 0),
+          taxRate: parseFloat(b.TaxRate) || 0,
+          taxRegistrationNumber: b.TaxRegistrationNumber,
+          licenseNumber: b.LicenseNumber,
+          licenseAuthority: b.LicenseAuthority,
+          locale: b.Locale || 'en-US',
+          timezone: b.Timezone || 'America/New_York',
+          pharmacistInChargeName: b.PharmacistInChargeName
+        };
+      }
+    }
+
     res.json({
       success: true,
       message: 'Token is valid',
       data: {
         user: {
-          id: users[0].UserId,
-          businessId: users[0].BusinessId,
-          name: users[0].Name,
-          email: users[0].Email,
-          phone: users[0].Phone,
-          role: users[0].Role,
-          isActive: users[0].IsActive
+          id: user.UserId,
+          businessId: user.BusinessId,
+          name: user.Name,
+          email: user.Email,
+          phone: user.Phone,
+          role: user.Role,
+          isActive: user.IsActive,
+          business: businessConfig
         }
       }
     });

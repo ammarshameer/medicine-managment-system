@@ -33,6 +33,8 @@ const HomeScreen = () => {
     { id: 4, name: 'Antacid Tablets', price: 60, image: null },
   ];
 
+  const currency = user?.business?.currency || 'USD';
+
   const MedicineCard = ({ medicine }) => (
     <TouchableOpacity
       style={styles.medicineCard}
@@ -48,7 +50,7 @@ const HomeScreen = () => {
       <Text style={styles.medicineName} numberOfLines={2}>
         {medicine.name}
       </Text>
-      <Text style={styles.medicinePrice}>PKR {medicine.price}</Text>
+      <Text style={styles.medicinePrice}>{currency} {medicine.price}</Text>
     </TouchableOpacity>
   );
 

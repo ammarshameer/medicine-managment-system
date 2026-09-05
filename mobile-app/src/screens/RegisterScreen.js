@@ -20,13 +20,14 @@ const RegisterScreen = () => {
     password: '',
     confirmPassword: '',
     businessCode: '',
+    emiratesId: ''
   });
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
   const { register } = useAuth();
 
   const handleRegister = async () => {
-    const { name, email, phone, password, confirmPassword, businessCode } = formData;
+    const { name, email, phone, password, confirmPassword, businessCode, emiratesId } = formData;
 
     if (!name || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all required fields');
@@ -43,13 +44,20 @@ const RegisterScreen = () => {
       return;
     }
 
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+    if (password.length < 4) {
+      Alert.alert('Error', 'Password must be at least 4 characters');
       return;
     }
 
     setLoading(true);
-    const result = await register({ name, email, phone, password, businessCode });
+    const result = await register({ 
+      name, 
+      email, 
+      phone, 
+      password, 
+      businessCode, 
+      emiratesId: emiratesId ? emiratesId.trim() : undefined 
+    });
     setLoading(false);
 
     if (result.success) {
@@ -68,7 +76,7 @@ const RegisterScreen = () => {
       <View style={styles.header}>
         <Icon name="person-add" size={60} color="#1976d2" />
         <Text style={styles.title}>Register</Text>
-        <Text style={styles.subtitle}>Create your account</Text>
+        <Text style={styles.subtitle}>Create your patient account</Text>
       </View>
 
       <View style={styles.form}>
@@ -76,7 +84,7 @@ const RegisterScreen = () => {
           <Icon name="person" size={20} color="#666" style={styles.inputIcon} />
           <TextInput
             style={styles.input}
-            placeholder="Full Name"
+            placeholder="Full Name *"
             value={formData.name}
             onChangeText={(value) => updateFormData('name', value)}
           />
@@ -86,7 +94,7 @@ const RegisterScreen = () => {
           <Icon name="email" size={20} color="#666" style={styles.inputIcon} />
           <TextInput
             style={styles.input}
-            placeholder="Email"
+            placeholder="Email Address *"
             value={formData.email}
             onChangeText={(value) => updateFormData('email', value)}
             keyboardType="email-address"
@@ -98,10 +106,20 @@ const RegisterScreen = () => {
           <Icon name="phone" size={20} color="#666" style={styles.inputIcon} />
           <TextInput
             style={styles.input}
-            placeholder="Phone (Optional)"
+            placeholder="Phone Number"
             value={formData.phone}
             onChangeText={(value) => updateFormData('phone', value)}
             keyboardType="phone-pad"
+          />
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Icon name="badge" size={20} color="#666" style={styles.inputIcon} />
+          <TextInput
+            style={styles.input}
+            placeholder="Emirates ID / National ID (Optional)"
+            value={formData.emiratesId}
+            onChangeText={(value) => updateFormData('emiratesId', value)}
           />
         </View>
 

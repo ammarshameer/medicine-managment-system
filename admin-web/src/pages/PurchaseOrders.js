@@ -14,11 +14,12 @@ import {
   Trash2,
   AlertTriangle,
   Loader2,
-  X,
-  FileSpreadsheet
+  X
 } from 'lucide-react';
+import { useCurrency } from '../utils/formatCurrency';
 
 export const PurchaseOrders = () => {
+  const { currency, format } = useCurrency();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -333,7 +334,7 @@ export const PurchaseOrders = () => {
                       {new Date(po.orderDate).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 font-bold text-gray-900">
-                      PKR {po.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      {format(po.totalAmount)}
                     </td>
                     <td className="px-6 py-4 text-xs text-gray-600">
                       {po.itemCount} items
@@ -343,21 +344,35 @@ export const PurchaseOrders = () => {
                     </td>
                     <td className="px-6 py-4 text-right space-x-2">
                       <button
-                        onClick={() => openDetailsModal(po.id)}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        onClick={() => {
+                          setSelectedPOId(po.id);
+                          setDetailsModalOpen(true);
+                        }}
+                        className="p-1.5 text-blue-600 hover:text-blue-800 rounded hover:bg-blue-50"
                         title="View Details"
                       >
                         <Eye className="w-4 h-4" />
                       </button>
-                      {po.status !== 'Received' && po.status !== 'Cancelled' && (
+
+                      {po.status === 'Ordered' && (
                         <button
-                          onClick={() => handleReceivePO(po)}
+                          onClick={() => receiveMutation.mutate(po.id)}
                           disabled={receiveMutation.isLoading}
-                          className="px-2.5 py-1 text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded-md transition-colors inline-flex items-center gap-1 shadow-sm"
-                          title="Receive Stock"
+                          className="p-1.5 text-green-600 hover:text-green-800 rounded hover:bg-green-50"
+                          title="Receive & Add to Stock"
                         >
-                          <PackageCheck className="w-3.5 h-3.5" />
-                          Receive
+                          <PackageCheck className="w-4 h-4" />
+                        </button>
+                      )}
+
+                      {po.status === 'Ordered' && (
+                        <button
+                          onClick={() => cancelMutation.mutate(po.id)}
+                          disabled={cancelMutation.isLoading}
+                          className="p-1.5 text-red-600 hover:text-red-800 rounded hover:bg-red-50"
+                          title="Cancel Order"
+                        >
+                          <Ban className="w-4 h-4" />
                         </button>
                       )}
                     </td>
@@ -374,21 +389,16 @@ export const PurchaseOrders = () => {
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Plus className="w-5 h-5 text-blue-600" />
-                Create Purchase Order
-              </h3>
+              <h3 className="text-lg font-bold text-gray-900">Create Purchase Order</h3>
               <button onClick={() => setCreateModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleCreateSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1">
-                    Select Vendor <span className="text-red-500">*</span>
-                  </label>
+                  <label className="text-xs font-semibold text-gray-700 block mb-1">Select Vendor *</label>
                   <select
                     required
                     value={formData.vendorId}
@@ -397,15 +407,13 @@ export const PurchaseOrders = () => {
                   >
                     <option value="">-- Choose Vendor --</option>
                     {vendorsData?.map(v => (
-                      <option key={v.id} value={v.id}>{v.name}</option>
+                      <option key={v.id} value={v.id}>{v.name} ({v.contactPerson || v.phone})</option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1">
-                    Order Date <span className="text-red-500">*</span>
-                  </label>
+                  <label className="text-xs font-semibold text-gray-700 block mb-1">Order Date *</label>
                   <input
                     type="date"
                     required
@@ -414,56 +422,39 @@ export const PurchaseOrders = () => {
                     className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1">Initial Status</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                  >
-                    <option value="Ordered">Ordered</option>
-                    <option value="Draft">Draft</option>
-                  </select>
-                </div>
               </div>
 
-              {/* Line Items Builder */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold uppercase tracking-wider text-gray-700">
-                    Order Items (Procurement Lines)
-                  </label>
+              {/* Line Items */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-bold text-gray-800">Order Items (Procurement)</label>
                   <button
                     type="button"
                     onClick={addItemRow}
                     className="text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1"
                   >
-                    <Plus className="w-3.5 h-3.5" />
-                    Add Another Medicine
+                    <Plus className="w-3.5 h-3.5" /> Add Medicine
                   </button>
                 </div>
 
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 space-y-2.5">
+                <div className="space-y-2 border border-gray-200 p-3 rounded-xl bg-gray-50 max-h-48 overflow-y-auto">
                   {formData.items.map((item, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
+                    <div key={idx} className="flex items-center gap-2 bg-white p-2 rounded-lg border border-gray-200">
                       <div className="flex-1">
                         <select
                           required
                           value={item.medicineId}
                           onChange={(e) => handleItemChange(idx, 'medicineId', e.target.value)}
-                          className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                         >
                           <option value="">-- Select Medicine --</option>
                           {medicinesData?.map(m => (
-                            <option key={m.id} value={m.id}>
-                              {m.name} (Cur Stock: {m.stock})
-                            </option>
+                            <option key={m.id} value={m.id}>{m.name} (Stock: {m.stock})</option>
                           ))}
                         </select>
                       </div>
 
-                      <div className="w-24">
+                      <div className="w-20">
                         <input
                           type="number"
                           min="1"
@@ -477,7 +468,7 @@ export const PurchaseOrders = () => {
 
                       <div className="w-32">
                         <div className="relative">
-                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 font-bold">PKR</span>
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 font-bold">{currency}</span>
                           <input
                             type="number"
                             step="0.01"
@@ -492,7 +483,7 @@ export const PurchaseOrders = () => {
                       </div>
 
                       <div className="w-24 text-right text-xs font-bold text-gray-800">
-                        PKR {((item.quantity || 0) * (item.unitCost || 0)).toFixed(2)}
+                        {format((item.quantity || 0) * (item.unitCost || 0))}
                       </div>
 
                       <button
@@ -507,7 +498,7 @@ export const PurchaseOrders = () => {
                 </div>
 
                 <div className="flex justify-end p-2 bg-blue-50 rounded-lg text-xs font-bold text-blue-950">
-                  <span>Total Procurement Amount: PKR {formData.items.reduce((sum, i) => sum + ((i.quantity || 0) * (i.unitCost || 0)), 0).toFixed(2)}</span>
+                  <span>Total Procurement Amount: {format(formData.items.reduce((sum, i) => sum + ((i.quantity || 0) * (i.unitCost || 0)), 0))}</span>
                 </div>
               </div>
 
@@ -600,9 +591,9 @@ export const PurchaseOrders = () => {
                         <tr key={item.id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 font-semibold text-gray-900">{item.medicineName}</td>
                           <td className="px-4 py-3 text-center">{item.quantity}</td>
-                          <td className="px-4 py-3 text-right font-mono">PKR {item.unitCost.toFixed(2)}</td>
+                          <td className="px-4 py-3 text-right font-mono">{format(item.unitCost)}</td>
                           <td className="px-4 py-3 text-right font-mono font-bold text-gray-900">
-                            PKR {item.subtotal.toFixed(2)}
+                            {format(item.subtotal)}
                           </td>
                         </tr>
                       ))}
@@ -610,8 +601,8 @@ export const PurchaseOrders = () => {
                     <tfoot className="bg-gray-50 font-bold border-t border-gray-200">
                       <tr>
                         <td colSpan="3" className="px-4 py-2.5 text-right uppercase">Total Purchase Amount:</td>
-                        <td className="px-4 py-2.5 text-right text-blue-900">
-                          PKR {poDetailsData.totalAmount.toFixed(2)}
+                        <td className="px-4 py-2.5 text-right text-blue-900 font-bold font-mono">
+                          {format(poDetailsData.totalAmount)}
                         </td>
                       </tr>
                     </tfoot>

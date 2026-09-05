@@ -87,9 +87,12 @@ router.get('/dashboard', authenticateToken, requireTenant, requireBusinessAccess
 
     // 7. FINANCIAL METRICS — Strictly for BUSINESS_OWNER
     if (!isStaff) {
-      // Total delivered orders revenue
+      // Total delivered orders net revenue (pre-tax sum across delivered order items)
       const revenueRes = await dbQuery(
-        'SELECT SUM(TotalAmount) as total FROM Orders WHERE BusinessId = ? AND Status = "Delivered"',
+        `SELECT SUM(oi.Subtotal) as total 
+         FROM OrderItems oi 
+         JOIN Orders o ON oi.OrderId = o.OrderId 
+         WHERE o.BusinessId = ? AND o.Status = "Delivered"`,
         [businessId]
       );
       const totalRevenue = parseFloat(revenueRes[0].total) || 0;
@@ -118,7 +121,7 @@ router.get('/dashboard', authenticateToken, requireTenant, requireBusinessAccess
           m.MedicineId, m.Name, 
           SUM(oi.Quantity) as totalSold, 
           SUM(oi.Subtotal) as totalRevenue,
-          SUM((oi.Price - oi.CostPrice) * oi.Quantity) as totalProfit
+          SUM(oi.Subtotal - (oi.CostPrice * oi.Quantity)) as totalProfit
          FROM Medicines m
          JOIN OrderItems oi ON m.MedicineId = oi.MedicineId
          JOIN Orders o ON oi.OrderId = o.OrderId
@@ -191,7 +194,7 @@ router.get('/dashboard/analytics', authenticateToken, requireTenant, requireBusi
         `SELECT 
           MONTH(o.OrderDate) as monthNum,
           COUNT(DISTINCT o.OrderId) as ordersCount,
-          SUM(o.TotalAmount) as revenue,
+          SUM(oi.Subtotal) as revenue,
           SUM(oi.CostPrice * oi.Quantity) as cost
          FROM Orders o
          LEFT JOIN OrderItems oi ON o.OrderId = oi.OrderId
@@ -233,7 +236,7 @@ router.get('/dashboard/analytics', authenticateToken, requireTenant, requireBusi
         `SELECT 
           QUARTER(o.OrderDate) as qNum,
           COUNT(DISTINCT o.OrderId) as ordersCount,
-          SUM(o.TotalAmount) as revenue,
+          SUM(oi.Subtotal) as revenue,
           SUM(oi.CostPrice * oi.Quantity) as cost
          FROM Orders o
          LEFT JOIN OrderItems oi ON o.OrderId = oi.OrderId
@@ -275,7 +278,7 @@ router.get('/dashboard/analytics', authenticateToken, requireTenant, requireBusi
         `SELECT 
           YEAR(o.OrderDate) as yr,
           COUNT(DISTINCT o.OrderId) as ordersCount,
-          SUM(o.TotalAmount) as revenue,
+          SUM(oi.Subtotal) as revenue,
           SUM(oi.CostPrice * oi.Quantity) as cost
          FROM Orders o
          LEFT JOIN OrderItems oi ON o.OrderId = oi.OrderId
@@ -383,7 +386,7 @@ router.get('/users', authenticateToken, requireTenant, requireBusinessAccess, [
     const total = countResult[0].total;
 
     const users = await dbQuery(
-      `SELECT UserId, Name, Email, Phone, Role, IsActive, CreatedAt
+      `SELECT UserId, Name, Email, Phone, Role, EmiratesId, NationalIdLast4, IsActive, CreatedAt
        FROM Users 
        ${whereClause}
        ORDER BY CreatedAt DESC
@@ -391,18 +394,32 @@ router.get('/users', authenticateToken, requireTenant, requireBusinessAccess, [
       [...params, limit, offset]
     );
 
+    const isStaff = req.user.Role === 'STAFF';
+
     res.json({
       success: true,
       data: {
-        users: users.map(user => ({
-          id: user.UserId,
-          name: user.Name,
-          email: user.Email,
-          phone: user.Phone,
-          role: user.Role,
-          isActive: Boolean(user.IsActive),
-          createdAt: user.CreatedAt
-        })),
+        users: users.map(user => {
+          let emiratesIdDisplay = user.EmiratesId;
+          if (isStaff && emiratesIdDisplay) {
+            // Mask Emirates ID for Staff: 784-****-*******-1
+            emiratesIdDisplay = emiratesIdDisplay.length >= 8
+              ? `${emiratesIdDisplay.substring(0, 4)}****-*******${emiratesIdDisplay.slice(-2)}`
+              : '***-****-****';
+          }
+
+          return {
+            id: user.UserId,
+            name: user.Name,
+            email: user.Email,
+            phone: user.Phone,
+            role: user.Role,
+            emiratesId: emiratesIdDisplay,
+            nationalIdLast4: user.NationalIdLast4,
+            isActive: Boolean(user.IsActive),
+            createdAt: user.CreatedAt
+          };
+        }),
         pagination: {
           page,
           limit,
@@ -902,10 +919,11 @@ router.get('/reports/sales', authenticateToken, requireTenant, requireBusinessOw
     const endDate = req.query.endDate;
 
     const salesByDate = await dbQuery(
-      `SELECT DATE(OrderDate) as date, COUNT(*) as orders, SUM(TotalAmount) as revenue
-       FROM Orders
-       WHERE BusinessId = ? AND OrderDate BETWEEN ? AND ? AND Status = 'Delivered'
-       GROUP BY DATE(OrderDate)
+      `SELECT DATE(o.OrderDate) as date, COUNT(DISTINCT o.OrderId) as orders, SUM(oi.Subtotal) as revenue
+       FROM Orders o
+       JOIN OrderItems oi ON o.OrderId = oi.OrderId
+       WHERE o.BusinessId = ? AND o.OrderDate BETWEEN ? AND ? AND o.Status = 'Delivered'
+       GROUP BY DATE(o.OrderDate)
        ORDER BY date ASC`,
       [businessId, startDate, endDate]
     );
@@ -960,6 +978,249 @@ router.get('/reports/sales', authenticateToken, requireTenant, requireBusinessOw
     res.status(500).json({
       success: false,
       message: 'Internal server error'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/settings
+ * Get business profile, localization, and tax settings (BUSINESS_OWNER only)
+ */
+router.get('/settings', authenticateToken, requireTenant, requireBusinessOwner, async (req, res) => {
+  try {
+    const businessId = req.user.businessId;
+    const businesses = await dbQuery(
+      `SELECT BusinessId, BusinessName, LegalName, Phone, Email, Address, City, State, ZipCode, Country,
+              Currency, TaxEnabled, TaxRate, TaxRegistrationNumber, LicenseNumber, LicenseAuthority,
+              Locale, Timezone, PharmacistInChargeName, CreatedAt, UpdatedAt
+       FROM Businesses WHERE BusinessId = ?`,
+      [businessId]
+    );
+
+    if (businesses.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Business not found'
+      });
+    }
+
+    const b = businesses[0];
+    res.json({
+      success: true,
+      data: {
+        id: b.BusinessId,
+        businessName: b.BusinessName,
+        legalName: b.LegalName,
+        phone: b.Phone,
+        email: b.Email,
+        address: b.Address,
+        city: b.City,
+        state: b.State,
+        zipCode: b.ZipCode,
+        country: b.Country,
+        currency: b.Currency || 'USD',
+        taxEnabled: Boolean(b.TaxEnabled),
+        taxRate: parseFloat(b.TaxRate) || 0,
+        taxRegistrationNumber: b.TaxRegistrationNumber,
+        licenseNumber: b.LicenseNumber,
+        licenseAuthority: b.LicenseAuthority,
+        pharmacistInChargeName: b.PharmacistInChargeName,
+        locale: b.Locale || 'en-US',
+        timezone: b.Timezone || 'America/New_York',
+        createdAt: b.CreatedAt,
+        updatedAt: b.UpdatedAt
+      }
+    });
+  } catch (error) {
+    console.error('Get business settings error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+/**
+ * PUT /api/admin/settings
+ * Update business profile, localization, and tax settings (BUSINESS_OWNER only)
+ */
+router.put('/settings', authenticateToken, requireTenant, requireBusinessOwner, [
+  body('businessName').optional().trim().notEmpty(),
+  body('legalName').optional().trim(),
+  body('phone').optional().trim(),
+  body('email').optional().isEmail(),
+  body('address').optional().trim(),
+  body('city').optional().trim(),
+  body('state').optional().trim(),
+  body('zipCode').optional().trim(),
+  body('currency').optional().isIn(['USD', 'AED', 'PKR', 'SAR', 'EUR', 'GBP']),
+  body('taxEnabled').optional().isBoolean(),
+  body('taxRate').optional().isFloat({ min: 0, max: 1 }),
+  body('taxRegistrationNumber').optional().trim(),
+  body('licenseNumber').optional().trim(),
+  body('licenseAuthority').optional().trim(),
+  body('pharmacistInChargeName').optional().trim(),
+  body('locale').optional().trim(),
+  body('timezone').optional().trim()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation errors',
+        errors: errors.array()
+      });
+    }
+
+    const businessId = req.user.businessId;
+    const {
+      businessName, legalName, phone, email, address, city, state, zipCode,
+      currency, taxEnabled, taxRate, taxRegistrationNumber, licenseNumber,
+      licenseAuthority, pharmacistInChargeName, locale, timezone
+    } = req.body;
+
+    const updates = [];
+    const params = [];
+
+    if (businessName !== undefined) { updates.push('BusinessName = ?'); params.push(businessName); }
+    if (legalName !== undefined) { updates.push('LegalName = ?'); params.push(legalName); }
+    if (phone !== undefined) { updates.push('Phone = ?'); params.push(phone); }
+    if (email !== undefined) { updates.push('Email = ?'); params.push(email); }
+    if (address !== undefined) { updates.push('Address = ?'); params.push(address); }
+    if (city !== undefined) { updates.push('City = ?'); params.push(city); }
+    if (state !== undefined) { updates.push('State = ?'); params.push(state); }
+    if (zipCode !== undefined) { updates.push('ZipCode = ?'); params.push(zipCode); }
+    if (currency !== undefined) { updates.push('Currency = ?'); params.push(currency); }
+    if (taxEnabled !== undefined) { updates.push('TaxEnabled = ?'); params.push(taxEnabled ? 1 : 0); }
+    if (taxRate !== undefined) { updates.push('TaxRate = ?'); params.push(taxRate); }
+    if (taxRegistrationNumber !== undefined) { updates.push('TaxRegistrationNumber = ?'); params.push(taxRegistrationNumber); }
+    if (licenseNumber !== undefined) { updates.push('LicenseNumber = ?'); params.push(licenseNumber); }
+    if (licenseAuthority !== undefined) { updates.push('LicenseAuthority = ?'); params.push(licenseAuthority); }
+    if (pharmacistInChargeName !== undefined) { updates.push('PharmacistInChargeName = ?'); params.push(pharmacistInChargeName); }
+    if (locale !== undefined) { updates.push('Locale = ?'); params.push(locale); }
+    if (timezone !== undefined) { updates.push('Timezone = ?'); params.push(timezone); }
+
+    if (updates.length > 0) {
+      params.push(businessId);
+      await dbQuery(
+        `UPDATE Businesses SET ${updates.join(', ')}, UpdatedAt = CURRENT_TIMESTAMP WHERE BusinessId = ?`,
+        params
+      );
+    }
+
+    res.json({
+      success: true,
+      message: 'Business settings updated successfully'
+    });
+  } catch (error) {
+    console.error('Update business settings error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/compliance/controlled-logs
+ * Controlled substances dispensation audit trail (Strictly BUSINESS_OWNER only)
+ */
+router.get('/compliance/controlled-logs', authenticateToken, requireTenant, requireBusinessOwner, [
+  query('page').optional().isInt({ min: 1 }),
+  query('limit').optional().isInt({ min: 1, max: 100 }),
+  query('medicineId').optional().isInt(),
+  query('action').optional().isIn(['Dispensed', 'Received', 'Adjusted', 'Destroyed']),
+  query('startDate').optional().isISO8601(),
+  query('endDate').optional().isISO8601()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation errors',
+        errors: errors.array()
+      });
+    }
+
+    const businessId = req.user.businessId;
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 20;
+    const offset = (page - 1) * limit;
+    const { medicineId, action, startDate, endDate } = req.query;
+
+    let whereClause = 'WHERE l.BusinessId = ?';
+    const params = [businessId];
+
+    if (medicineId) {
+      whereClause += ' AND l.MedicineId = ?';
+      params.push(medicineId);
+    }
+    if (action) {
+      whereClause += ' AND l.Action = ?';
+      params.push(action);
+    }
+    if (startDate && endDate) {
+      whereClause += ' AND l.Timestamp BETWEEN ? AND ?';
+      params.push(startDate, endDate);
+    }
+
+    const countRes = await dbQuery(
+      `SELECT COUNT(*) as total FROM ControlledSubstanceLog l ${whereClause}`,
+      params
+    );
+    const total = countRes[0].total;
+
+    const logs = await dbQuery(
+      `SELECT 
+        l.LogId, l.BusinessId, l.MedicineId, l.OrderId, l.PrescriptionId,
+        l.Action, l.Quantity, l.PerformedBy, l.Notes, l.Timestamp,
+        m.Name as MedicineName, m.DEASchedule, m.UAEClassification,
+        u.Name as PerformedByName, u.Role as PerformedByRole
+       FROM ControlledSubstanceLog l
+       JOIN Medicines m ON l.MedicineId = m.MedicineId
+       JOIN Users u ON l.PerformedBy = u.UserId
+       ${whereClause}
+       ORDER BY l.Timestamp DESC
+       LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
+
+    res.json({
+      success: true,
+      data: {
+        logs: logs.map(log => ({
+          id: log.LogId,
+          medicineId: log.MedicineId,
+          medicineName: log.MedicineName,
+          deaSchedule: log.DEASchedule,
+          uaeClassification: log.UAEClassification,
+          orderId: log.OrderId,
+          prescriptionId: log.PrescriptionId,
+          action: log.Action,
+          quantity: log.Quantity,
+          performedBy: {
+            id: log.PerformedBy,
+            name: log.PerformedByName,
+            role: log.PerformedByRole
+          },
+          notes: log.Notes,
+          timestamp: log.Timestamp
+        })),
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get compliance logs error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch compliance logs'
     });
   }
 });

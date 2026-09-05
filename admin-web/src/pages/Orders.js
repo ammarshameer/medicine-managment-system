@@ -22,11 +22,12 @@ import {
   Clock,
   Printer,
   Plus,
-  Trash2,
-  Package
+  Trash2
 } from 'lucide-react';
+import { useCurrency, formatCurrency } from '../utils/formatCurrency';
 
 const CreateOrderModal = ({ onClose }) => {
+  const { format } = useCurrency();
   const queryClient = useQueryClient();
   const [customerMode, setCustomerMode] = useState('walkin'); // 'walkin' | 'registered'
   const [selectedUserId, setSelectedUserId] = useState('');
@@ -261,7 +262,7 @@ const CreateOrderModal = ({ onClose }) => {
                       <option value="">-- Choose Medicine --</option>
                       {medicines.map(m => (
                         <option key={m.id} value={m.id} disabled={m.stock <= 0}>
-                          {m.name} — PKR {parseFloat(m.price).toFixed(2)} (Stock: {m.stock})
+                          {m.name} — {format(m.price)} (Stock: {m.stock})
                         </option>
                       ))}
                     </select>
@@ -280,7 +281,7 @@ const CreateOrderModal = ({ onClose }) => {
                   </div>
 
                   <div className="w-24 text-right font-mono font-bold text-gray-900">
-                    PKR {(parseFloat(item.price || 0) * (item.quantity || 1)).toFixed(2)}
+                    {format(parseFloat(item.price || 0) * (item.quantity || 1))}
                   </div>
 
                   <button
@@ -297,7 +298,7 @@ const CreateOrderModal = ({ onClose }) => {
             {/* Total Row */}
             <div className="flex justify-between items-center mt-3 p-3 bg-blue-50 rounded-xl border border-blue-100">
               <span className="font-bold text-blue-900 uppercase">Estimated Grand Total:</span>
-              <span className="font-bold text-base font-mono text-blue-900">PKR {grandTotal.toFixed(2)}</span>
+              <span className="font-bold text-base font-mono text-blue-900">{format(grandTotal)}</span>
             </div>
           </div>
 
@@ -369,7 +370,7 @@ const OrderDetailsModal = ({ order, onClose }) => {
   const [status, setStatus] = useState(order.status);
   const queryClient = useQueryClient();
 
-  const { data: fullOrderData, isLoading: detailsLoading } = useQuery(
+  const { data: fullOrderData } = useQuery(
     ['order-full-details', order.id],
     () => axios.get(`/api/orders/${order.id}`).then(res => res.data.data)
   );
@@ -393,6 +394,7 @@ const OrderDetailsModal = ({ order, onClose }) => {
   };
 
   const fullOrder = fullOrderData || order;
+  const orderCurrency = fullOrder.currency || 'USD';
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -474,18 +476,34 @@ const OrderDetailsModal = ({ order, onClose }) => {
                         {item.name || item.medicine?.name || `Medicine #${item.medicineId}`}
                       </td>
                       <td className="px-4 py-3 text-center">{item.quantity}</td>
-                      <td className="px-4 py-3 text-right">PKR {parseFloat(item.price).toFixed(2)}</td>
+                      <td className="px-4 py-3 text-right">{formatCurrency(item.price, orderCurrency)}</td>
                       <td className="px-4 py-3 text-right font-bold text-gray-900">
-                        PKR {parseFloat(item.subtotal).toFixed(2)}
+                        {formatCurrency(item.subtotal, orderCurrency)}
                       </td>
                     </tr>
                   ))}
                 </tbody>
-                <tfoot className="bg-gray-50 font-bold border-t border-gray-200">
+                <tfoot className="bg-gray-50 font-bold border-t border-gray-200 divide-y divide-gray-200">
                   <tr>
-                    <td colSpan="3" className="px-4 py-3 text-right uppercase">Grand Total:</td>
-                    <td className="px-4 py-3 text-right text-blue-900 text-sm">
-                      PKR {parseFloat(fullOrder.totalAmount).toFixed(2)}
+                    <td colSpan="3" className="px-4 py-2 text-right uppercase text-gray-600">Subtotal:</td>
+                    <td className="px-4 py-2 text-right font-semibold">
+                      {formatCurrency(fullOrder.subtotal || fullOrder.totalAmount, orderCurrency)}
+                    </td>
+                  </tr>
+                  {parseFloat(fullOrder.taxAmount) > 0 && (
+                    <tr>
+                      <td colSpan="3" className="px-4 py-2 text-right uppercase text-gray-600">
+                        Tax ({((parseFloat(fullOrder.taxRate) || 0) * 100).toFixed(2)}%):
+                      </td>
+                      <td className="px-4 py-2 text-right font-semibold">
+                        {formatCurrency(fullOrder.taxAmount, orderCurrency)}
+                      </td>
+                    </tr>
+                  )}
+                  <tr>
+                    <td colSpan="3" className="px-4 py-3 text-right uppercase text-gray-900">Grand Total:</td>
+                    <td className="px-4 py-3 text-right text-blue-900 text-sm font-black">
+                      {formatCurrency(fullOrder.totalAmount, orderCurrency)}
                     </td>
                   </tr>
                 </tfoot>
@@ -728,7 +746,7 @@ export const Orders = () => {
                       {new Date(order.orderDate).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 font-mono font-bold text-gray-900">
-                      PKR {order.totalAmount.toFixed(2)}
+                      {formatCurrency(order.totalAmount, order.currency)}
                     </td>
                     <td className="px-6 py-4 text-xs">
                       <span className="font-medium text-gray-700">{order.paymentMethod}</span>

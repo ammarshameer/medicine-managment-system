@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -16,12 +16,16 @@ import {
   Smartphone,
   RefreshCw,
   X,
-  FileText
+  FileText,
+  ShieldCheck,
+  Percent
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useCurrency, formatCurrency } from '../utils/formatCurrency';
 
 export const POS = () => {
   const { user } = useAuth();
+  const { currency, format } = useCurrency();
   const queryClient = useQueryClient();
   const receiptRef = useRef();
 
@@ -38,6 +42,10 @@ export const POS = () => {
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [amountTendered, setAmountTendered] = useState('');
   const [notes, setNotes] = useState('');
+
+  // Real-time tax preview state from backend
+  const [taxPreview, setTaxPreview] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   // Receipt modal state
   const [completedOrder, setCompletedOrder] = useState(null);
@@ -62,6 +70,32 @@ export const POS = () => {
     { enabled: customerType === 'registered' }
   );
 
+  // Live tax preview effect whenever cart items change
+  useEffect(() => {
+    if (cart.length === 0) {
+      setTaxPreview(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setPreviewLoading(true);
+        const res = await axios.post('/api/orders/preview-tax', {
+          items: cart.map(i => ({ medicineId: i.id, quantity: i.quantity }))
+        });
+        if (res.data.success) {
+          setTaxPreview(res.data.data);
+        }
+      } catch (err) {
+        console.error('Tax preview error:', err);
+      } finally {
+        setPreviewLoading(false);
+      }
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [cart]);
+
   // Filtered medicines
   const filteredMedicines = useMemo(() => {
     if (!medicinesData) return [];
@@ -73,12 +107,16 @@ export const POS = () => {
     });
   }, [medicinesData, searchTerm, selectedCategory]);
 
-  // Cart calculations
-  const cartSubtotal = useMemo(() => {
+  // Cart fallback calculations
+  const rawSubtotal = useMemo(() => {
     return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   }, [cart]);
 
-  const grandTotal = cartSubtotal;
+  const grandTotal = taxPreview ? taxPreview.totalAmount : rawSubtotal;
+  const subtotalAmount = taxPreview ? taxPreview.subtotal : rawSubtotal;
+  const taxAmount = taxPreview ? taxPreview.taxAmount : 0;
+  const taxRate = taxPreview ? taxPreview.taxRate : 0;
+
   const changeDue = useMemo(() => {
     const tendered = parseFloat(amountTendered) || 0;
     return Math.max(0, tendered - grandTotal);
@@ -108,6 +146,10 @@ export const POS = () => {
           price: parseFloat(med.price),
           stock: med.stock,
           quantity: 1,
+          isTaxable: med.isTaxable !== false,
+          priceIncludesTax: Boolean(med.priceIncludesTax),
+          deaSchedule: med.deaSchedule,
+          uaeClassification: med.uaeClassification,
           requiresPrescription: med.requiresPrescription
         }];
       }
@@ -157,6 +199,7 @@ export const POS = () => {
     setCart([]);
     setAmountTendered('');
     setNotes('');
+    setTaxPreview(null);
   };
 
   // Checkout Mutation
@@ -232,7 +275,7 @@ export const POS = () => {
             Point of Sale (POS) Counter
           </h1>
           <p className="text-xs text-gray-500">
-            Cashier: <span className="font-semibold text-gray-700">{user?.name}</span> | Fast counter sales & instant receipt generation
+            Cashier: <span className="font-semibold text-gray-700">{user?.name}</span> | Currency: <span className="font-bold text-blue-700">{currency}</span>
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -337,12 +380,24 @@ export const POS = () => {
                             {med.name}
                           </h3>
                         </div>
-                        <p className="text-[11px] text-gray-500 mt-0.5 truncate">{med.category || 'General'}</p>
+                        <div className="flex items-center gap-1 mt-1 flex-wrap">
+                          <span className="text-[10px] text-gray-500">{med.category || 'General'}</span>
+                          {med.isTaxable === false && (
+                            <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-green-50 text-green-700 border border-green-200">
+                              Exempt
+                            </span>
+                          )}
+                          {med.priceIncludesTax && (
+                            <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                              Incl. Tax
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between">
                         <div>
-                          <span className="text-xs font-bold text-blue-700">PKR {parseFloat(med.price).toFixed(2)}</span>
+                          <span className="text-xs font-bold text-blue-700">{format(med.price)}</span>
                         </div>
                         <div>
                           {isOutOfStock ? (
@@ -458,46 +513,56 @@ export const POS = () => {
                 <p className="text-xs text-gray-400">Click on items from catalog to add</p>
               </div>
             ) : (
-              cart.map(item => (
-                <div key={item.id} className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-xs font-semibold text-gray-900 truncate">{item.name}</h4>
-                    <p className="text-[11px] text-gray-500">
-                      PKR {item.price.toFixed(2)} × {item.quantity} = <span className="font-bold text-gray-800">PKR {(item.price * item.quantity).toFixed(2)}</span>
-                    </p>
-                  </div>
+              cart.map(item => {
+                const previewItem = taxPreview?.items?.find(pi => pi.medicineId === item.id);
+                const isTaxable = previewItem ? previewItem.isTaxable : item.isTaxable;
 
-                  {/* Quantity controls */}
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => updateQuantity(item.id, -1)}
-                      className="w-6 h-6 rounded bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold"
-                    >
-                      <Minus className="w-3 h-3" />
-                    </button>
-                    <input
-                      type="number"
-                      min="1"
-                      max={item.stock}
-                      value={item.quantity}
-                      onChange={(e) => setDirectQuantity(item.id, e.target.value)}
-                      className="w-10 text-center text-xs py-0.5 font-bold border border-gray-200 rounded"
-                    />
-                    <button
-                      onClick={() => updateQuantity(item.id, 1)}
-                      className="w-6 h-6 rounded bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </button>
-                    <button
-                      onClick={() => removeFromCart(item.id)}
-                      className="p-1 text-red-500 hover:text-red-700 ml-1"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                return (
+                  <div key={item.id} className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <h4 className="text-xs font-semibold text-gray-900 truncate">{item.name}</h4>
+                        <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${isTaxable ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
+                          {isTaxable ? '[T]' : '[E]'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-gray-500">
+                        {format(item.price)} × {item.quantity} = <span className="font-bold text-gray-800">{format(item.price * item.quantity)}</span>
+                      </p>
+                    </div>
+
+                    {/* Quantity controls */}
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => updateQuantity(item.id, -1)}
+                        className="w-6 h-6 rounded bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold"
+                      >
+                        <Minus className="w-3 h-3" />
+                      </button>
+                      <input
+                        type="number"
+                        min="1"
+                        max={item.stock}
+                        value={item.quantity}
+                        onChange={(e) => setDirectQuantity(item.id, e.target.value)}
+                        className="w-10 text-center text-xs py-0.5 font-bold border border-gray-200 rounded"
+                      />
+                      <button
+                        onClick={() => updateQuantity(item.id, 1)}
+                        className="w-6 h-6 rounded bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => removeFromCart(item.id)}
+                        className="p-1 text-red-500 hover:text-red-700 ml-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 
@@ -512,8 +577,8 @@ export const POS = () => {
                 {[
                   { id: 'Cash', label: 'Cash', icon: Banknote },
                   { id: 'Credit Card', label: 'Card', icon: CreditCard },
-                  { id: 'JazzCash', label: 'JazzCash', icon: Smartphone },
-                  { id: 'EasyPaisa', label: 'EasyPaisa', icon: Smartphone }
+                  { id: 'Debit Card', label: 'Debit', icon: CreditCard },
+                  { id: 'JazzCash', label: 'JazzCash', icon: Smartphone }
                 ].map(m => (
                   <button
                     key={m.id}
@@ -538,7 +603,7 @@ export const POS = () => {
                   <label className="text-[11px] font-medium text-gray-600 block">Amount Tendered</label>
                   <input
                     type="number"
-                    placeholder="e.g. 1000"
+                    placeholder="e.g. 100"
                     value={amountTendered}
                     onChange={(e) => setAmountTendered(e.target.value)}
                     className="w-full px-2.5 py-1 text-xs border border-gray-300 rounded-md outline-none focus:border-blue-500 bg-white font-semibold"
@@ -547,36 +612,48 @@ export const POS = () => {
                 <div>
                   <label className="text-[11px] font-medium text-gray-600 block">Change Due</label>
                   <div className="px-2.5 py-1 text-xs bg-gray-200 border border-gray-300 rounded-md font-bold text-gray-800">
-                    PKR {changeDue.toFixed(2)}
+                    {format(changeDue)}
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Total summary */}
-            <div className="bg-blue-50 p-2.5 rounded-lg border border-blue-100 flex items-center justify-between">
-              <div>
-                <span className="text-xs text-blue-900 font-medium block">Payable Total</span>
-                <span className="text-lg font-black text-blue-900">PKR {grandTotal.toFixed(2)}</span>
+            {/* Total breakdown */}
+            <div className="bg-white p-2.5 rounded-lg border border-gray-200 space-y-1.5 text-xs">
+              <div className="flex justify-between text-gray-600">
+                <span>Subtotal:</span>
+                <span className="font-semibold">{format(subtotalAmount)}</span>
               </div>
-              <button
-                disabled={cart.length === 0 || checkoutMutation.isLoading}
-                onClick={handleCheckout}
-                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold text-sm rounded-lg shadow-md transition-all flex items-center gap-2"
-              >
-                {checkoutMutation.isLoading ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-4 h-4" />
-                    Complete Sale
-                  </>
-                )}
-              </button>
+              {taxRate > 0 && (
+                <div className="flex justify-between text-gray-600">
+                  <span>Tax ({((taxRate) * 100).toFixed(2)}%):</span>
+                  <span className="font-semibold">{format(taxAmount)}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center pt-1.5 border-t border-gray-100">
+                <span className="text-sm font-bold text-gray-900">Payable Total:</span>
+                <span className="text-base font-black text-blue-700">{format(grandTotal)}</span>
+              </div>
             </div>
+
+            {/* Complete Sale Button */}
+            <button
+              disabled={cart.length === 0 || checkoutMutation.isLoading || previewLoading}
+              onClick={handleCheckout}
+              className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold text-sm rounded-lg shadow-md transition-all flex items-center justify-center gap-2"
+            >
+              {checkoutMutation.isLoading ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  Processing Sale...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4" />
+                  Complete Sale ({format(grandTotal)})
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -602,10 +679,25 @@ export const POS = () => {
             <div ref={receiptRef} className="p-4 bg-gray-50 rounded-xl border border-dashed border-gray-300 text-xs text-gray-800 font-mono space-y-3 print:p-0 print:border-none print:bg-white">
               <div className="text-center space-y-1">
                 <h2 className="font-bold text-base uppercase text-gray-900">{completedOrder.business?.name || 'MMS Pharmacy'}</h2>
+                {completedOrder.business?.legalName && (
+                  <p className="text-[10px] text-gray-500 font-semibold">{completedOrder.business?.legalName}</p>
+                )}
                 <p className="text-[11px] text-gray-600">{completedOrder.business?.address}</p>
                 <p className="text-[11px] text-gray-600">Tel: {completedOrder.business?.phone || 'N/A'}</p>
+
+                {/* Compliance Credentials */}
+                {completedOrder.business?.taxRegistrationNumber && (
+                  <p className="text-[10px] text-gray-700 font-bold">TRN / Tax ID: {completedOrder.business?.taxRegistrationNumber}</p>
+                )}
+                {completedOrder.business?.licenseNumber && (
+                  <p className="text-[10px] text-gray-700">Lic #: {completedOrder.business?.licenseNumber}</p>
+                )}
+                {completedOrder.business?.pharmacistInChargeName && (
+                  <p className="text-[10px] text-gray-700">PIC: {completedOrder.business?.pharmacistInChargeName}</p>
+                )}
+
                 <div className="border-b border-gray-300 my-2"></div>
-                <p className="font-bold text-xs">SALES RECEIPT</p>
+                <p className="font-bold text-xs">OFFICIAL SALES RECEIPT</p>
                 <p className="text-[11px]">Invoice: #{completedOrder.orderId} | {new Date(completedOrder.orderDate).toLocaleString()}</p>
                 <p className="text-[11px]">Cashier: {completedOrder.cashier?.name} | Cust: {completedOrder.customer?.name}</p>
               </div>
@@ -625,10 +717,12 @@ export const POS = () => {
                 <tbody className="divide-y divide-gray-200">
                   {completedOrder.items?.map((item, idx) => (
                     <tr key={idx} className="py-1">
-                      <td className="py-1 font-semibold truncate max-w-[120px]">{item.name}</td>
+                      <td className="py-1 font-semibold truncate max-w-[120px]">
+                        {item.name} {item.isTaxable === false ? '[E]' : '[T]'}
+                      </td>
                       <td className="py-1 text-center">{item.quantity}</td>
-                      <td className="py-1 text-right">{parseFloat(item.price).toFixed(2)}</td>
-                      <td className="py-1 text-right font-bold">{parseFloat(item.subtotal).toFixed(2)}</td>
+                      <td className="py-1 text-right">{formatCurrency(item.price, completedOrder.currency)}</td>
+                      <td className="py-1 text-right font-bold">{formatCurrency(item.subtotal, completedOrder.currency)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -638,11 +732,21 @@ export const POS = () => {
 
               {/* Totals */}
               <div className="space-y-1 text-right">
-                <div className="flex justify-between font-bold text-sm text-gray-900 pt-1">
-                  <span>GRAND TOTAL:</span>
-                  <span>PKR {parseFloat(completedOrder.totalAmount).toFixed(2)}</span>
+                <div className="flex justify-between text-[11px] text-gray-700">
+                  <span>Subtotal:</span>
+                  <span>{formatCurrency(completedOrder.subtotal, completedOrder.currency)}</span>
                 </div>
-                <div className="flex justify-between text-[11px] text-gray-600">
+                {parseFloat(completedOrder.taxAmount) > 0 && (
+                  <div className="flex justify-between text-[11px] text-gray-700">
+                    <span>Tax ({((parseFloat(completedOrder.taxRate) || 0) * 100).toFixed(2)}%):</span>
+                    <span>{formatCurrency(completedOrder.taxAmount, completedOrder.currency)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold text-sm text-gray-900 pt-1 border-t border-gray-200">
+                  <span>GRAND TOTAL:</span>
+                  <span>{formatCurrency(completedOrder.totalAmount, completedOrder.currency)}</span>
+                </div>
+                <div className="flex justify-between text-[11px] text-gray-600 pt-1">
                   <span>Payment Method:</span>
                   <span>{completedOrder.paymentMethod}</span>
                 </div>
@@ -676,3 +780,6 @@ export const POS = () => {
     </div>
   );
 };
+
+export default POS;
+

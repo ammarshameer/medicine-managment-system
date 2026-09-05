@@ -9,11 +9,14 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const MedicineDetailScreen = ({ route, navigation }) => {
   const { medicine } = route.params || {};
   const [quantity, setQuantity] = useState(1);
   const { addToCart } = useCart();
+  const { user } = useAuth();
+  const currency = user?.business?.currency || 'USD';
 
   const handleAddToCart = () => {
     addToCart(medicine, quantity);
@@ -34,7 +37,7 @@ const MedicineDetailScreen = ({ route, navigation }) => {
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.medicineName}>{medicine?.name || 'Medicine Name'}</Text>
-          <Text style={styles.medicinePrice}>PKR {medicine?.price || 0}</Text>
+          <Text style={styles.medicinePrice}>{currency} {medicine?.price || 0}</Text>
         </View>
 
         <View style={styles.section}>

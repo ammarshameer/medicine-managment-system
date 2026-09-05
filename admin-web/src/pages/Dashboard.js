@@ -29,9 +29,11 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useCurrency } from '../utils/formatCurrency';
 
 export const Dashboard = () => {
   const { user } = useAuth();
+  const { format, currency } = useCurrency();
   const isStaff = user?.role === 'STAFF';
 
   // Period selector for Business Owner analytics
@@ -99,7 +101,7 @@ export const Dashboard = () => {
       {!isStaff && (
         <div className="space-y-4">
           <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500">
-            Financial & Profit Overview
+            Financial & Profit Overview ({currency})
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Revenue */}
@@ -112,9 +114,9 @@ export const Dashboard = () => {
               </div>
               <div className="mt-3">
                 <span className="text-2xl font-black text-gray-900 font-mono">
-                  PKR {(stats.totalRevenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {format(stats.totalRevenue || 0)}
                 </span>
-                <p className="text-xs text-gray-500 mt-1">Delivered orders gross sales</p>
+                <p className="text-xs text-gray-500 mt-1">Net revenue (excluding sales tax)</p>
               </div>
             </div>
 
@@ -128,7 +130,7 @@ export const Dashboard = () => {
               </div>
               <div className="mt-3">
                 <span className="text-2xl font-black text-gray-900 font-mono">
-                  PKR {(stats.totalCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {format(stats.totalCost || 0)}
                 </span>
                 <p className="text-xs text-gray-500 mt-1">Weighted procurement cost</p>
               </div>
@@ -144,7 +146,7 @@ export const Dashboard = () => {
               </div>
               <div className="mt-3">
                 <span className="text-2xl font-black font-mono">
-                  PKR {(stats.totalProfit || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {format(stats.totalProfit || 0)}
                 </span>
                 <p className="text-xs text-green-100 mt-1 flex items-center gap-1">
                   <ArrowUpRight className="w-3.5 h-3.5" />
@@ -303,7 +305,7 @@ export const Dashboard = () => {
                   <XAxis dataKey="shortLabel" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip
-                    formatter={(value) => [`PKR ${Number(value).toFixed(2)}`, undefined]}
+                    formatter={(value) => [format(Number(value)), undefined]}
                     contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                   />
                   <Legend />
@@ -414,10 +416,10 @@ export const Dashboard = () => {
                     </div>
                     <div className="text-right">
                       <span className="text-xs font-bold text-gray-900 block font-mono">
-                        PKR {med.revenue.toFixed(2)}
+                        {format(med.revenue)}
                       </span>
                       <span className="text-[11px] text-green-600 font-semibold block font-mono">
-                        +PKR {med.profit.toFixed(2)} profit
+                        +{format(med.profit)} profit
                       </span>
                     </div>
                   </div>

@@ -7,6 +7,7 @@ import {
   ShoppingCart,
   Loader2
 } from 'lucide-react';
+import { useCurrency } from '../utils/formatCurrency';
 
 const isoStart = (d) => `${d}T00:00:00`;
 const isoEnd = (d) => `${d}T23:59:59`;
@@ -19,6 +20,7 @@ const defaultStart = () => {
 const defaultEnd = () => new Date().toISOString().slice(0, 10);
 
 export const Reports = () => {
+  const { format, currency } = useCurrency();
   const [startDate, setStartDate] = useState(defaultStart());
   const [endDate, setEndDate] = useState(defaultEnd());
   const [range, setRange] = useState({ start: defaultStart(), end: defaultEnd() });
@@ -49,7 +51,7 @@ export const Reports = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-gray-900">Reports</h1>
-        <p className="mt-1 text-sm text-gray-600">Sales analytics for delivered orders</p>
+        <p className="mt-1 text-sm text-gray-600">Sales analytics for delivered orders ({currency})</p>
       </div>
 
       <form onSubmit={applyRange} className="bg-white shadow rounded-lg p-4 flex flex-wrap items-end gap-4">
@@ -92,8 +94,8 @@ export const Reports = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white shadow rounded-lg p-6 flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-semibold text-gray-900 mt-2">${totalRevenue.toLocaleString()}</p>
+                <p className="text-sm font-medium text-gray-600">Total Net Revenue</p>
+                <p className="text-2xl font-semibold text-gray-900 mt-2">{format(totalRevenue)}</p>
               </div>
               <div className="p-3 bg-yellow-500 rounded-full">
                 <DollarSign className="h-6 w-6 text-white" />
@@ -128,7 +130,7 @@ export const Reports = () => {
                     <tr key={m.id}>
                       <td className="px-4 py-2 text-sm font-medium text-gray-900">{m.name}</td>
                       <td className="px-4 py-2 text-sm text-gray-700">{m.sold}</td>
-                      <td className="px-4 py-2 text-sm text-gray-700">${(m.revenue || 0).toLocaleString()}</td>
+                      <td className="px-4 py-2 text-sm text-gray-700">{format(m.revenue || 0)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -154,7 +156,7 @@ export const Reports = () => {
                     <tr key={c.category}>
                       <td className="px-4 py-2 text-sm font-medium text-gray-900">{c.category}</td>
                       <td className="px-4 py-2 text-sm text-gray-700">{c.items}</td>
-                      <td className="px-4 py-2 text-sm text-gray-700">${(c.revenue || 0).toLocaleString()}</td>
+                      <td className="px-4 py-2 text-sm text-gray-700">{format(c.revenue || 0)}</td>
                     </tr>
                   ))}
                 </tbody>

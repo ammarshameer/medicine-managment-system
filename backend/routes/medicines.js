@@ -69,11 +69,16 @@ router.get('/', [
         m.Name,
         m.Description,
         m.Price,
+        m.AverageCost,
         m.Stock,
         m.ExpiryDate,
         m.Manufacturer,
         m.ImagePath,
         m.RequiresPrescription,
+        m.DEASchedule,
+        m.UAEClassification,
+        m.IsTaxable,
+        m.PriceIncludesTax,
         c.CategoryId,
         c.CategoryName
       FROM Medicines m
@@ -93,11 +98,16 @@ router.get('/', [
           name: medicine.Name,
           description: medicine.Description,
           price: parseFloat(medicine.Price),
+          averageCost: parseFloat(medicine.AverageCost || 0),
           stock: medicine.Stock,
           expiryDate: medicine.ExpiryDate,
           manufacturer: medicine.Manufacturer,
           imagePath: medicine.ImagePath,
-          requiresPrescription: medicine.RequiresPrescription,
+          requiresPrescription: Boolean(medicine.RequiresPrescription),
+          deaSchedule: medicine.DEASchedule || 'None',
+          uaeClassification: medicine.UAEClassification || 'OTC',
+          isTaxable: Boolean(medicine.IsTaxable !== 0),
+          priceIncludesTax: Boolean(medicine.PriceIncludesTax !== 0),
           category: medicine.CategoryId ? {
             id: medicine.CategoryId,
             name: medicine.CategoryName
@@ -202,7 +212,11 @@ router.post('/', authenticateToken, requireTenant, requireBusinessAccess, [
   body('stock').isInt({ min: 0 }).withMessage('Stock must be a non-negative integer'),
   body('expiryDate').optional().isISO8601().withMessage('Invalid expiry date format'),
   body('manufacturer').optional().trim().isLength({ max: 100 }).withMessage('Manufacturer name too long'),
-  body('requiresPrescription').optional().isBoolean().withMessage('Requires prescription must be boolean')
+  body('requiresPrescription').optional().isBoolean().withMessage('Requires prescription must be boolean'),
+  body('deaSchedule').optional().isIn(['None', 'I', 'II', 'III', 'IV', 'V']),
+  body('uaeClassification').optional().isIn(['OTC', 'Pharmacist-Only', 'POM', 'Controlled', 'Semi-Controlled', 'Narcotic']),
+  body('isTaxable').optional().isBoolean(),
+  body('priceIncludesTax').optional().isBoolean()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -222,7 +236,11 @@ router.post('/', authenticateToken, requireTenant, requireBusinessAccess, [
       stock,
       expiryDate,
       manufacturer,
-      requiresPrescription = false
+      requiresPrescription = false,
+      deaSchedule = 'None',
+      uaeClassification = 'OTC',
+      isTaxable = true,
+      priceIncludesTax = false
     } = req.body;
 
     // Get businessId from authenticated user (SUPER_ADMIN can specify businessId)
@@ -253,9 +271,13 @@ router.post('/', authenticateToken, requireTenant, requireBusinessAccess, [
 
     // Insert medicine with businessId
     const result = await dbQuery(`
-      INSERT INTO Medicines (BusinessId, Name, CategoryId, Description, Price, Stock, ExpiryDate, Manufacturer, RequiresPrescription)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [businessId, name, categoryId, description, price, stock, expiryDate || null, manufacturer, requiresPrescription]);
+      INSERT INTO Medicines 
+      (BusinessId, Name, CategoryId, Description, Price, Stock, ExpiryDate, Manufacturer, RequiresPrescription, DEASchedule, UAEClassification, IsTaxable, PriceIncludesTax)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      businessId, name, categoryId, description, price, stock, expiryDate || null, manufacturer, 
+      requiresPrescription, deaSchedule, uaeClassification, isTaxable ? 1 : 0, priceIncludesTax ? 1 : 0
+    ]);
 
     // Get the created medicine
     const medicines = await dbQuery(`
@@ -269,6 +291,10 @@ router.post('/', authenticateToken, requireTenant, requireBusinessAccess, [
         m.ExpiryDate,
         m.Manufacturer,
         m.RequiresPrescription,
+        m.DEASchedule,
+        m.UAEClassification,
+        m.IsTaxable,
+        m.PriceIncludesTax,
         c.CategoryId,
         c.CategoryName
       FROM Medicines m
@@ -290,7 +316,11 @@ router.post('/', authenticateToken, requireTenant, requireBusinessAccess, [
         stock: medicine.Stock,
         expiryDate: medicine.ExpiryDate,
         manufacturer: medicine.Manufacturer,
-        requiresPrescription: medicine.RequiresPrescription,
+        requiresPrescription: Boolean(medicine.RequiresPrescription),
+        deaSchedule: medicine.DEASchedule || 'None',
+        uaeClassification: medicine.UAEClassification || 'OTC',
+        isTaxable: Boolean(medicine.IsTaxable !== 0),
+        priceIncludesTax: Boolean(medicine.PriceIncludesTax !== 0),
         category: medicine.CategoryId ? {
           id: medicine.CategoryId,
           name: medicine.CategoryName
@@ -317,7 +347,11 @@ router.put('/:id', authenticateToken, requireTenant, requireBusinessAccess, [
   body('expiryDate').optional().isISO8601().withMessage('Invalid expiry date format'),
   body('manufacturer').optional().trim().isLength({ max: 100 }).withMessage('Manufacturer name too long'),
   body('requiresPrescription').optional().isBoolean().withMessage('Requires prescription must be boolean'),
-  body('isActive').optional().isBoolean().withMessage('Is active must be boolean')
+  body('isActive').optional().isBoolean().withMessage('Is active must be boolean'),
+  body('deaSchedule').optional().isIn(['None', 'I', 'II', 'III', 'IV', 'V']),
+  body('uaeClassification').optional().isIn(['OTC', 'Pharmacist-Only', 'POM', 'Controlled', 'Semi-Controlled', 'Narcotic']),
+  body('isTaxable').optional().isBoolean(),
+  body('priceIncludesTax').optional().isBoolean()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -339,7 +373,11 @@ router.put('/:id', authenticateToken, requireTenant, requireBusinessAccess, [
       : req.user.businessId;
 
     // Build dynamic update query
-    const allowedFields = ['name', 'categoryId', 'description', 'price', 'stock', 'expiryDate', 'manufacturer', 'requiresPrescription', 'isActive'];
+    const allowedFields = [
+      'name', 'categoryId', 'description', 'price', 'stock', 'expiryDate', 
+      'manufacturer', 'requiresPrescription', 'isActive', 'deaSchedule', 
+      'uaeClassification', 'isTaxable', 'priceIncludesTax'
+    ];
     const fieldMapping = {
       name: 'Name',
       categoryId: 'CategoryId',
@@ -349,7 +387,11 @@ router.put('/:id', authenticateToken, requireTenant, requireBusinessAccess, [
       expiryDate: 'ExpiryDate',
       manufacturer: 'Manufacturer',
       requiresPrescription: 'RequiresPrescription',
-      isActive: 'IsActive'
+      isActive: 'IsActive',
+      deaSchedule: 'DEASchedule',
+      uaeClassification: 'UAEClassification',
+      isTaxable: 'IsTaxable',
+      priceIncludesTax: 'PriceIncludesTax'
     };
 
     for (const field of allowedFields) {
@@ -402,6 +444,10 @@ router.put('/:id', authenticateToken, requireTenant, requireBusinessAccess, [
         m.Manufacturer,
         m.ImagePath,
         m.RequiresPrescription,
+        m.DEASchedule,
+        m.UAEClassification,
+        m.IsTaxable,
+        m.PriceIncludesTax,
         m.IsActive,
         c.CategoryId,
         c.CategoryName
@@ -432,8 +478,12 @@ router.put('/:id', authenticateToken, requireTenant, requireBusinessAccess, [
         expiryDate: medicine.ExpiryDate,
         manufacturer: medicine.Manufacturer,
         imagePath: medicine.ImagePath,
-        requiresPrescription: medicine.RequiresPrescription,
-        isActive: medicine.IsActive,
+        requiresPrescription: Boolean(medicine.RequiresPrescription),
+        deaSchedule: medicine.DEASchedule || 'None',
+        uaeClassification: medicine.UAEClassification || 'OTC',
+        isTaxable: Boolean(medicine.IsTaxable !== 0),
+        priceIncludesTax: Boolean(medicine.PriceIncludesTax !== 0),
+        isActive: Boolean(medicine.IsActive),
         category: medicine.CategoryId ? {
           id: medicine.CategoryId,
           name: medicine.CategoryName

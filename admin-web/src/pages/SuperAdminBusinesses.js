@@ -153,6 +153,9 @@ export const SuperAdminBusinesses = () => {
                   Phone
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Market / Currency
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -181,12 +184,9 @@ export const SuperAdminBusinesses = () => {
                   <tr key={business.BusinessId} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        {/* <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
-                          <Building2 className="w-5 h-5 text-blue-600" />
-                        </div> */}
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{business.BusinessName}</div>
-                          <div className="text-sm text-gray-500">{business.Code}</div>
+                        <div className="ml-1">
+                          <div className="text-sm font-bold text-gray-900">{business.BusinessName}</div>
+                          <div className="text-xs text-gray-500 font-mono">{business.BusinessCode || business.Code}</div>
                         </div>
                       </div>
                     </td>
@@ -195,6 +195,11 @@ export const SuperAdminBusinesses = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {business.Phone}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200">
+                        {business.Country || 'USA'} • {business.Currency || 'USD'}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${

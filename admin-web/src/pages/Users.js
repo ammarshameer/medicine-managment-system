@@ -30,7 +30,9 @@ const AddUserModal = ({ isStaff, onClose }) => {
     email: '',
     phone: '',
     password: '',
-    role: 'CUSTOMER'
+    role: 'CUSTOMER',
+    emiratesId: '',
+    nationalIdLast4: ''
   });
 
   const addUserMutation = useMutation(
@@ -78,7 +80,7 @@ const AddUserModal = ({ isStaff, onClose }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs max-h-[80vh] overflow-y-auto">
           {!isStaff && (
             <div>
               <label className="font-semibold text-gray-700 block mb-1">
@@ -124,15 +126,43 @@ const AddUserModal = ({ isStaff, onClose }) => {
             />
           </div>
 
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="font-semibold text-gray-700 block mb-1">
+                Phone Number
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. +971 50 1234567"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="font-semibold text-gray-700 block mb-1">
+                Emirates ID (UAE)
+              </label>
+              <input
+                type="text"
+                placeholder="784-1990-1234567-1"
+                value={formData.emiratesId}
+                onChange={(e) => setFormData({ ...formData, emiratesId: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
           <div>
             <label className="font-semibold text-gray-700 block mb-1">
-              Phone Number (Optional)
+              National ID / SSN Last 4 (USA/General)
             </label>
             <input
               type="text"
-              placeholder="03001234567"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              maxLength="4"
+              placeholder="e.g. 1234"
+              value={formData.nationalIdLast4}
+              onChange={(e) => setFormData({ ...formData, nationalIdLast4: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -647,6 +677,26 @@ export const Users = () => {
                     <p className="font-semibold text-gray-900">{selectedUser.phone || 'N/A'}</p>
                   </div>
                 </div>
+
+                {selectedUser.emiratesId && (
+                  <div className="flex items-center">
+                    <UserCheck className="h-4 w-4 text-gray-400 mr-3" />
+                    <div>
+                      <p className="text-gray-400">Emirates ID (UAE)</p>
+                      <p className="font-semibold text-gray-900 font-mono">{selectedUser.emiratesId}</p>
+                    </div>
+                  </div>
+                )}
+
+                {selectedUser.nationalIdLast4 && (
+                  <div className="flex items-center">
+                    <UserCheck className="h-4 w-4 text-gray-400 mr-3" />
+                    <div>
+                      <p className="text-gray-400">National ID / SSN (Last 4)</p>
+                      <p className="font-semibold text-gray-900 font-mono">***-**-{selectedUser.nationalIdLast4}</p>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex items-center">
                   <Calendar className="h-4 w-4 text-gray-400 mr-3" />

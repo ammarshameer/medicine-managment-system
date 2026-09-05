@@ -15,6 +15,8 @@ import {
   X
 } from 'lucide-react';
 
+import { useCurrency } from '../utils/formatCurrency';
+
 const emptyForm = {
   name: '',
   categoryId: '',
@@ -23,10 +25,15 @@ const emptyForm = {
   stock: '',
   expiryDate: '',
   manufacturer: '',
-  requiresPrescription: false
+  requiresPrescription: false,
+  deaSchedule: 'None',
+  uaeClassification: 'OTC',
+  isTaxable: true,
+  priceIncludesTax: false
 };
 
 export const Medicines = () => {
+  const { format } = useCurrency();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [page, setPage] = useState(1);
@@ -76,6 +83,10 @@ export const Medicines = () => {
         price: parseFloat(payload.price),
         stock: parseInt(payload.stock, 10),
         requiresPrescription: !!payload.requiresPrescription,
+        deaSchedule: payload.deaSchedule || 'None',
+        uaeClassification: payload.uaeClassification || 'OTC',
+        isTaxable: payload.isTaxable !== false,
+        priceIncludesTax: Boolean(payload.priceIncludesTax),
         ...(payload.description && { description: payload.description }),
         ...(payload.manufacturer && { manufacturer: payload.manufacturer }),
         ...(payload.categoryId && { categoryId: parseInt(payload.categoryId, 10) }),
@@ -119,7 +130,11 @@ export const Medicines = () => {
       stock: medicine.stock != null ? String(medicine.stock) : '',
       expiryDate: medicine.expiryDate ? medicine.expiryDate.slice(0, 10) : '',
       manufacturer: medicine.manufacturer || '',
-      requiresPrescription: !!medicine.requiresPrescription
+      requiresPrescription: !!medicine.requiresPrescription,
+      deaSchedule: medicine.deaSchedule || 'None',
+      uaeClassification: medicine.uaeClassification || 'OTC',
+      isTaxable: medicine.isTaxable !== false,
+      priceIncludesTax: Boolean(medicine.priceIncludesTax)
     });
     setShowFormModal(true);
   };
@@ -294,14 +309,36 @@ export const Medicines = () => {
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {medicine.name}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{medicine.name}</div>
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                        {medicine.deaSchedule && medicine.deaSchedule !== 'None' && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800">
+                            DEA Sched {medicine.deaSchedule}
+                          </span>
+                        )}
+                        {medicine.uaeClassification && medicine.uaeClassification !== 'OTC' && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">
+                            UAE {medicine.uaeClassification}
+                          </span>
+                        )}
+                        {medicine.isTaxable === false && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800">
+                            Exempt
+                          </span>
+                        )}
+                        {medicine.priceIncludesTax && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800">
+                            Tax-Inclusive
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {medicine.category?.name || 'N/A'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      ${medicine.price?.toFixed(2) || '0.00'}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                      {format(medicine.price)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`text-sm font-medium ${
@@ -491,18 +528,85 @@ export const Medicines = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              <div className="flex items-center mt-6">
-                <input
-                  type="checkbox"
-                  name="requiresPrescription"
-                  checked={formData.requiresPrescription}
+
+              {/* Regulatory Classifications */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">US DEA Schedule</label>
+                <select
+                  name="deaSchedule"
+                  value={formData.deaSchedule}
                   onChange={handleFormChange}
-                  className="h-4 w-4 text-blue-600 border-gray-300 rounded"
-                  id="requiresPrescription"
-                />
-                <label htmlFor="requiresPrescription" className="ml-2 text-sm text-gray-700">
-                  Requires prescription
-                </label>
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="None">None (Unscheduled / OTC / Non-Controlled)</option>
+                  <option value="I">Schedule I</option>
+                  <option value="II">Schedule II (e.g. Oxycodone, Adderall)</option>
+                  <option value="III">Schedule III (e.g. Ketamine, Suboxone)</option>
+                  <option value="IV">Schedule IV (e.g. Xanax, Valium)</option>
+                  <option value="V">Schedule V (e.g. Lyrica, Robitussin AC)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">UAE Classification</label>
+                <select
+                  name="uaeClassification"
+                  value={formData.uaeClassification}
+                  onChange={handleFormChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="OTC">OTC (Over the Counter)</option>
+                  <option value="Pharmacist-Only">Pharmacist-Only (Behind the counter)</option>
+                  <option value="POM">POM (Prescription Only Medicine)</option>
+                  <option value="Controlled">Controlled (e.g. Morphine, Fentanyl)</option>
+                  <option value="Semi-Controlled">Semi-Controlled (e.g. Pregabalin)</option>
+                  <option value="Narcotic">Narcotic</option>
+                </select>
+              </div>
+
+              {/* Tax Settings */}
+              <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="isTaxable"
+                    checked={formData.isTaxable}
+                    onChange={handleFormChange}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                    id="isTaxable"
+                  />
+                  <label htmlFor="isTaxable" className="ml-2 text-xs font-semibold text-gray-700">
+                    Taxable Product
+                  </label>
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="priceIncludesTax"
+                    checked={formData.priceIncludesTax}
+                    onChange={handleFormChange}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                    id="priceIncludesTax"
+                  />
+                  <label htmlFor="priceIncludesTax" className="ml-2 text-xs font-semibold text-gray-700">
+                    Price Includes Tax (VAT)
+                  </label>
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="requiresPrescription"
+                    checked={formData.requiresPrescription}
+                    onChange={handleFormChange}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                    id="requiresPrescription"
+                  />
+                  <label htmlFor="requiresPrescription" className="ml-2 text-xs font-semibold text-gray-700">
+                    Requires Prescription
+                  </label>
+                </div>
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>

@@ -9,9 +9,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useAuth } from '../contexts/AuthContext';
 
 const MedicinesScreen = ({ route }) => {
   const { categoryId } = route.params || {};
+  const { user } = useAuth();
+  const currency = user?.business?.currency || 'USD';
   
   const [medicines] = React.useState([
     { id: 1, name: 'Paracetamol 500mg', price: 50, stock: 100, category: 'Pain Relief' },
@@ -29,7 +32,7 @@ const MedicinesScreen = ({ route }) => {
         <Text style={styles.medicineName}>{medicine.name}</Text>
         <Text style={styles.medicineCategory}>{medicine.category}</Text>
         <View style={styles.priceStockContainer}>
-          <Text style={styles.medicinePrice}>PKR {medicine.price}</Text>
+          <Text style={styles.medicinePrice}>{currency} {medicine.price}</Text>
           <Text style={styles.stock}>Stock: {medicine.stock}</Text>
         </View>
       </View>

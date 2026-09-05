@@ -269,6 +269,16 @@ router.post('/businesses', [
   body('phone').isLength({ min: 10, max: 20 }).withMessage('Valid phone number required'),
   body('subscriptionPlan').isIn(['Free', 'Basic', 'Premium']).withMessage('Invalid subscription plan'),
   body('password').optional({ checkFalsy: true }).isLength({ min: 4 }).withMessage('Password must be at least 4 characters'),
+  body('country').optional().trim(),
+  body('currency').optional().trim(),
+  body('taxRate').optional().isFloat({ min: 0, max: 1 }),
+  body('taxEnabled').optional().isBoolean(),
+  body('taxRegistrationNumber').optional().trim(),
+  body('licenseNumber').optional().trim(),
+  body('licenseAuthority').optional().trim(),
+  body('locale').optional().trim(),
+  body('timezone').optional().trim(),
+  body('pharmacistInChargeName').optional().trim(),
   body('address').optional(),
   body('city').optional(),
   body('state').optional()
@@ -293,7 +303,17 @@ router.post('/businesses', [
       password,
       address,
       city,
-      state
+      state,
+      country = 'USA',
+      currency = (country === 'UAE' ? 'AED' : country === 'Pakistan' ? 'PKR' : 'USD'),
+      taxEnabled = true,
+      taxRate = (country === 'UAE' ? 0.05 : country === 'Pakistan' ? 0.16 : 0.0825),
+      taxRegistrationNumber = null,
+      licenseNumber = null,
+      licenseAuthority = null,
+      locale = (country === 'UAE' ? 'ar-AE' : country === 'Pakistan' ? 'ur-PK' : 'en-US'),
+      timezone = (country === 'UAE' ? 'Asia/Dubai' : country === 'Pakistan' ? 'Asia/Karachi' : 'America/New_York'),
+      pharmacistInChargeName = null
     } = req.body;
 
     // Check if business code already exists
@@ -324,9 +344,15 @@ router.post('/businesses', [
 
     // Create business
     const businessResult = await query(
-      `INSERT INTO Businesses (BusinessName, BusinessCode, OwnerName, Email, Phone, Address, City, State, SubscriptionPlan, Status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [businessName, businessCode, ownerName, email, phone, address, city, state, subscriptionPlan, 'Active']
+      `INSERT INTO Businesses 
+       (BusinessName, BusinessCode, OwnerName, Email, Phone, Address, City, State, Country, Currency, TaxEnabled, TaxRate, TaxRegistrationNumber, LicenseNumber, LicenseAuthority, Locale, Timezone, PharmacistInChargeName, SubscriptionPlan, Status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active')`,
+      [
+        businessName, businessCode, ownerName, email, phone, address || null, city || null, state || null,
+        country, currency, taxEnabled ? 1 : 0, parseFloat(taxRate) || 0, taxRegistrationNumber || null,
+        licenseNumber || null, licenseAuthority || null, locale || 'en-US', timezone || 'America/New_York',
+        pharmacistInChargeName || null, subscriptionPlan
+      ]
     );
 
     const businessId = businessResult.insertId;
@@ -337,20 +363,21 @@ router.post('/businesses', [
     const passwordHash = await bcrypt.hash(ownerPassword, 10);
 
     // Create business owner user
-    const userResult = await query(
+    await query(
       `INSERT INTO Users (BusinessId, Name, Email, Phone, PasswordHash, Role, IsActive)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [businessId, ownerName, email, phone, passwordHash, 'BUSINESS_OWNER', true]
     );
 
-    // Insert default business settings
+    // Insert business settings seeded from submitted configuration
     await query(
       `INSERT INTO BusinessSettings (BusinessId, SettingKey, SettingValue) VALUES 
-       (?, 'currency', 'PKR'),
-       (?, 'tax_rate', '0.16'),
+       (?, 'currency', ?),
+       (?, 'tax_rate', ?),
+       (?, 'tax_enabled', ?),
        (?, 'delivery_fee', '50'),
        (?, 'min_order_amount', '100')`,
-      [businessId, businessId, businessId, businessId]
+      [businessId, currency, businessId, String(taxRate), businessId, taxEnabled ? 'true' : 'false', businessId, businessId]
     );
 
     // Insert default categories
@@ -383,6 +410,9 @@ router.post('/businesses', [
         businessCode,
         ownerName,
         email,
+        country,
+        currency,
+        taxRate,
         password: ownerPassword
       }
     });
@@ -403,7 +433,11 @@ router.put('/businesses/:id', [
   body('email').optional().isEmail().normalizeEmail(),
   body('phone').optional().isLength({ min: 10, max: 20 }),
   body('subscriptionPlan').optional().isIn(['Free', 'Basic', 'Premium']),
-  body('status').optional().isIn(['Active', 'Inactive', 'Suspended'])
+  body('status').optional().isIn(['Active', 'Inactive', 'Suspended']),
+  body('country').optional().trim(),
+  body('currency').optional().trim(),
+  body('taxRate').optional().isFloat({ min: 0, max: 1 }),
+  body('taxEnabled').optional().isBoolean()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -425,7 +459,17 @@ router.put('/businesses/:id', [
       status,
       address,
       city,
-      state
+      state,
+      country,
+      currency,
+      taxEnabled,
+      taxRate,
+      taxRegistrationNumber,
+      licenseNumber,
+      licenseAuthority,
+      locale,
+      timezone,
+      pharmacistInChargeName
     } = req.body;
 
     // Build update query dynamically
@@ -467,6 +511,46 @@ router.put('/businesses/:id', [
     if (state !== undefined) {
       updates.push('State = ?');
       params.push(state);
+    }
+    if (country !== undefined) {
+      updates.push('Country = ?');
+      params.push(country);
+    }
+    if (currency !== undefined) {
+      updates.push('Currency = ?');
+      params.push(currency);
+    }
+    if (taxEnabled !== undefined) {
+      updates.push('TaxEnabled = ?');
+      params.push(taxEnabled ? 1 : 0);
+    }
+    if (taxRate !== undefined) {
+      updates.push('TaxRate = ?');
+      params.push(parseFloat(taxRate) || 0);
+    }
+    if (taxRegistrationNumber !== undefined) {
+      updates.push('TaxRegistrationNumber = ?');
+      params.push(taxRegistrationNumber);
+    }
+    if (licenseNumber !== undefined) {
+      updates.push('LicenseNumber = ?');
+      params.push(licenseNumber);
+    }
+    if (licenseAuthority !== undefined) {
+      updates.push('LicenseAuthority = ?');
+      params.push(licenseAuthority);
+    }
+    if (locale !== undefined) {
+      updates.push('Locale = ?');
+      params.push(locale);
+    }
+    if (timezone !== undefined) {
+      updates.push('Timezone = ?');
+      params.push(timezone);
+    }
+    if (pharmacistInChargeName !== undefined) {
+      updates.push('PharmacistInChargeName = ?');
+      params.push(pharmacistInChargeName);
     }
 
     if (updates.length === 0) {

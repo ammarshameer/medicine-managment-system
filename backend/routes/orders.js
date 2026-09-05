@@ -2,6 +2,7 @@ const express = require('express');
 const { body, query, validationResult } = require('express-validator');
 const { query: dbQuery, pool } = require('../config/database');
 const { authenticateToken, requireTenant, requireBusinessAccess, requireCustomer, requireRole } = require('../middleware/auth');
+const { calculateOrderTax } = require('../utils/taxEngine');
 const router = express.Router();
 
 /**
@@ -74,6 +75,9 @@ router.get('/my-orders', authenticateToken, requireTenant, [
           oi.Quantity,
           oi.Price,
           oi.Subtotal,
+          oi.TaxAmount,
+          oi.IsTaxable,
+          oi.PriceIncludesTax,
           m.MedicineId,
           m.Name as MedicineName,
           m.ImagePath
@@ -88,7 +92,11 @@ router.get('/my-orders', authenticateToken, requireTenant, [
         orderDate: order.OrderDate,
         status: order.Status,
         source: order.Source || 'Online',
+        subtotal: parseFloat(order.Subtotal) || parseFloat(order.TotalAmount) || 0,
+        taxRate: parseFloat(order.TaxRate) || 0,
+        taxAmount: parseFloat(order.TaxAmount) || 0,
         totalAmount: parseFloat(order.TotalAmount) || 0,
+        currency: order.Currency || 'USD',
         deliveryAddress: order.DeliveryAddress,
         paymentMethod: order.PaymentMethod,
         paymentStatus: order.PaymentStatus,
@@ -106,6 +114,9 @@ router.get('/my-orders', authenticateToken, requireTenant, [
           quantity: item.Quantity,
           price: parseFloat(item.Price),
           subtotal: parseFloat(item.Subtotal),
+          taxAmount: parseFloat(item.TaxAmount) || 0,
+          isTaxable: Boolean(item.IsTaxable),
+          priceIncludesTax: Boolean(item.PriceIncludesTax),
           imagePath: item.ImagePath
         }))
       };
@@ -133,6 +144,90 @@ router.get('/my-orders', authenticateToken, requireTenant, [
 });
 
 /**
+ * POST /api/orders/preview-tax
+ * Real-time cart tax calculation using the centralized tax engine
+ */
+router.post('/preview-tax', authenticateToken, requireTenant, [
+  body('items').isArray({ min: 1 }).withMessage('At least one item is required in cart'),
+  body('items.*.medicineId').isInt({ min: 1 }).withMessage('Valid medicine ID is required'),
+  body('items.*.quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation errors',
+        errors: errors.array()
+      });
+    }
+
+    const businessId = req.user.businessId;
+    const { items } = req.body;
+
+    const businesses = await dbQuery(
+      `SELECT Currency, TaxEnabled, TaxRate FROM Businesses WHERE BusinessId = ?`,
+      [businessId]
+    );
+
+    if (businesses.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Business not found'
+      });
+    }
+
+    const business = businesses[0];
+    const medicineIds = items.map(i => i.medicineId);
+
+    const medicines = await dbQuery(
+      `SELECT MedicineId, Name, Price, IsTaxable, PriceIncludesTax, DEASchedule, UAEClassification, RequiresPrescription
+       FROM Medicines
+       WHERE BusinessId = ? AND MedicineId IN (?)`,
+      [businessId, medicineIds]
+    );
+
+    const enrichedItems = items.map(cartItem => {
+      const med = medicines.find(m => m.MedicineId === cartItem.medicineId);
+      return {
+        medicineId: cartItem.medicineId,
+        name: med ? med.Name : 'Medicine',
+        price: med ? parseFloat(med.Price) : 0,
+        quantity: parseInt(cartItem.quantity, 10),
+        isTaxable: med ? Boolean(med.IsTaxable) : true,
+        priceIncludesTax: med ? Boolean(med.PriceIncludesTax) : false,
+        deaSchedule: med ? med.DEASchedule : 'None',
+        uaeClassification: med ? med.UAEClassification : 'OTC',
+        requiresPrescription: med ? Boolean(med.RequiresPrescription) : false
+      };
+    });
+
+    const taxResult = calculateOrderTax(enrichedItems, {
+      taxEnabled: business.TaxEnabled,
+      taxRate: business.TaxRate
+    });
+
+    res.json({
+      success: true,
+      data: {
+        currency: business.Currency || 'USD',
+        subtotal: taxResult.subtotal,
+        taxRate: taxResult.taxRate,
+        taxAmount: taxResult.taxAmount,
+        totalAmount: taxResult.totalAmount,
+        items: taxResult.items
+      }
+    });
+  } catch (error) {
+    console.error('Preview tax error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+/**
  * POST /api/orders/pos
  * Point of Sale (POS) checkout for walk-in counter sales
  * Guarded explicitly by requireBusinessAccess (both STAFF and BUSINESS_OWNER)
@@ -141,7 +236,7 @@ router.post('/pos', authenticateToken, requireTenant, requireBusinessAccess, [
   body('items').isArray({ min: 1 }).withMessage('At least one item is required in cart'),
   body('items.*.medicineId').isInt({ min: 1 }).withMessage('Valid medicine ID is required'),
   body('items.*.quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
-  body('paymentMethod').optional().isIn(['Cash', 'Credit Card', 'Debit Card', 'JazzCash', 'EasyPaisa', 'Bank Transfer', 'Cash on Delivery']),
+  body('paymentMethod').optional().isIn(['Cash', 'Credit Card', 'Debit Card', 'Bank Transfer', 'Insurance Copay', 'Cash on Delivery', 'JazzCash', 'EasyPaisa']),
   body('customerName').optional().trim(),
   body('customerPhone').optional().trim(),
   body('userId').optional().isInt().withMessage('Valid user ID if provided'),
@@ -172,10 +267,27 @@ router.post('/pos', authenticateToken, requireTenant, requireBusinessAccess, [
 
     await connection.beginTransaction();
 
-    // 1. Fetch medicines with lock FOR UPDATE
+    // 1. Fetch Business info & tax config
+    const [businesses] = await connection.query(
+      `SELECT BusinessName, LegalName, Phone, Email, Address, City, State, ZipCode, Country,
+              Currency, TaxEnabled, TaxRate, TaxRegistrationNumber, LicenseNumber, LicenseAuthority, PharmacistInChargeName
+       FROM Businesses WHERE BusinessId = ?`,
+      [businessId]
+    );
+
+    if (businesses.length === 0) {
+      await connection.rollback();
+      connection.release();
+      return res.status(404).json({ success: false, message: 'Business not found' });
+    }
+
+    const business = businesses[0];
+
+    // 2. Fetch medicines with lock FOR UPDATE
     const medicineIds = items.map(i => i.medicineId);
     const [medicines] = await connection.query(
-      `SELECT MedicineId, Name, Price, AverageCost, Stock, IsActive 
+      `SELECT MedicineId, Name, Price, AverageCost, Stock, IsActive, IsTaxable, PriceIncludesTax,
+              DEASchedule, UAEClassification, RequiresPrescription
        FROM Medicines 
        WHERE BusinessId = ? AND MedicineId IN (?)
        FOR UPDATE`,
@@ -191,10 +303,10 @@ router.post('/pos', authenticateToken, requireTenant, requireBusinessAccess, [
       });
     }
 
-    let totalAmount = 0;
-    const lineItemsToInsert = [];
+    // 3. Prepare items for tax calculation & check stock/active status
+    const cartItemsWithDetails = [];
+    const controlledItemsToLog = [];
 
-    // 2. Validate stock and compute totals
     for (const item of items) {
       const med = medicines.find(m => m.MedicineId === item.medicineId);
       if (!med.IsActive) {
@@ -217,34 +329,52 @@ router.post('/pos', authenticateToken, requireTenant, requireBusinessAccess, [
         });
       }
 
-      const retailPrice = parseFloat(med.Price);
-      const costPrice = parseFloat(med.AverageCost) || 0;
-      const subtotal = Math.round(retailPrice * reqQty * 100) / 100;
-      totalAmount += subtotal;
+      // Controlled substances audit track
+      const isDEAControlled = med.DEASchedule && med.DEASchedule !== 'None';
+      const isUAEControlled = med.UAEClassification && ['Controlled', 'Semi-Controlled', 'Narcotic'].includes(med.UAEClassification);
+      if (isDEAControlled || isUAEControlled) {
+        controlledItemsToLog.push({
+          medicineId: med.MedicineId,
+          medicineName: med.Name,
+          quantity: reqQty,
+          notes: `POS Dispensation by ${req.user.Name} (${req.user.Role}) to ${customerName}`
+        });
+      }
 
-      lineItemsToInsert.push({
+      cartItemsWithDetails.push({
         medicineId: med.MedicineId,
         medicineName: med.Name,
         quantity: reqQty,
-        price: retailPrice,
-        costPrice: costPrice,
-        subtotal: subtotal,
-        currentStock: currentStock,
+        price: parseFloat(med.Price),
+        costPrice: parseFloat(med.AverageCost) || 0,
+        isTaxable: Boolean(med.IsTaxable),
+        priceIncludesTax: Boolean(med.PriceIncludesTax),
+        currentStock,
         newStock: currentStock - reqQty
       });
     }
 
-    totalAmount = Math.round(totalAmount * 100) / 100;
+    // 4. Calculate Tax using Centralized Tax Engine
+    const taxResult = calculateOrderTax(cartItemsWithDetails, {
+      taxEnabled: business.TaxEnabled,
+      taxRate: business.TaxRate
+    });
 
-    // 3. Create Orders record (Source = 'POS', Status = 'Delivered', PaymentStatus = 'Paid')
+    const currency = business.Currency || 'USD';
+
+    // 5. Create Orders record (Source = 'POS', Status = 'Delivered', PaymentStatus = 'Paid')
     const [orderResult] = await connection.query(
       `INSERT INTO Orders 
-       (BusinessId, UserId, Status, Source, TotalAmount, DeliveryAddress, CustomerName, CustomerPhone, PaymentMethod, PaymentStatus, CreatedBy, Notes)
-       VALUES (?, ?, 'Delivered', 'POS', ?, 'Counter Sale (POS)', ?, ?, ?, 'Paid', ?, ?)`,
+       (BusinessId, UserId, Status, Source, Subtotal, TaxRate, TaxAmount, TotalAmount, Currency, DeliveryAddress, CustomerName, CustomerPhone, PaymentMethod, PaymentStatus, CreatedBy, Notes)
+       VALUES (?, ?, 'Delivered', 'POS', ?, ?, ?, ?, ?, 'Counter Sale (POS)', ?, ?, ?, 'Paid', ?, ?)`,
       [
         businessId,
         userId || null,
-        totalAmount,
+        taxResult.subtotal,
+        taxResult.taxRate,
+        taxResult.taxAmount,
+        taxResult.totalAmount,
+        currency,
         customerName || 'Walk-in Customer',
         customerPhone || null,
         paymentMethod,
@@ -255,12 +385,23 @@ router.post('/pos', authenticateToken, requireTenant, requireBusinessAccess, [
 
     const orderId = orderResult.insertId;
 
-    // 4. Insert OrderItems and update stock + log InventoryTransactions
-    for (const line of lineItemsToInsert) {
+    // 6. Insert OrderItems with net Subtotal and TaxAmount, deduct stock, log inventory
+    for (const line of taxResult.items) {
       await connection.query(
-        `INSERT INTO OrderItems (BusinessId, OrderId, MedicineId, Quantity, Price, CostPrice, Subtotal)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [businessId, orderId, line.medicineId, line.quantity, line.price, line.costPrice, line.subtotal]
+        `INSERT INTO OrderItems (BusinessId, OrderId, MedicineId, Quantity, Price, CostPrice, Subtotal, TaxAmount, IsTaxable, PriceIncludesTax)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          businessId,
+          orderId,
+          line.medicineId,
+          line.quantity,
+          line.price,
+          line.costPrice,
+          line.lineSubtotal, // Net pre-tax subtotal for revenue tracking
+          line.lineTax,
+          line.isTaxable,
+          line.priceIncludesTax
+        ]
       );
 
       // Deduct stock
@@ -286,16 +427,25 @@ router.post('/pos', authenticateToken, requireTenant, requireBusinessAccess, [
       );
     }
 
-    // 5. Fetch Business info for receipt header
-    const [businesses] = await connection.query(
-      `SELECT BusinessName, Phone, Email, Address, City, State FROM Businesses WHERE BusinessId = ?`,
-      [businessId]
-    );
+    // 7. Log Controlled Substances Dispensation into ControlledSubstanceLog
+    for (const cItem of controlledItemsToLog) {
+      await connection.query(
+        `INSERT INTO ControlledSubstanceLog 
+         (BusinessId, MedicineId, OrderId, Action, Quantity, PerformedBy, Notes)
+         VALUES (?, ?, ?, 'Dispensed', ?, ?, ?)`,
+        [
+          businessId,
+          cItem.medicineId,
+          orderId,
+          cItem.quantity,
+          staffUserId,
+          cItem.notes
+        ]
+      );
+    }
 
     await connection.commit();
     connection.release();
-
-    const business = businesses[0] || {};
 
     res.status(201).json({
       success: true,
@@ -308,7 +458,11 @@ router.post('/pos', authenticateToken, requireTenant, requireBusinessAccess, [
         status: 'Delivered',
         paymentStatus: 'Paid',
         paymentMethod,
-        totalAmount,
+        subtotal: taxResult.subtotal,
+        taxRate: taxResult.taxRate,
+        taxAmount: taxResult.taxAmount,
+        totalAmount: taxResult.totalAmount,
+        currency,
         customer: {
           name: customerName,
           phone: customerPhone,
@@ -320,16 +474,25 @@ router.post('/pos', authenticateToken, requireTenant, requireBusinessAccess, [
         },
         business: {
           name: business.BusinessName,
+          legalName: business.LegalName,
           phone: business.Phone,
           email: business.Email,
-          address: `${business.Address || ''}, ${business.City || ''}`.trim()
+          address: `${business.Address || ''}, ${business.City || ''} ${business.State || ''}`.trim(),
+          taxRegistrationNumber: business.TaxRegistrationNumber,
+          licenseNumber: business.LicenseNumber,
+          licenseAuthority: business.LicenseAuthority,
+          pharmacistInChargeName: business.PharmacistInChargeName
         },
-        items: lineItemsToInsert.map(i => ({
+        items: taxResult.items.map(i => ({
           medicineId: i.medicineId,
           name: i.medicineName,
           quantity: i.quantity,
           price: i.price,
-          subtotal: i.subtotal
+          isTaxable: i.isTaxable,
+          priceIncludesTax: i.priceIncludesTax,
+          subtotal: i.lineSubtotal,
+          taxAmount: i.lineTax,
+          lineTotal: i.lineTotal
         }))
       }
     });
@@ -351,7 +514,7 @@ router.post('/pos', authenticateToken, requireTenant, requireBusinessAccess, [
 router.post('/', authenticateToken, requireTenant, requireRole(['CUSTOMER', 'BUSINESS_OWNER', 'STAFF']), [
   body('items').optional().isArray(),
   body('deliveryAddress').optional().trim(),
-  body('paymentMethod').optional().isIn(['Cash on Delivery', 'Credit Card', 'Bank Transfer', 'JazzCash', 'EasyPaisa', 'Cash']),
+  body('paymentMethod').optional().isIn(['Cash on Delivery', 'Credit Card', 'Debit Card', 'Bank Transfer', 'Insurance Copay', 'JazzCash', 'EasyPaisa', 'Cash']),
   body('prescriptionId').optional().isInt(),
   body('reorderedFromOrderId').optional().isInt(),
   body('userId').optional().isInt(),
@@ -398,13 +561,29 @@ router.post('/', authenticateToken, requireTenant, requireRole(['CUSTOMER', 'BUS
 
     await connection.beginTransaction();
 
-    let totalAmount = 0;
-    const orderItems = [];
+    // 1. Fetch business tax settings & currency
+    const [businesses] = await connection.query(
+      `SELECT Currency, TaxEnabled, TaxRate FROM Businesses WHERE BusinessId = ?`,
+      [businessId]
+    );
+
+    if (businesses.length === 0) {
+      await connection.rollback();
+      connection.release();
+      return res.status(404).json({ success: false, message: 'Business not found' });
+    }
+
+    const business = businesses[0];
+    const currency = business.Currency || 'USD';
+
+    let orderItems = [];
+    const controlledItemsToLog = [];
 
     if (items.length > 0) {
       const medicineIds = items.map(item => item.medicineId);
       const [medicines] = await connection.query(
-        `SELECT MedicineId, BusinessId, Name, Price, AverageCost, Stock, RequiresPrescription, IsActive
+        `SELECT MedicineId, BusinessId, Name, Price, AverageCost, Stock, RequiresPrescription, IsActive,
+                IsTaxable, PriceIncludesTax, DEASchedule, UAEClassification
          FROM Medicines 
          WHERE MedicineId IN (?) AND BusinessId = ?
          FOR UPDATE`,
@@ -442,7 +621,11 @@ router.post('/', authenticateToken, requireTenant, requireRole(['CUSTOMER', 'BUS
           });
         }
 
-        if (medicine.RequiresPrescription && !prescriptionId && isCustomer) {
+        // Check prescription requirement
+        const isControlled = (medicine.DEASchedule && medicine.DEASchedule !== 'None') ||
+                             (medicine.UAEClassification && ['POM', 'Controlled', 'Semi-Controlled', 'Narcotic'].includes(medicine.UAEClassification));
+
+        if ((medicine.RequiresPrescription || isControlled) && !prescriptionId && isCustomer) {
           await connection.rollback();
           connection.release();
           return res.status(400).json({
@@ -451,8 +634,13 @@ router.post('/', authenticateToken, requireTenant, requireRole(['CUSTOMER', 'BUS
           });
         }
 
-        const subtotal = Math.round(parseFloat(medicine.Price) * qty * 100) / 100;
-        totalAmount += subtotal;
+        if (isControlled) {
+          controlledItemsToLog.push({
+            medicineId: medicine.MedicineId,
+            quantity: qty,
+            notes: `Online Order dispensation requirement`
+          });
+        }
 
         orderItems.push({
           medicineId: item.medicineId,
@@ -460,7 +648,8 @@ router.post('/', authenticateToken, requireTenant, requireRole(['CUSTOMER', 'BUS
           quantity: qty,
           price: parseFloat(medicine.Price),
           costPrice: parseFloat(medicine.AverageCost) || 0,
-          subtotal,
+          isTaxable: Boolean(medicine.IsTaxable),
+          priceIncludesTax: Boolean(medicine.PriceIncludesTax),
           currentStock,
           newStock: currentStock - qty
         });
@@ -485,17 +674,27 @@ router.post('/', authenticateToken, requireTenant, requireRole(['CUSTOMER', 'BUS
       }
     }
 
+    // Run tax calculation
+    const taxResult = calculateOrderTax(orderItems, {
+      taxEnabled: business.TaxEnabled,
+      taxRate: business.TaxRate
+    });
+
     // Insert Order
     const [orderResult] = await connection.query(
       `INSERT INTO Orders 
-       (BusinessId, UserId, CustomerName, CustomerPhone, Status, Source, TotalAmount, DeliveryAddress, PaymentMethod, PaymentStatus, PrescriptionId, ReorderedFromOrderId, Notes, CreatedBy)
-       VALUES (?, ?, ?, ?, 'Pending', 'Online', ?, ?, ?, 'Pending', ?, ?, ?, ?)`,
+       (BusinessId, UserId, CustomerName, CustomerPhone, Status, Source, Subtotal, TaxRate, TaxAmount, TotalAmount, Currency, DeliveryAddress, PaymentMethod, PaymentStatus, PrescriptionId, ReorderedFromOrderId, Notes, CreatedBy)
+       VALUES (?, ?, ?, ?, 'Pending', 'Online', ?, ?, ?, ?, ?, ?, ?, 'Pending', ?, ?, ?, ?)`,
       [
         businessId,
         targetUserId,
         finalCustomerName,
         finalCustomerPhone,
-        totalAmount,
+        taxResult.subtotal,
+        taxResult.taxRate,
+        taxResult.taxAmount,
+        taxResult.totalAmount,
+        currency,
         deliveryAddress,
         paymentMethod,
         prescriptionId || null,
@@ -508,11 +707,22 @@ router.post('/', authenticateToken, requireTenant, requireRole(['CUSTOMER', 'BUS
     const orderId = orderResult.insertId;
 
     // Insert OrderItems and deduct stock
-    for (const item of orderItems) {
+    for (const item of taxResult.items) {
       await connection.query(
-        `INSERT INTO OrderItems (BusinessId, OrderId, MedicineId, Quantity, Price, CostPrice, Subtotal)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [businessId, orderId, item.medicineId, item.quantity, item.price, item.costPrice, item.subtotal]
+        `INSERT INTO OrderItems (BusinessId, OrderId, MedicineId, Quantity, Price, CostPrice, Subtotal, TaxAmount, IsTaxable, PriceIncludesTax)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          businessId,
+          orderId,
+          item.medicineId,
+          item.quantity,
+          item.price,
+          item.costPrice,
+          item.lineSubtotal, // Pre-tax net subtotal
+          item.lineTax,
+          item.isTaxable,
+          item.priceIncludesTax
+        ]
       );
 
       await connection.query(
@@ -536,6 +746,24 @@ router.post('/', authenticateToken, requireTenant, requireRole(['CUSTOMER', 'BUS
       );
     }
 
+    // Log controlled substance items if any
+    for (const cItem of controlledItemsToLog) {
+      await connection.query(
+        `INSERT INTO ControlledSubstanceLog 
+         (BusinessId, MedicineId, OrderId, PrescriptionId, Action, Quantity, PerformedBy, Notes)
+         VALUES (?, ?, ?, ?, 'Dispensed', ?, ?, ?)`,
+        [
+          businessId,
+          cItem.medicineId,
+          orderId,
+          prescriptionId || null,
+          cItem.quantity,
+          req.user.UserId,
+          cItem.notes
+        ]
+      );
+    }
+
     await connection.commit();
     connection.release();
 
@@ -545,10 +773,14 @@ router.post('/', authenticateToken, requireTenant, requireRole(['CUSTOMER', 'BUS
       data: {
         id: orderId,
         orderNumber: `#${orderId}`,
-        totalAmount,
+        subtotal: taxResult.subtotal,
+        taxRate: taxResult.taxRate,
+        taxAmount: taxResult.taxAmount,
+        totalAmount: taxResult.totalAmount,
+        currency,
         status: 'Pending',
         source: 'Online',
-        itemsCount: orderItems.length,
+        itemsCount: taxResult.items.length,
         prescriptionId: prescriptionId || null,
         reorderedFromOrderId: reorderedFromOrderId || null
       }
@@ -629,7 +861,11 @@ router.get('/admin/all', authenticateToken, requireTenant, requireBusinessAccess
         o.OrderDate,
         o.Status,
         o.Source,
+        o.Subtotal,
+        o.TaxRate,
+        o.TaxAmount,
         o.TotalAmount,
+        o.Currency,
         o.DeliveryAddress,
         o.CustomerName,
         o.CustomerPhone,
@@ -665,7 +901,11 @@ router.get('/admin/all', authenticateToken, requireTenant, requireBusinessAccess
           orderDate: order.OrderDate,
           status: order.Status,
           source: order.Source || 'Online',
+          subtotal: parseFloat(order.Subtotal) || parseFloat(order.TotalAmount) || 0,
+          taxRate: parseFloat(order.TaxRate) || 0,
+          taxAmount: parseFloat(order.TaxAmount) || 0,
           totalAmount: parseFloat(order.TotalAmount) || 0,
+          currency: order.Currency || 'USD',
           deliveryAddress: order.DeliveryAddress,
           customerName: order.CustomerName || order.RegisteredUserName || 'Walk-in Customer',
           customerPhone: order.CustomerPhone,
@@ -732,7 +972,11 @@ router.get('/:id', authenticateToken, requireTenant, async (req, res) => {
         o.OrderDate,
         o.Status,
         o.Source,
+        o.Subtotal,
+        o.TaxRate,
+        o.TaxAmount,
         o.TotalAmount,
+        o.Currency,
         o.DeliveryAddress,
         o.CustomerName,
         o.CustomerPhone,
@@ -771,6 +1015,9 @@ router.get('/:id', authenticateToken, requireTenant, async (req, res) => {
         oi.Price,
         oi.CostPrice,
         oi.Subtotal,
+        oi.TaxAmount,
+        oi.IsTaxable,
+        oi.PriceIncludesTax,
         m.MedicineId,
         m.Name as MedicineName,
         m.ImagePath
@@ -787,7 +1034,11 @@ router.get('/:id', authenticateToken, requireTenant, async (req, res) => {
         orderDate: order.OrderDate,
         status: order.Status,
         source: order.Source || 'Online',
+        subtotal: parseFloat(order.Subtotal) || parseFloat(order.TotalAmount) || 0,
+        taxRate: parseFloat(order.TaxRate) || 0,
+        taxAmount: parseFloat(order.TaxAmount) || 0,
         totalAmount: parseFloat(order.TotalAmount) || 0,
+        currency: order.Currency || 'USD',
         deliveryAddress: order.DeliveryAddress,
         customerName: order.CustomerName || order.RegisteredUserName || 'Walk-in Customer',
         customerPhone: order.CustomerPhone,
@@ -813,7 +1064,11 @@ router.get('/:id', authenticateToken, requireTenant, async (req, res) => {
           name: item.MedicineName,
           quantity: item.Quantity,
           price: parseFloat(item.Price),
+          costPrice: parseFloat(item.CostPrice) || 0,
           subtotal: parseFloat(item.Subtotal),
+          taxAmount: parseFloat(item.TaxAmount) || 0,
+          isTaxable: Boolean(item.IsTaxable),
+          priceIncludesTax: Boolean(item.PriceIncludesTax),
           imagePath: item.ImagePath
         }))
       }

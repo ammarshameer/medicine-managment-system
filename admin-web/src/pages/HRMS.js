@@ -21,8 +21,10 @@ import {
   Link as LinkIcon,
   FileSpreadsheet
 } from 'lucide-react';
+import { useCurrency } from '../utils/formatCurrency';
 
 export const HRMS = () => {
+  const { currency, format } = useCurrency();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('employees'); // 'employees' | 'payroll'
 
@@ -434,7 +436,7 @@ export const HRMS = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 font-bold text-gray-900">
-                          PKR {emp.salary.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          {format(emp.salary)}
                         </td>
                         <td className="px-6 py-4 text-xs text-gray-600">
                           {emp.joiningDate ? new Date(emp.joiningDate).toLocaleDateString() : '—'}
@@ -597,15 +599,15 @@ export const HRMS = () => {
                           {monthNames[sal.month - 1]} {sal.year}
                         </td>
                         <td className="px-6 py-4 font-mono text-gray-800">
-                          PKR {sal.basicSalary.toFixed(2)}
+                          {format(sal.basicSalary)}
                         </td>
                         <td className="px-6 py-4 text-xs space-y-0.5">
-                          {sal.allowances > 0 && <span className="text-green-600 block">+PKR {sal.allowances.toFixed(2)} (Allow)</span>}
-                          {sal.deductions > 0 && <span className="text-red-600 block">-PKR {sal.deductions.toFixed(2)} (Deduct)</span>}
+                          {sal.allowances > 0 && <span className="text-green-600 block">+{format(sal.allowances)} (Allow)</span>}
+                          {sal.deductions > 0 && <span className="text-red-600 block">-{format(sal.deductions)} (Deduct)</span>}
                           {sal.allowances === 0 && sal.deductions === 0 && <span className="text-gray-400">—</span>}
                         </td>
                         <td className="px-6 py-4 font-bold font-mono text-blue-900">
-                          PKR {sal.netSalary.toFixed(2)}
+                          {format(sal.netSalary)}
                         </td>
                         <td className="px-6 py-4">
                           {sal.paymentStatus === 'Paid' ? (
@@ -822,13 +824,13 @@ export const HRMS = () => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="font-semibold text-gray-700 block mb-1">Monthly Base Salary (PKR) <span className="text-red-500">*</span></label>
+                    <label className="font-semibold text-gray-700 block mb-1">Monthly Base Salary ({currency}) <span className="text-red-500">*</span></label>
                     <input
                       type="number"
                       required
                       min="0"
-                      step="100"
-                      placeholder="e.g. 45000"
+                      step="1"
+                      placeholder="e.g. 5000"
                       value={empForm.salary}
                       onChange={(e) => setEmpForm({ ...empForm, salary: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-bold"
@@ -900,7 +902,7 @@ export const HRMS = () => {
             <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 text-xs">
               <p className="font-bold text-blue-900">{selectedSalary.employeeName}</p>
               <p className="text-blue-700">Period: {monthNames[selectedSalary.month - 1]} {selectedSalary.year}</p>
-              <p className="text-base font-black text-blue-900 mt-1">Amount: PKR {selectedSalary.netSalary.toFixed(2)}</p>
+              <p className="text-base font-black text-blue-900 mt-1">Amount: {format(selectedSalary.netSalary)}</p>
             </div>
 
             <form onSubmit={handlePaySubmit} className="space-y-3 text-xs">
@@ -934,7 +936,7 @@ export const HRMS = () => {
                 <label className="font-semibold text-gray-700 block mb-1">Transaction Ref / Notes</label>
                 <input
                   type="text"
-                  placeholder="e.g. Txn # 981248 / HBL Transfer"
+                  placeholder="e.g. Txn # 981248 / Bank Transfer"
                   value={payForm.notes}
                   onChange={(e) => setPayForm({ ...payForm, notes: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
@@ -997,21 +999,21 @@ export const HRMS = () => {
               <div className="border-t border-b border-gray-300 py-2 space-y-1">
                 <div className="flex justify-between">
                   <span>Basic Salary:</span>
-                  <span className="font-bold">PKR {selectedPayslip.basicSalary.toFixed(2)}</span>
+                  <span className="font-bold">{format(selectedPayslip.basicSalary)}</span>
                 </div>
                 <div className="flex justify-between text-green-700">
                   <span>Allowances:</span>
-                  <span>+ PKR {selectedPayslip.allowances.toFixed(2)}</span>
+                  <span>+ {format(selectedPayslip.allowances)}</span>
                 </div>
                 <div className="flex justify-between text-red-700">
                   <span>Deductions:</span>
-                  <span>- PKR {selectedPayslip.deductions.toFixed(2)}</span>
+                  <span>- {format(selectedPayslip.deductions)}</span>
                 </div>
               </div>
 
               <div className="flex justify-between font-bold text-sm text-gray-900 pt-1">
                 <span>NET SALARY:</span>
-                <span>PKR {selectedPayslip.netSalary.toFixed(2)}</span>
+                <span>{format(selectedPayslip.netSalary)}</span>
               </div>
 
               <div className="text-[10px] text-gray-500 pt-2 border-t border-gray-200 flex justify-between">
