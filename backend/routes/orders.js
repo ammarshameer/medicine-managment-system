@@ -1,9 +1,28 @@
 const express = require('express');
 const { body, query, validationResult } = require('express-validator');
 const { query: dbQuery, pool } = require('../config/database');
-const { authenticateToken, requireTenant, requireBusinessAccess, requireCustomer, requireRole } = require('../middleware/auth');
+const {
+  authenticateToken,
+  requireTenant,
+  requireBusinessAccess,
+  requireCustomer,
+  requireRole,
+  requireBusinessOwnerAccess
+} = require('../middleware/auth');
 const { calculateOrderTax } = require('../utils/taxEngine');
+const {
+  isControlledMedicine,
+  insertControlledLog,
+  validateControlledPrescription,
+  reverseDispensedLogs
+} = require('../utils/controlledDrugs');
 const router = express.Router();
+
+// Wrap a mysql2 transaction connection into the simple (sql, params) => rows
+// shape used by the shared controlled-substance helpers.
+function transactionQuery(connection) {
+  return (sql, params) => connection.query(sql, params).then(([rows]) => rows);
+}
 
 /**
  * GET /api/orders/my-orders
@@ -240,6 +259,7 @@ router.post('/pos', authenticateToken, requireTenant, requireBusinessAccess, [
   body('customerName').optional().trim(),
   body('customerPhone').optional().trim(),
   body('userId').optional().isInt().withMessage('Valid user ID if provided'),
+  body('prescriptionId').optional().isInt({ min: 1 }).withMessage('Valid prescription ID if provided'),
   body('notes').optional().trim()
 ], async (req, res) => {
   const connection = await pool.getConnection();
@@ -262,6 +282,7 @@ router.post('/pos', authenticateToken, requireTenant, requireBusinessAccess, [
       customerName = 'Walk-in Customer',
       customerPhone = null,
       userId = null,
+      prescriptionId = null,
       notes = null
     } = req.body;
 
@@ -329,10 +350,8 @@ router.post('/pos', authenticateToken, requireTenant, requireBusinessAccess, [
         });
       }
 
-      // Controlled substances audit track
-      const isDEAControlled = med.DEASchedule && med.DEASchedule !== 'None';
-      const isUAEControlled = med.UAEClassification && ['Controlled', 'Semi-Controlled', 'Narcotic'].includes(med.UAEClassification);
-      if (isDEAControlled || isUAEControlled) {
+      // Controlled-substance audit track (country-aware shared definition)
+      if (isControlledMedicine(med, business.Country)) {
         controlledItemsToLog.push({
           medicineId: med.MedicineId,
           medicineName: med.Name,
@@ -354,6 +373,35 @@ router.post('/pos', authenticateToken, requireTenant, requireBusinessAccess, [
       });
     }
 
+    // Controlled substances require an Approved prescription owned by the
+    // ordering customer. STAFF/OWNER may supply userId explicitly; when it is
+    // omitted, an approved prescription provides the customer identity.
+    let effectiveUserId = req.user.Role === 'CUSTOMER' ? req.user.UserId : (userId || null);
+    if (controlledItemsToLog.length > 0) {
+      if (!effectiveUserId && prescriptionId && req.user.Role !== 'CUSTOMER') {
+        const [prescriptions] = await connection.query(
+          'SELECT UserId, Status FROM Prescriptions WHERE PrescriptionId = ? AND BusinessId = ?',
+          [prescriptionId, businessId]
+        );
+        if (prescriptions.length > 0 && prescriptions[0].Status === 'Approved' && prescriptions[0].UserId) {
+          effectiveUserId = prescriptions[0].UserId;
+        }
+      }
+
+      const rxCheck = await validateControlledPrescription(transactionQuery(connection), {
+        prescriptionId,
+        businessId,
+        customerUserId: effectiveUserId,
+        medicineName: controlledItemsToLog[0].medicineName
+      });
+      if (!rxCheck.ok) {
+        await connection.rollback();
+        connection.release();
+        return res.status(rxCheck.status).json({ success: false, message: rxCheck.message });
+      }
+      controlledItemsToLog.forEach(item => { item.prescriptionId = rxCheck.prescriptionId; });
+    }
+
     // 4. Calculate Tax using Centralized Tax Engine
     const taxResult = calculateOrderTax(cartItemsWithDetails, {
       taxEnabled: business.TaxEnabled,
@@ -365,11 +413,11 @@ router.post('/pos', authenticateToken, requireTenant, requireBusinessAccess, [
     // 5. Create Orders record (Source = 'POS', Status = 'Delivered', PaymentStatus = 'Paid')
     const [orderResult] = await connection.query(
       `INSERT INTO Orders 
-       (BusinessId, UserId, Status, Source, Subtotal, TaxRate, TaxAmount, TotalAmount, Currency, DeliveryAddress, CustomerName, CustomerPhone, PaymentMethod, PaymentStatus, CreatedBy, Notes)
-       VALUES (?, ?, 'Delivered', 'POS', ?, ?, ?, ?, ?, 'Counter Sale (POS)', ?, ?, ?, 'Paid', ?, ?)`,
+       (BusinessId, UserId, Status, Source, Subtotal, TaxRate, TaxAmount, TotalAmount, Currency, DeliveryAddress, CustomerName, CustomerPhone, PaymentMethod, PaymentStatus, PrescriptionId, CreatedBy, Notes)
+       VALUES (?, ?, 'Delivered', 'POS', ?, ?, ?, ?, ?, 'Counter Sale (POS)', ?, ?, ?, 'Paid', ?, ?, ?)`,
       [
         businessId,
-        userId || null,
+        effectiveUserId,
         taxResult.subtotal,
         taxResult.taxRate,
         taxResult.taxAmount,
@@ -378,6 +426,7 @@ router.post('/pos', authenticateToken, requireTenant, requireBusinessAccess, [
         customerName || 'Walk-in Customer',
         customerPhone || null,
         paymentMethod,
+        prescriptionId || null,
         staffUserId,
         notes
       ]
@@ -427,21 +476,18 @@ router.post('/pos', authenticateToken, requireTenant, requireBusinessAccess, [
       );
     }
 
-    // 7. Log Controlled Substances Dispensation into ControlledSubstanceLog
+    // 7. Log Controlled Substances Dispensation (POS is Delivered at creation)
     for (const cItem of controlledItemsToLog) {
-      await connection.query(
-        `INSERT INTO ControlledSubstanceLog 
-         (BusinessId, MedicineId, OrderId, Action, Quantity, PerformedBy, Notes)
-         VALUES (?, ?, ?, 'Dispensed', ?, ?, ?)`,
-        [
-          businessId,
-          cItem.medicineId,
-          orderId,
-          cItem.quantity,
-          staffUserId,
-          cItem.notes
-        ]
-      );
+      await insertControlledLog(transactionQuery(connection), {
+        businessId,
+        medicineId: cItem.medicineId,
+        orderId,
+        prescriptionId: cItem.prescriptionId || null,
+        action: 'Dispensed',
+        quantity: cItem.quantity,
+        performedBy: staffUserId,
+        notes: cItem.notes
+      });
     }
 
     await connection.commit();
@@ -466,7 +512,7 @@ router.post('/pos', authenticateToken, requireTenant, requireBusinessAccess, [
         customer: {
           name: customerName,
           phone: customerPhone,
-          userId: userId || null
+          userId: effectiveUserId
         },
         cashier: {
           id: req.user.UserId,
@@ -563,7 +609,7 @@ router.post('/', authenticateToken, requireTenant, requireRole(['CUSTOMER', 'BUS
 
     // 1. Fetch business tax settings & currency
     const [businesses] = await connection.query(
-      `SELECT Currency, TaxEnabled, TaxRate FROM Businesses WHERE BusinessId = ?`,
+      `SELECT Currency, Country, TaxEnabled, TaxRate FROM Businesses WHERE BusinessId = ?`,
       [businessId]
     );
 
@@ -575,6 +621,26 @@ router.post('/', authenticateToken, requireTenant, requireRole(['CUSTOMER', 'BUS
 
     const business = businesses[0];
     const currency = business.Currency || 'USD';
+
+    // Reorder references must be real orders in the same business and, for
+    // customers, orders belonging to the same customer.
+    if (reorderedFromOrderId) {
+      const reorderId = parseInt(reorderedFromOrderId, 10);
+      const [reorderSource] = await connection.query(
+        'SELECT OrderId, BusinessId, UserId FROM Orders WHERE OrderId = ?',
+        [reorderId]
+      );
+      if (!Number.isInteger(reorderId) || reorderId <= 0 || reorderSource.length === 0 ||
+          Number(reorderSource[0].BusinessId) !== Number(businessId) ||
+          (isCustomer && Number(reorderSource[0].UserId) !== Number(req.user.UserId))) {
+        await connection.rollback();
+        connection.release();
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid reorderedFromOrderId: order not found in this business/customer'
+        });
+      }
+    }
 
     let orderItems = [];
     const controlledItemsToLog = [];
@@ -621,24 +687,24 @@ router.post('/', authenticateToken, requireTenant, requireRole(['CUSTOMER', 'BUS
           });
         }
 
-        // Check prescription requirement
-        const isControlled = (medicine.DEASchedule && medicine.DEASchedule !== 'None') ||
-                             (medicine.UAEClassification && ['POM', 'Controlled', 'Semi-Controlled', 'Narcotic'].includes(medicine.UAEClassification));
+        // Country-aware controlled definition (USA Schedule II, UAE Controlled/Narcotic only)
+        const isControlled = isControlledMedicine(medicine, business.Country);
 
-        if ((medicine.RequiresPrescription || isControlled) && !prescriptionId && isCustomer) {
+        if ((medicine.RequiresPrescription && isCustomer && !prescriptionId) || (isControlled && !prescriptionId)) {
           await connection.rollback();
           connection.release();
           return res.status(400).json({
             success: false,
-            message: `Prescription required for "${medicine.Name}"`
+            message: `An approved prescription is required for "${medicine.Name}"`
           });
         }
 
         if (isControlled) {
           controlledItemsToLog.push({
             medicineId: medicine.MedicineId,
+            medicineName: medicine.Name,
             quantity: qty,
-            notes: `Online Order dispensation requirement`
+            notes: `Online order dispensation requirement`
           });
         }
 
@@ -656,10 +722,13 @@ router.post('/', authenticateToken, requireTenant, requireRole(['CUSTOMER', 'BUS
       }
     }
 
-    // Verify prescription if provided
+    // Verify prescription. Controlled items additionally require an Approved
+    // prescription belonging to the ordering customer. STAFF/OWNER identify the
+    // customer with userId; when omitted, an approved prescription supplies it.
+    let effectiveUserId = targetUserId;
     if (prescriptionId) {
       const [prescriptions] = await connection.query(
-        `SELECT PrescriptionId, Status FROM Prescriptions 
+        `SELECT PrescriptionId, UserId, Status FROM Prescriptions
          WHERE PrescriptionId = ? AND BusinessId = ?`,
         [prescriptionId, businessId]
       );
@@ -671,6 +740,23 @@ router.post('/', authenticateToken, requireTenant, requireRole(['CUSTOMER', 'BUS
           success: false,
           message: 'Invalid prescription selected'
         });
+      }
+
+      if (controlledItemsToLog.length > 0) {
+        if (!effectiveUserId && !isCustomer) {
+          effectiveUserId = prescriptions[0].UserId || null;
+        }
+        const rxCheck = await validateControlledPrescription(transactionQuery(connection), {
+          prescriptionId,
+          businessId,
+          customerUserId: effectiveUserId,
+          medicineName: controlledItemsToLog[0].medicineName
+        });
+        if (!rxCheck.ok) {
+          await connection.rollback();
+          connection.release();
+          return res.status(rxCheck.status).json({ success: false, message: rxCheck.message });
+        }
       }
     }
 
@@ -687,7 +773,7 @@ router.post('/', authenticateToken, requireTenant, requireRole(['CUSTOMER', 'BUS
        VALUES (?, ?, ?, ?, 'Pending', 'Online', ?, ?, ?, ?, ?, ?, ?, 'Pending', ?, ?, ?, ?)`,
       [
         businessId,
-        targetUserId,
+        effectiveUserId,
         finalCustomerName,
         finalCustomerPhone,
         taxResult.subtotal,
@@ -746,23 +832,8 @@ router.post('/', authenticateToken, requireTenant, requireRole(['CUSTOMER', 'BUS
       );
     }
 
-    // Log controlled substance items if any
-    for (const cItem of controlledItemsToLog) {
-      await connection.query(
-        `INSERT INTO ControlledSubstanceLog 
-         (BusinessId, MedicineId, OrderId, PrescriptionId, Action, Quantity, PerformedBy, Notes)
-         VALUES (?, ?, ?, ?, 'Dispensed', ?, ?, ?)`,
-        [
-          businessId,
-          cItem.medicineId,
-          orderId,
-          prescriptionId || null,
-          cItem.quantity,
-          req.user.UserId,
-          cItem.notes
-        ]
-      );
-    }
+    // Online orders are Pending until delivery; Dispensed is logged only when
+    // the order reaches Delivered (see PATCH /:id/status).
 
     await connection.commit();
     connection.release();
@@ -1089,9 +1160,11 @@ router.get('/:id', authenticateToken, requireTenant, async (req, res) => {
 router.patch('/:id/status', authenticateToken, requireTenant, requireBusinessAccess, [
   body('status').isIn(['Pending', 'Approved', 'Dispatched', 'Delivered', 'Cancelled']).withMessage('Invalid status')
 ], async (req, res) => {
+  const connection = await pool.getConnection();
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      connection.release();
       return res.status(400).json({
         success: false,
         message: 'Validation errors',
@@ -1103,28 +1176,71 @@ router.patch('/:id/status', authenticateToken, requireTenant, requireBusinessAcc
     const { status } = req.body;
     const businessId = req.user.businessId;
 
-    const orders = await dbQuery(
-      'SELECT OrderId, Status FROM Orders WHERE OrderId = ? AND BusinessId = ?',
+    await connection.beginTransaction();
+
+    const [orders] = await connection.query(
+      `SELECT o.OrderId, o.Status, o.PrescriptionId, b.Country
+       FROM Orders o JOIN Businesses b ON b.BusinessId = o.BusinessId
+       WHERE o.OrderId = ? AND o.BusinessId = ? FOR UPDATE`,
       [orderId, businessId]
     );
 
     if (orders.length === 0) {
+      await connection.rollback();
+      connection.release();
       return res.status(404).json({
         success: false,
         message: 'Order not found'
       });
     }
 
-    await dbQuery(
+    await connection.query(
       'UPDATE Orders SET Status = ?, UpdatedAt = CURRENT_TIMESTAMP WHERE OrderId = ? AND BusinessId = ?',
       [status, orderId, businessId]
     );
+
+    // Dispensed is recorded when the order actually reaches Delivered.
+    if (status === 'Delivered' && orders[0].Status !== 'Delivered') {
+      const [items] = await connection.query(
+        `SELECT oi.MedicineId, oi.Quantity, m.Name, m.DEASchedule, m.UAEClassification
+         FROM OrderItems oi JOIN Medicines m ON oi.MedicineId = m.MedicineId
+         WHERE oi.OrderId = ?`,
+        [orderId]
+      );
+      const [existingLogs] = await connection.query(
+        `SELECT COUNT(*) as count FROM ControlledSubstanceLog
+         WHERE BusinessId = ? AND OrderId = ? AND Action = 'Dispensed'`,
+        [businessId, orderId]
+      );
+
+      if (Number(existingLogs[0].count) === 0) {
+        for (const item of items) {
+          if (isControlledMedicine(item, orders[0].Country)) {
+            await insertControlledLog(transactionQuery(connection), {
+              businessId,
+              medicineId: item.MedicineId,
+              orderId,
+              prescriptionId: orders[0].PrescriptionId || null,
+              action: 'Dispensed',
+              quantity: item.Quantity,
+              performedBy: req.user.UserId,
+              notes: `Online order #${orderId} delivered`
+            });
+          }
+        }
+      }
+    }
+
+    await connection.commit();
+    connection.release();
 
     res.json({
       success: true,
       message: 'Order status updated successfully'
     });
   } catch (error) {
+    await connection.rollback();
+    connection.release();
     console.error('Update order status error:', error);
     res.status(500).json({
       success: false,
@@ -1216,6 +1332,15 @@ router.patch('/:id/cancel', authenticateToken, requireTenant, async (req, res) =
       );
     }
 
+    // Reverse any Dispensed ledger rows (e.g. orders created before the
+    // Delivered-only rule) so cancelling a controlled order leaves no Dispensed.
+    await reverseDispensedLogs(transactionQuery(connection), {
+      businessId: order.BusinessId,
+      orderId,
+      performedBy: userId,
+      reason: `Order #${orderId} cancelled`
+    });
+
     await connection.commit();
     connection.release();
 
@@ -1233,5 +1358,101 @@ router.patch('/:id/cancel', authenticateToken, requireTenant, async (req, res) =
     });
   }
 });
+
+/**
+ * POST /api/orders/:id/void
+ * Owner-only void/refund of a Delivered POS order. Restores stock, marks the
+ * payment Refunded and reverses the Dispensed controlled-substance ledger.
+ */
+async function voidPosOrder(req, res) {
+  const connection = await pool.getConnection();
+  try {
+    const orderId = parseInt(req.params.id, 10);
+    const businessId = req.user.businessId;
+
+    await connection.beginTransaction();
+
+    const [orders] = await connection.query(
+      'SELECT OrderId, BusinessId, Status, Source, PaymentStatus FROM Orders WHERE OrderId = ? AND BusinessId = ? FOR UPDATE',
+      [orderId, businessId]
+    );
+
+    if (orders.length === 0) {
+      await connection.rollback();
+      connection.release();
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    const order = orders[0];
+    if (order.Source !== 'POS' || order.Status !== 'Delivered') {
+      await connection.rollback();
+      connection.release();
+      return res.status(400).json({
+        success: false,
+        message: 'Only a Delivered POS order can be voided/refunded'
+      });
+    }
+
+    await connection.query(
+      `UPDATE Orders SET Status = 'Cancelled', PaymentStatus = 'Refunded', UpdatedAt = CURRENT_TIMESTAMP
+       WHERE OrderId = ? AND BusinessId = ?`,
+      [orderId, businessId]
+    );
+
+    const [items] = await connection.query(
+      'SELECT MedicineId, Quantity FROM OrderItems WHERE OrderId = ?',
+      [orderId]
+    );
+
+    for (const item of items) {
+      await connection.query(
+        'UPDATE Medicines SET Stock = Stock + ?, UpdatedAt = CURRENT_TIMESTAMP WHERE MedicineId = ? AND BusinessId = ?',
+        [item.Quantity, item.MedicineId, businessId]
+      );
+      await connection.query(
+        `INSERT INTO InventoryTransactions
+         (BusinessId, MedicineId, TransactionType, Quantity, PreviousStock, NewStock, Reason, PerformedBy)
+         SELECT ?, ?, 'Stock In', ?, Stock - ?, Stock, ?, ? FROM Medicines WHERE MedicineId = ?`,
+        [
+          businessId,
+          item.MedicineId,
+          item.Quantity,
+          item.Quantity,
+          `POS Void/Refund #${orderId} Restock`,
+          req.user.UserId,
+          item.MedicineId
+        ]
+      );
+    }
+
+    await reverseDispensedLogs(transactionQuery(connection), {
+      businessId,
+      orderId,
+      performedBy: req.user.UserId,
+      reason: `POS order #${orderId} voided/refunded`
+    });
+
+    await connection.commit();
+    connection.release();
+
+    res.json({
+      success: true,
+      message: 'POS order voided/refunded successfully and inventory restored',
+      data: { orderId, status: 'Cancelled', paymentStatus: 'Refunded' }
+    });
+  } catch (error) {
+    await connection.rollback();
+    connection.release();
+    console.error('Void POS order error:', error);
+    res.status(500).json({ success: false, message: 'Failed to void/refund POS order' });
+  }
+}
+
+router.post('/:id/void', authenticateToken, requireTenant, requireBusinessOwnerAccess, voidPosOrder);
+router.patch('/:id/void', authenticateToken, requireTenant, requireBusinessOwnerAccess, voidPosOrder);
+router.post('/:id/refund', authenticateToken, requireTenant, requireBusinessOwnerAccess, voidPosOrder);
+
+// Stripe checkout for an existing order (see /api/payments/create-intent too).
+router.post('/:id/pay', authenticateToken, requireTenant, require('../utils/payments').createPaymentIntent);
 
 module.exports = router;

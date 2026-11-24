@@ -136,6 +136,9 @@ const requireRole = (roles) => {
 // Role-specific middleware
 const requireSuperAdmin = requireRole(['SUPER_ADMIN']);
 const requireBusinessOwner = requireRole(['BUSINESS_OWNER']);
+// Owner-level data mutations: business owner (or platform admin) only.
+// STAFF remains allowed to read and to run POS/prescription/order workflows.
+const requireBusinessOwnerAccess = requireRole(['BUSINESS_OWNER', 'SUPER_ADMIN']);
 const requireCustomer = requireRole(['CUSTOMER']);
 const requireStaff = requireRole(['STAFF']);
 const requireBusinessAccess = requireRole(['BUSINESS_OWNER', 'STAFF']);
@@ -149,6 +152,7 @@ module.exports = {
   requireRole,
   requireSuperAdmin,
   requireBusinessOwner,
+  requireBusinessOwnerAccess,
   requireCustomer,
   requireStaff,
   requireBusinessAccess,

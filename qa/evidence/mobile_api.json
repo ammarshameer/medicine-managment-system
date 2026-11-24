@@ -1,0 +1,90 @@
+{
+  "T22": {
+    "wrongCode": {
+      "status": 404,
+      "message": "Invalid business code"
+    },
+    "correctCode": {
+      "status": 201,
+      "businessId": 7
+    }
+  },
+  "T23": {
+    "preview": {
+      "currency": "USD",
+      "subtotal": 200,
+      "taxRate": 0.08,
+      "taxAmount": 16,
+      "totalAmount": 216,
+      "items": [
+        {
+          "medicineId": 27,
+          "name": "QA T5 Normal 100",
+          "price": 100,
+          "quantity": 2,
+          "isTaxable": true,
+          "priceIncludesTax": false,
+          "deaSchedule": "None",
+          "uaeClassification": "OTC",
+          "requiresPrescription": false,
+          "lineSubtotal": 200,
+          "lineTax": 16,
+          "lineTotal": 216
+        }
+      ]
+    },
+    "order": {
+      "id": 17,
+      "orderNumber": "#17",
+      "subtotal": 200,
+      "taxRate": 0.08,
+      "taxAmount": 16,
+      "totalAmount": 216,
+      "currency": "USD",
+      "status": "Pending",
+      "source": "Online",
+      "itemsCount": 1,
+      "prescriptionId": null,
+      "reorderedFromOrderId": null
+    },
+    "totalsMatch": true
+  },
+  "T24": {
+    "uploadStatus": 201,
+    "prescriptionId": 4,
+    "prescriptionOrder": {
+      "status": 201,
+      "data": {
+        "id": 18,
+        "orderNumber": "#18",
+        "subtotal": 0,
+        "taxRate": 0.08,
+        "taxAmount": 0,
+        "totalAmount": 0,
+        "currency": "USD",
+        "status": "Pending",
+        "source": "Online",
+        "itemsCount": 0,
+        "prescriptionId": 4,
+        "reorderedFromOrderId": null
+      }
+    },
+    "customerSeesOrder": true
+  },
+  "T25": {
+    "reorderStatus": 201,
+    "stored": 17,
+    "bogusStatus": 400
+  },
+  "R17": {
+    "myIds": [
+      17,
+      19,
+      8
+    ],
+    "otherIds": [
+      18
+    ],
+    "overlap": []
+  }
+}

@@ -15,21 +15,14 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import axios from 'axios';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
-
-const getCurrencySymbol = (code = 'USD') => {
-  switch (code) {
-    case 'PKR': return 'Rs. ';
-    case 'AED': return 'AED ';
-    case 'SAR': return 'SAR ';
-    case 'GBP': return '£';
-    case 'EUR': return '€';
-    default: return '$';
-  }
-};
+import { useI18n } from '../contexts/I18nContext';
+import { useFormatCurrency } from '../utils/formatCurrency';
 
 const CartScreen = ({ navigation }) => {
   const { cartItems, removeFromCart, updateQuantity, getCartTotal, clearCart, reorderedFromOrderId } = useCart();
   const { user } = useAuth();
+  const { t } = useI18n();
+  const formatMoney = useFormatCurrency();
 
   const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
   const [deliveryAddress, setDeliveryAddress] = useState(user?.address || '');
@@ -66,7 +59,6 @@ const CartScreen = ({ navigation }) => {
   }, [cartItems]);
 
   const currencyCode = taxPreview?.currency || user?.business?.currency || 'USD';
-  const currencySymbol = getCurrencySymbol(currencyCode);
 
   const rawTotal = getCartTotal();
   const grandTotal = taxPreview ? taxPreview.totalAmount : rawTotal;
@@ -74,17 +66,13 @@ const CartScreen = ({ navigation }) => {
   const taxAmount = taxPreview ? taxPreview.taxAmount : 0;
   const taxRate = taxPreview ? taxPreview.taxRate : 0;
 
-  // Adapt payment options based on region/currency
-  const isPKR = currencyCode === 'PKR';
   const paymentOptions = [
     { id: 'Cash on Delivery', label: 'Cash on Delivery (COD)', icon: 'payments' },
     { id: 'Credit Card', label: 'Credit / Debit Card', icon: 'credit-card' },
     { id: 'Bank Transfer', label: 'Direct Bank Transfer', icon: 'account-balance' },
     { id: 'Insurance Copay', label: 'Insurance Copay', icon: 'health-and-safety' },
-    ...(isPKR ? [
-      { id: 'JazzCash', label: 'JazzCash Mobile Account', icon: 'phone-android' },
-      { id: 'EasyPaisa', label: 'EasyPaisa Wallet', icon: 'account-balance-wallet' }
-    ] : [])
+    { id: 'JazzCash', label: 'JazzCash Mobile Account', icon: 'phone-android' },
+    { id: 'EasyPaisa', label: 'EasyPaisa Wallet', icon: 'account-balance-wallet' }
   ];
 
   const CartItem = ({ item }) => {
@@ -103,7 +91,7 @@ const CartScreen = ({ navigation }) => {
               {isTaxable ? '[T]' : '[E]'}
             </Text>
           </View>
-          <Text style={styles.itemPrice}>{currencySymbol}{item.price.toFixed(2)}</Text>
+          <Text style={styles.itemPrice}>{formatMoney(item.price, { currency: currencyCode })}</Text>
         </View>
         <View style={styles.quantityControls}>
           <TouchableOpacity
@@ -166,7 +154,7 @@ const CartScreen = ({ navigation }) => {
 
       Alert.alert(
         'Order Placed Successfully!',
-        `Your order #${order.id} has been placed for ${currencySymbol}${order.totalAmount.toFixed(2)}. Processing now.`,
+        `Your order #${order.id} has been placed for ${formatMoney(order.totalAmount, { currency: order.currency || currencyCode })}. Processing now.`,
         [
           {
             text: 'View My Orders',
@@ -186,7 +174,7 @@ const CartScreen = ({ navigation }) => {
       <View style={styles.header}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <Text style={styles.title}>Shopping Cart</Text>
+            <Text style={styles.title}>{t('shoppingCart')}</Text>
             <Text style={styles.subtitle}>
               {cartItems.length} {cartItems.length === 1 ? 'medicine' : 'medicines'}
               {reorderedFromOrderId ? ` • (Reordering #${reorderedFromOrderId})` : ''}
@@ -201,13 +189,13 @@ const CartScreen = ({ navigation }) => {
       {cartItems.length === 0 ? (
         <View style={styles.emptyCart}>
           <Icon name="shopping-bag" size={70} color="#ccc" />
-          <Text style={styles.emptyText}>Your cart is empty</Text>
+          <Text style={styles.emptyText}>{t('cartEmpty')}</Text>
           <Text style={styles.emptySubtext}>Explore our pharmacy catalog to add medicines</Text>
           <TouchableOpacity
             style={styles.shopButton}
             onPress={() => navigation.navigate('Medicines')}
           >
-            <Text style={styles.shopButtonText}>Browse Medicines</Text>
+            <Text style={styles.shopButtonText}>{t('browseMedicines')}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -224,12 +212,12 @@ const CartScreen = ({ navigation }) => {
             <View style={styles.summaryBreakdown}>
               <View style={styles.summaryRowMini}>
                 <Text style={styles.summaryLabelMini}>Subtotal:</Text>
-                <Text style={styles.summaryValueMini}>{currencySymbol}{subtotalAmount.toFixed(2)}</Text>
+                <Text style={styles.summaryValueMini}>{formatMoney(subtotalAmount, { currency: currencyCode })}</Text>
               </View>
               {taxAmount > 0 && (
                 <View style={styles.summaryRowMini}>
                   <Text style={styles.summaryLabelMini}>Tax / VAT ({(taxRate * 100).toFixed(2)}%):</Text>
-                  <Text style={styles.summaryValueMini}>+{currencySymbol}{taxAmount.toFixed(2)}</Text>
+                  <Text style={styles.summaryValueMini}>+{formatMoney(taxAmount, { currency: currencyCode })}</Text>
                 </View>
               )}
             </View>
@@ -237,12 +225,12 @@ const CartScreen = ({ navigation }) => {
             <View style={styles.totalContainer}>
               <Text style={styles.totalLabel}>Grand Total:</Text>
               <Text style={styles.totalAmount}>
-                {previewLoading ? '...' : `${currencySymbol}${grandTotal.toFixed(2)}`}
+                {previewLoading ? '...' : formatMoney(grandTotal, { currency: currencyCode })}
               </Text>
             </View>
             <TouchableOpacity style={styles.checkoutButton} onPress={handleStartCheckout}>
               <Icon name="shopping-cart-checkout" size={22} color="#fff" style={{ marginRight: 8 }} />
-              <Text style={styles.checkoutButtonText}>Proceed to Checkout</Text>
+              <Text style={styles.checkoutButtonText}>{t('proceedCheckout')}</Text>
             </TouchableOpacity>
           </View>
         </>
@@ -333,17 +321,17 @@ const CartScreen = ({ navigation }) => {
                 </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Subtotal:</Text>
-                  <Text style={styles.summaryValue}>{currencySymbol}{subtotalAmount.toFixed(2)}</Text>
+                  <Text style={styles.summaryValue}>{formatMoney(subtotalAmount, { currency: currencyCode })}</Text>
                 </View>
                 {taxAmount > 0 && (
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Tax / VAT ({(taxRate * 100).toFixed(2)}%):</Text>
-                    <Text style={styles.summaryValue}>{currencySymbol}{taxAmount.toFixed(2)}</Text>
+                    <Text style={styles.summaryValue}>{formatMoney(taxAmount, { currency: currencyCode })}</Text>
                   </View>
                 )}
                 <View style={[styles.summaryRow, { borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 8, marginTop: 4 }]}>
                   <Text style={[styles.summaryLabel, { fontWeight: 'bold', color: '#0f172a' }]}>Grand Total:</Text>
-                  <Text style={styles.summaryTotalValue}>{currencySymbol}{grandTotal.toFixed(2)}</Text>
+                  <Text style={styles.summaryTotalValue}>{formatMoney(grandTotal, { currency: currencyCode })}</Text>
                 </View>
               </View>
             </ScrollView>

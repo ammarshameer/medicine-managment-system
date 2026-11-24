@@ -1,18 +1,33 @@
 const express = require('express');
-const { body, validationResult } = require('express-validator');
+const { body, query, validationResult } = require('express-validator');
 const { query: dbQuery } = require('../config/database');
 const { authenticateToken, requireTenant, requireBusinessAccess } = require('../middleware/auth');
 const router = express.Router();
 
-// Get all categories (public endpoint with optional tenant filtering)
-router.get('/', async (req, res) => {
+// Get all categories (authenticated, tenant scoped; SUPER_ADMIN may opt into one business)
+router.get('/', authenticateToken, requireTenant, [
+  query('businessId').optional().isInt({ min: 1 }).withMessage('Business ID must be an integer')
+], async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation errors',
+        errors: errors.array()
+      });
+    }
+
     // Build WHERE clause with tenant filtering
     let whereClause = 'WHERE IsActive = TRUE';
     const params = [];
 
-    // Add tenant filtering if user is authenticated and not SUPER_ADMIN
-    if (req.user && req.user.Role !== 'SUPER_ADMIN' && req.user.businessId) {
+    if (req.user.Role === 'SUPER_ADMIN') {
+      if (req.query.businessId) {
+        whereClause += ' AND BusinessId = ?';
+        params.push(parseInt(req.query.businessId, 10));
+      }
+    } else {
       whereClause += ' AND BusinessId = ?';
       params.push(req.user.businessId);
     }
@@ -45,17 +60,32 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get single category by ID (with tenant filtering)
-router.get('/:id', async (req, res) => {
+// Get single category by ID (authenticated, tenant scoped)
+router.get('/:id', authenticateToken, requireTenant, [
+  query('businessId').optional().isInt({ min: 1 }).withMessage('Business ID must be an integer')
+], async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation errors',
+        errors: errors.array()
+      });
+    }
+
     const categoryId = req.params.id;
 
     // Build WHERE clause with tenant filtering
     let whereClause = 'WHERE CategoryId = ? AND IsActive = TRUE';
     const params = [categoryId];
 
-    // Add tenant filtering if user is authenticated and not SUPER_ADMIN
-    if (req.user && req.user.Role !== 'SUPER_ADMIN' && req.user.businessId) {
+    if (req.user.Role === 'SUPER_ADMIN') {
+      if (req.query.businessId) {
+        whereClause += ' AND BusinessId = ?';
+        params.push(parseInt(req.query.businessId, 10));
+      }
+    } else {
       whereClause += ' AND BusinessId = ?';
       params.push(req.user.businessId);
     }

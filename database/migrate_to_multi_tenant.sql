@@ -1,13 +1,24 @@
--- Migration Script: Convert existing single-tenant schema to multi-tenant
--- This script should be run on an existing database to add multi-tenancy support
--- BACKUP YOUR DATABASE BEFORE RUNNING THIS SCRIPT
+-- Migration: convert an existing single-tenant database to multi-tenant.
+-- MySQL 8 compatible and safe to re-run.
+-- BACKUP YOUR DATABASE BEFORE RUNNING THIS SCRIPT.
+--
+-- Fixed upgrade-path defects:
+--   * The default business is created BEFORE any FK is added, so child rows
+--     never reference a missing parent.
+--   * Legacy Role values are mapped to the new enum BEFORE narrowing the
+--     column, so MySQL 8 no longer raises "Data truncated for column 'Role'".
+--   * Every BusinessId add/index/FK is guarded, so `Unknown column
+--     'BusinessId'` can no longer happen after a partial run.
 
 USE mms_db;
 
--- Step 1: Add Businesses table
+-- ---------------------------------------------------------------------------
+-- Step 1: Businesses (full shape, including the columns the backend SELECTs)
+-- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS Businesses (
     BusinessId INT AUTO_INCREMENT PRIMARY KEY,
     BusinessName VARCHAR(200) NOT NULL,
+    LegalName VARCHAR(200) NULL,
     BusinessCode VARCHAR(50) UNIQUE NOT NULL,
     Logo VARCHAR(255),
     OwnerName VARCHAR(100) NOT NULL,
@@ -16,7 +27,17 @@ CREATE TABLE IF NOT EXISTS Businesses (
     Address TEXT,
     City VARCHAR(100),
     State VARCHAR(100),
-    Country VARCHAR(100) DEFAULT 'Pakistan',
+    ZipCode VARCHAR(20) NULL,
+    Country VARCHAR(100) NULL DEFAULT 'Pakistan',
+    Currency VARCHAR(3) DEFAULT 'USD',
+    TaxEnabled BOOLEAN NOT NULL DEFAULT TRUE,
+    TaxRate DECIMAL(6,5) DEFAULT 0.00000,
+    TaxRegistrationNumber VARCHAR(50) NULL,
+    LicenseNumber VARCHAR(100) NULL,
+    LicenseAuthority VARCHAR(100) NULL,
+    Locale VARCHAR(10) DEFAULT 'en-US',
+    Timezone VARCHAR(50) DEFAULT 'America/New_York',
+    PharmacistInChargeName VARCHAR(100) NULL,
     SubscriptionPlan ENUM('Free', 'Basic', 'Premium') DEFAULT 'Free',
     Status ENUM('Active', 'Inactive', 'Suspended') DEFAULT 'Active',
     MaxUsers INT DEFAULT 10,
@@ -28,74 +49,256 @@ CREATE TABLE IF NOT EXISTS Businesses (
     INDEX idx_business_code (BusinessCode),
     INDEX idx_status (Status),
     INDEX idx_subscription (SubscriptionPlan)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------------
+-- Step 2: create the default business FIRST so every later FK has a parent
+-- ---------------------------------------------------------------------------
+INSERT INTO Businesses
+  (BusinessName, LegalName, BusinessCode, OwnerName, Email, Phone,
+   Address, City, State, ZipCode, Country, Currency, SubscriptionPlan, Status)
+SELECT 'Default Pharmacy', 'Default Pharmacy', 'DEFAULT001', 'System Admin',
+       'admin@mms.com', '+923000000000', 'Default Address', 'Karachi', 'Sindh',
+       '74200', 'Pakistan', 'PKR', 'Premium', 'Active'
+WHERE NOT EXISTS (SELECT 1 FROM Businesses WHERE BusinessCode = 'DEFAULT001');
+
+SET @default_business_id = (SELECT BusinessId FROM Businesses WHERE BusinessCode = 'DEFAULT001' LIMIT 1);
+SET @default_business_id = IFNULL(@default_business_id, 1);
+
+-- ---------------------------------------------------------------------------
+-- Step 3: Users.BusinessId + Role mapping (order matters: widen, map, narrow)
+-- ---------------------------------------------------------------------------
+SET @sql = (
+  SELECT IFNULL(CONCAT('ALTER TABLE `Users` ',
+           GROUP_CONCAT(CONCAT('ADD COLUMN `', c.col, '` ', c.def) ORDER BY c.ord SEPARATOR ', ')),
+         'SELECT 1')
+  FROM (
+    SELECT 1 AS ord, 'BusinessId' AS col, 'INT NULL' AS def
+  ) c
+  WHERE NOT EXISTS (
+    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS ic
+    WHERE ic.TABLE_SCHEMA = DATABASE() AND ic.TABLE_NAME = 'Users' AND ic.COLUMN_NAME = c.col)
 );
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- Step 2: Add BusinessId column to Users table
-ALTER TABLE Users 
-ADD COLUMN BusinessId INT NULL AFTER UserId,
-ADD INDEX idx_business_id (BusinessId),
-ADD CONSTRAINT fk_user_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE;
+ALTER TABLE Users MODIFY COLUMN Role VARCHAR(50) NOT NULL DEFAULT 'CUSTOMER';
+UPDATE Users SET Role = CASE Role
+    WHEN 'Super Admin'       THEN 'SUPER_ADMIN'
+    WHEN 'Pharmacy Admin'    THEN 'BUSINESS_OWNER'
+    WHEN 'Inventory Manager' THEN 'STAFF'
+    WHEN 'Delivery Manager'  THEN 'STAFF'
+    WHEN 'Patient'           THEN 'CUSTOMER'
+    ELSE Role
+  END;
+ALTER TABLE Users MODIFY COLUMN Role ENUM('SUPER_ADMIN', 'BUSINESS_OWNER', 'CUSTOMER', 'STAFF') NOT NULL DEFAULT 'CUSTOMER';
 
--- Step 3: Update Users table to use new role enum
-ALTER TABLE Users 
-MODIFY COLUMN Role ENUM('SUPER_ADMIN', 'BUSINESS_OWNER', 'CUSTOMER', 'STAFF') NOT NULL DEFAULT 'CUSTOMER';
+UPDATE Users SET BusinessId = @default_business_id WHERE BusinessId IS NULL;
 
--- Step 4: Add unique constraint for business+email
-ALTER TABLE Users 
-ADD UNIQUE KEY unique_business_email (BusinessId, Email);
+SET @sql = (
+  SELECT IFNULL(CONCAT('ALTER TABLE `Users` ', GROUP_CONCAT(CONCAT('ADD ', item.def) ORDER BY item.ord SEPARATOR ', ')), 'SELECT 1')
+  FROM (
+    SELECT 1 AS ord, 'INDEX idx_business_id (BusinessId)' AS def
+    UNION ALL SELECT 2, 'CONSTRAINT fk_user_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE'
+    UNION ALL SELECT 3, 'CONSTRAINT unique_business_email UNIQUE KEY (BusinessId, Email)'
+  ) item
+  WHERE (item.ord = 1 AND NOT EXISTS (
+      SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS s
+      WHERE s.TABLE_SCHEMA = DATABASE() AND s.TABLE_NAME = 'Users' AND s.INDEX_NAME = 'idx_business_id'))
+     OR (item.ord = 2 AND NOT EXISTS (
+      SELECT 1 FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+      WHERE tc.TABLE_SCHEMA = DATABASE() AND tc.TABLE_NAME = 'Users' AND tc.CONSTRAINT_NAME = 'fk_user_business'))
+     OR (item.ord = 3 AND NOT EXISTS (
+      SELECT 1 FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+      WHERE tc.TABLE_SCHEMA = DATABASE() AND tc.TABLE_NAME = 'Users' AND tc.CONSTRAINT_NAME = 'unique_business_email'))
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- Step 5: Add BusinessId column to Categories table
-ALTER TABLE Categories 
-ADD COLUMN BusinessId INT NOT NULL DEFAULT 1 AFTER CategoryId,
-ADD INDEX idx_business_category (BusinessId),
-ADD CONSTRAINT fk_category_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE,
-ADD UNIQUE KEY unique_business_category (BusinessId, CategoryName);
+-- ---------------------------------------------------------------------------
+-- Step 4: helper block for BusinessId columns on the remaining child tables
+-- ---------------------------------------------------------------------------
+-- Categories
+SET @sql = (
+  SELECT IFNULL(CONCAT('ALTER TABLE `Categories` ',
+           GROUP_CONCAT(CONCAT('ADD COLUMN `', c.col, '` ', c.def) ORDER BY c.ord SEPARATOR ', ')),
+         'SELECT 1')
+  FROM (SELECT 1 AS ord, 'BusinessId' AS col,
+               CONCAT('INT NOT NULL DEFAULT ', @default_business_id) AS def) c
+  WHERE NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS ic
+    WHERE ic.TABLE_SCHEMA = DATABASE() AND ic.TABLE_NAME = 'Categories' AND ic.COLUMN_NAME = c.col)
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @sql = (
+  SELECT IFNULL(CONCAT('ALTER TABLE `Categories` ', GROUP_CONCAT(CONCAT('ADD ', item.def) ORDER BY item.ord SEPARATOR ', ')), 'SELECT 1')
+  FROM (
+    SELECT 1 AS ord, 'INDEX idx_business_category (BusinessId)' AS def
+    UNION ALL SELECT 2, 'CONSTRAINT fk_category_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE'
+    UNION ALL SELECT 3, 'CONSTRAINT unique_business_category UNIQUE KEY (BusinessId, CategoryName)'
+  ) item
+  WHERE (item.ord = 1 AND NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS s
+      WHERE s.TABLE_SCHEMA = DATABASE() AND s.TABLE_NAME = 'Categories' AND s.INDEX_NAME = 'idx_business_category'))
+     OR (item.ord = 2 AND NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+      WHERE tc.TABLE_SCHEMA = DATABASE() AND tc.TABLE_NAME = 'Categories' AND tc.CONSTRAINT_NAME = 'fk_category_business'))
+     OR (item.ord = 3 AND NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+      WHERE tc.TABLE_SCHEMA = DATABASE() AND tc.TABLE_NAME = 'Categories' AND tc.CONSTRAINT_NAME = 'unique_business_category'))
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- Step 6: Add BusinessId column to Medicines table
-ALTER TABLE Medicines 
-ADD COLUMN BusinessId INT NOT NULL DEFAULT 1 AFTER MedicineId,
-ADD INDEX idx_business_medicine (BusinessId),
-ADD CONSTRAINT fk_medicine_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE;
+-- Medicines
+SET @sql = (
+  SELECT IFNULL(CONCAT('ALTER TABLE `Medicines` ',
+           GROUP_CONCAT(CONCAT('ADD COLUMN `', c.col, '` ', c.def) ORDER BY c.ord SEPARATOR ', ')),
+         'SELECT 1')
+  FROM (SELECT 1 AS ord, 'BusinessId' AS col,
+               CONCAT('INT NOT NULL DEFAULT ', @default_business_id) AS def) c
+  WHERE NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS ic
+    WHERE ic.TABLE_SCHEMA = DATABASE() AND ic.TABLE_NAME = 'Medicines' AND ic.COLUMN_NAME = c.col)
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @sql = (
+  SELECT IFNULL(CONCAT('ALTER TABLE `Medicines` ', GROUP_CONCAT(CONCAT('ADD ', item.def) ORDER BY item.ord SEPARATOR ', ')), 'SELECT 1')
+  FROM (
+    SELECT 1 AS ord, 'INDEX idx_business_medicine (BusinessId)' AS def
+    UNION ALL SELECT 2, 'CONSTRAINT fk_medicine_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE'
+  ) item
+  WHERE (item.ord = 1 AND NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS s
+      WHERE s.TABLE_SCHEMA = DATABASE() AND s.TABLE_NAME = 'Medicines' AND s.INDEX_NAME = 'idx_business_medicine'))
+     OR (item.ord = 2 AND NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+      WHERE tc.TABLE_SCHEMA = DATABASE() AND tc.TABLE_NAME = 'Medicines' AND tc.CONSTRAINT_NAME = 'fk_medicine_business'))
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- Step 7: Add BusinessId column to Addresses table
-ALTER TABLE Addresses 
-ADD COLUMN BusinessId INT NOT NULL DEFAULT 1 AFTER AddressId,
-ADD INDEX idx_business_address (BusinessId),
-ADD CONSTRAINT fk_address_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE;
+-- Addresses
+SET @sql = (
+  SELECT IFNULL(CONCAT('ALTER TABLE `Addresses` ',
+           GROUP_CONCAT(CONCAT('ADD COLUMN `', c.col, '` ', c.def) ORDER BY c.ord SEPARATOR ', ')),
+         'SELECT 1')
+  FROM (SELECT 1 AS ord, 'BusinessId' AS col,
+               CONCAT('INT NOT NULL DEFAULT ', @default_business_id) AS def) c
+  WHERE NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS ic
+    WHERE ic.TABLE_SCHEMA = DATABASE() AND ic.TABLE_NAME = 'Addresses' AND ic.COLUMN_NAME = c.col)
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @sql = (
+  SELECT IFNULL(CONCAT('ALTER TABLE `Addresses` ', GROUP_CONCAT(CONCAT('ADD ', item.def) ORDER BY item.ord SEPARATOR ', ')), 'SELECT 1')
+  FROM (
+    SELECT 1 AS ord, 'INDEX idx_business_address (BusinessId)' AS def
+    UNION ALL SELECT 2, 'CONSTRAINT fk_address_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE'
+  ) item
+  WHERE (item.ord = 1 AND NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS s
+      WHERE s.TABLE_SCHEMA = DATABASE() AND s.TABLE_NAME = 'Addresses' AND s.INDEX_NAME = 'idx_business_address'))
+     OR (item.ord = 2 AND NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+      WHERE tc.TABLE_SCHEMA = DATABASE() AND tc.TABLE_NAME = 'Addresses' AND tc.CONSTRAINT_NAME = 'fk_address_business'))
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- Step 8: Add BusinessId column to Orders table
-ALTER TABLE Orders 
-ADD COLUMN BusinessId INT NOT NULL DEFAULT 1 AFTER OrderId,
-ADD INDEX idx_business_order (BusinessId),
-ADD CONSTRAINT fk_order_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE;
+-- Orders
+SET @sql = (
+  SELECT IFNULL(CONCAT('ALTER TABLE `Orders` ',
+           GROUP_CONCAT(CONCAT('ADD COLUMN `', c.col, '` ', c.def) ORDER BY c.ord SEPARATOR ', ')),
+         'SELECT 1')
+  FROM (SELECT 1 AS ord, 'BusinessId' AS col,
+               CONCAT('INT NOT NULL DEFAULT ', @default_business_id) AS def) c
+  WHERE NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS ic
+    WHERE ic.TABLE_SCHEMA = DATABASE() AND ic.TABLE_NAME = 'Orders' AND ic.COLUMN_NAME = c.col)
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @sql = (
+  SELECT IFNULL(CONCAT('ALTER TABLE `Orders` ', GROUP_CONCAT(CONCAT('ADD ', item.def) ORDER BY item.ord SEPARATOR ', ')), 'SELECT 1')
+  FROM (
+    SELECT 1 AS ord, 'INDEX idx_business_order (BusinessId)' AS def
+    UNION ALL SELECT 2, 'CONSTRAINT fk_order_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE'
+  ) item
+  WHERE (item.ord = 1 AND NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS s
+      WHERE s.TABLE_SCHEMA = DATABASE() AND s.TABLE_NAME = 'Orders' AND s.INDEX_NAME = 'idx_business_order'))
+     OR (item.ord = 2 AND NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+      WHERE tc.TABLE_SCHEMA = DATABASE() AND tc.TABLE_NAME = 'Orders' AND tc.CONSTRAINT_NAME = 'fk_order_business'))
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- Step 9: Update Orders PaymentMethod enum
-ALTER TABLE Orders 
-MODIFY COLUMN PaymentMethod ENUM('Cash on Delivery', 'Credit Card', 'Bank Transfer', 'JazzCash', 'EasyPaisa') DEFAULT 'Cash on Delivery';
+-- OrderItems
+SET @sql = (
+  SELECT IFNULL(CONCAT('ALTER TABLE `OrderItems` ',
+           GROUP_CONCAT(CONCAT('ADD COLUMN `', c.col, '` ', c.def) ORDER BY c.ord SEPARATOR ', ')),
+         'SELECT 1')
+  FROM (SELECT 1 AS ord, 'BusinessId' AS col,
+               CONCAT('INT NOT NULL DEFAULT ', @default_business_id) AS def) c
+  WHERE NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS ic
+    WHERE ic.TABLE_SCHEMA = DATABASE() AND ic.TABLE_NAME = 'OrderItems' AND ic.COLUMN_NAME = c.col)
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @sql = (
+  SELECT IFNULL(CONCAT('ALTER TABLE `OrderItems` ', GROUP_CONCAT(CONCAT('ADD ', item.def) ORDER BY item.ord SEPARATOR ', ')), 'SELECT 1')
+  FROM (
+    SELECT 1 AS ord, 'INDEX idx_business_orderitem (BusinessId)' AS def
+    UNION ALL SELECT 2, 'CONSTRAINT fk_orderitem_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE'
+  ) item
+  WHERE (item.ord = 1 AND NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS s
+      WHERE s.TABLE_SCHEMA = DATABASE() AND s.TABLE_NAME = 'OrderItems' AND s.INDEX_NAME = 'idx_business_orderitem'))
+     OR (item.ord = 2 AND NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+      WHERE tc.TABLE_SCHEMA = DATABASE() AND tc.TABLE_NAME = 'OrderItems' AND tc.CONSTRAINT_NAME = 'fk_orderitem_business'))
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- Step 10: Update Orders PaymentStatus enum
-ALTER TABLE Orders 
-MODIFY COLUMN PaymentStatus ENUM('Pending', 'Paid', 'Failed', 'Refunded') DEFAULT 'Pending';
+-- Prescriptions
+SET @sql = (
+  SELECT IFNULL(CONCAT('ALTER TABLE `Prescriptions` ',
+           GROUP_CONCAT(CONCAT('ADD COLUMN `', c.col, '` ', c.def) ORDER BY c.ord SEPARATOR ', ')),
+         'SELECT 1')
+  FROM (SELECT 1 AS ord, 'BusinessId' AS col,
+               CONCAT('INT NOT NULL DEFAULT ', @default_business_id) AS def) c
+  WHERE NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS ic
+    WHERE ic.TABLE_SCHEMA = DATABASE() AND ic.TABLE_NAME = 'Prescriptions' AND ic.COLUMN_NAME = c.col)
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @sql = (
+  SELECT IFNULL(CONCAT('ALTER TABLE `Prescriptions` ', GROUP_CONCAT(CONCAT('ADD ', item.def) ORDER BY item.ord SEPARATOR ', ')), 'SELECT 1')
+  FROM (
+    SELECT 1 AS ord, 'INDEX idx_business_prescription (BusinessId)' AS def
+    UNION ALL SELECT 2, 'CONSTRAINT fk_prescription_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE'
+  ) item
+  WHERE (item.ord = 1 AND NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS s
+      WHERE s.TABLE_SCHEMA = DATABASE() AND s.TABLE_NAME = 'Prescriptions' AND s.INDEX_NAME = 'idx_business_prescription'))
+     OR (item.ord = 2 AND NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+      WHERE tc.TABLE_SCHEMA = DATABASE() AND tc.TABLE_NAME = 'Prescriptions' AND tc.CONSTRAINT_NAME = 'fk_prescription_business'))
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- Step 11: Add BusinessId column to OrderItems table
-ALTER TABLE OrderItems 
-ADD COLUMN BusinessId INT NOT NULL DEFAULT 1 AFTER OrderItemId,
-ADD INDEX idx_business_orderitem (BusinessId),
-ADD CONSTRAINT fk_orderitem_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE;
+-- InventoryTransactions
+SET @sql = (
+  SELECT IFNULL(CONCAT('ALTER TABLE `InventoryTransactions` ',
+           GROUP_CONCAT(CONCAT('ADD COLUMN `', c.col, '` ', c.def) ORDER BY c.ord SEPARATOR ', ')),
+         'SELECT 1')
+  FROM (SELECT 1 AS ord, 'BusinessId' AS col,
+               CONCAT('INT NOT NULL DEFAULT ', @default_business_id) AS def) c
+  WHERE NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS ic
+    WHERE ic.TABLE_SCHEMA = DATABASE() AND ic.TABLE_NAME = 'InventoryTransactions' AND ic.COLUMN_NAME = c.col)
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @sql = (
+  SELECT IFNULL(CONCAT('ALTER TABLE `InventoryTransactions` ', GROUP_CONCAT(CONCAT('ADD ', item.def) ORDER BY item.ord SEPARATOR ', ')), 'SELECT 1')
+  FROM (
+    SELECT 1 AS ord, 'INDEX idx_business_transaction (BusinessId)' AS def
+    UNION ALL SELECT 2, 'CONSTRAINT fk_transaction_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE'
+  ) item
+  WHERE (item.ord = 1 AND NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS s
+      WHERE s.TABLE_SCHEMA = DATABASE() AND s.TABLE_NAME = 'InventoryTransactions' AND s.INDEX_NAME = 'idx_business_transaction'))
+     OR (item.ord = 2 AND NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+      WHERE tc.TABLE_SCHEMA = DATABASE() AND tc.TABLE_NAME = 'InventoryTransactions' AND tc.CONSTRAINT_NAME = 'fk_transaction_business'))
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- Step 12: Add BusinessId column to Prescriptions table
-ALTER TABLE Prescriptions 
-ADD COLUMN BusinessId INT NOT NULL DEFAULT 1 AFTER PrescriptionId,
-ADD INDEX idx_business_prescription (BusinessId),
-ADD CONSTRAINT fk_prescription_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE;
+-- ---------------------------------------------------------------------------
+-- Step 5: align legacy enums with the multi-tenant application
+-- ---------------------------------------------------------------------------
+ALTER TABLE Orders MODIFY COLUMN PaymentMethod ENUM(
+  'Cash', 'Credit Card', 'Debit Card', 'Bank Transfer',
+  'Insurance Copay', 'Cash on Delivery', 'JazzCash', 'EasyPaisa'
+) DEFAULT 'Cash';
+ALTER TABLE Orders MODIFY COLUMN PaymentStatus ENUM('Pending', 'Paid', 'Failed', 'Refunded') DEFAULT 'Pending';
 
--- Step 13: Add BusinessId column to InventoryTransactions table
-ALTER TABLE InventoryTransactions 
-ADD COLUMN BusinessId INT NOT NULL DEFAULT 1 AFTER TransactionId,
-ADD INDEX idx_business_transaction (BusinessId),
-ADD CONSTRAINT fk_transaction_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE;
-
--- Step 14: Create BusinessSettings table
+-- ---------------------------------------------------------------------------
+-- Step 6: BusinessSettings and SubscriptionPayments
+-- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS BusinessSettings (
     SettingId INT AUTO_INCREMENT PRIMARY KEY,
     BusinessId INT NOT NULL,
@@ -106,9 +309,8 @@ CREATE TABLE IF NOT EXISTS BusinessSettings (
     CONSTRAINT fk_setting_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE,
     UNIQUE KEY unique_business_setting (BusinessId, SettingKey),
     INDEX idx_business_setting (BusinessId)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Step 15: Create SubscriptionPayments table
 CREATE TABLE IF NOT EXISTS SubscriptionPayments (
     PaymentId INT AUTO_INCREMENT PRIMARY KEY,
     BusinessId INT NOT NULL,
@@ -123,47 +325,19 @@ CREATE TABLE IF NOT EXISTS SubscriptionPayments (
     INDEX idx_business_payment (BusinessId),
     INDEX idx_payment_date (PaymentDate),
     INDEX idx_payment_status (Status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO BusinessSettings (BusinessId, SettingKey, SettingValue)
+SELECT @default_business_id, s.SettingKey, s.SettingValue
+FROM (
+  SELECT 'currency' AS SettingKey, 'PKR' AS SettingValue
+  UNION ALL SELECT 'tax_rate', '0.16'
+  UNION ALL SELECT 'delivery_fee', '50'
+  UNION ALL SELECT 'min_order_amount', '100'
+) s
+WHERE NOT EXISTS (
+  SELECT 1 FROM BusinessSettings bs
+  WHERE bs.BusinessId = @default_business_id AND bs.SettingKey = s.SettingKey
 );
 
--- Step 16: Insert default business (for existing data)
-INSERT INTO Businesses (BusinessName, BusinessCode, OwnerName, Email, Phone, Address, City, State, SubscriptionPlan, Status)
-VALUES ('Default Pharmacy', 'DEFAULT001', 'System Admin', 'admin@mms.com', '+923000000000', 'Default Address', 'Karachi', 'Sindh', 'Premium', 'Active')
-ON DUPLICATE KEY UPDATE BusinessName = BusinessName;
-
--- Step 17: Update existing users to link to default business
-UPDATE Users SET BusinessId = 1 WHERE BusinessId IS NULL;
-
--- Step 18: Make BusinessId NOT NULL in Users after updating
-ALTER TABLE Users MODIFY COLUMN BusinessId INT NULL;
-
--- Step 19: Update existing categories to link to default business
-UPDATE Categories SET BusinessId = 1 WHERE BusinessId IS NULL OR BusinessId = 0;
-
--- Step 20: Update existing medicines to link to default business
-UPDATE Medicines SET BusinessId = 1 WHERE BusinessId IS NULL OR BusinessId = 0;
-
--- Step 21: Update existing addresses to link to default business
-UPDATE Addresses SET BusinessId = 1 WHERE BusinessId IS NULL OR BusinessId = 0;
-
--- Step 22: Update existing orders to link to default business
-UPDATE Orders SET BusinessId = 1 WHERE BusinessId IS NULL OR BusinessId = 0;
-
--- Step 23: Update existing order items to link to default business
-UPDATE OrderItems SET BusinessId = 1 WHERE BusinessId IS NULL OR BusinessId = 0;
-
--- Step 24: Update existing prescriptions to link to default business
-UPDATE Prescriptions SET BusinessId = 1 WHERE BusinessId IS NULL OR BusinessId = 0;
-
--- Step 25: Update existing inventory transactions to link to default business
-UPDATE InventoryTransactions SET BusinessId = 1 WHERE BusinessId IS NULL OR BusinessId = 0;
-
--- Step 26: Insert default business settings
-INSERT INTO BusinessSettings (BusinessId, SettingKey, SettingValue) VALUES
-(1, 'currency', 'PKR'),
-(1, 'tax_rate', '0.16'),
-(1, 'delivery_fee', '50'),
-(1, 'min_order_amount', '100')
-ON DUPLICATE KEY UPDATE SettingValue = SettingValue;
-
--- Migration complete
 SELECT 'Migration to multi-tenant schema completed successfully!' AS Status;

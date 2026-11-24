@@ -1,0 +1,15 @@
+# Dependencies and generated artifacts
+node_modules/
+**/node_modules/
+admin-web/build/
+backend/uploads/
+mobile-app/package-lock.json
+
+# Local environment / secrets
+.env
+backend/.env
+*.local
+
+# Logs and temporary files
+*.log
+.DS_Store

@@ -28,21 +28,23 @@ The Medicine Management System (MMS) is a **multi-tenant SaaS platform** that al
 ## Features
 
 ### Super Admin Panel
-- Platform-wide analytics dashboard
+- Platform-wide analytics dashboard (counts and net revenue reported per currency)
 - Business management (CRUD operations)
 - View and manage all registered pharmacies
 - Activate/deactivate businesses
-- Platform revenue and user statistics
 - Business owner account management
 
 ### Business Owner Panel
 - Business-specific analytics dashboard
-- Medicine inventory management
+- Point-of-sale (POS) counter with live tax preview and printable receipts
+- Region-aware payment methods (Pakistan-only wallets are hidden for other markets)
+- Medicine inventory management and low-stock alerts
 - Order processing and fulfillment
-- Staff and customer management
+- Staff, customer and payroll management
 - Prescription approval workflow
-- Sales and inventory reports
-- Business settings and configuration
+- Sales reporting (date range, revenue, top medicines, sales by category)
+- Purchase orders, vendor management, compliance logs and tax/VAT settings
+- Arabic/English interface with automatic RTL layout mirroring
 
 ### Backend API
 - Multi-tenant data isolation
@@ -84,6 +86,8 @@ The Medicine Management System (MMS) is a **multi-tenant SaaS platform** that al
 - **Tailwind CSS** - Styling
 - **Lucide React** - Icons
 - **Axios** - HTTP client
+- **Custom i18n context** - English/Arabic UI strings with RTL layout support
+- **Intl / shared currency utilities** - Per-tenant and per-currency formatting
 
 ### Mobile App
 - **React Native** - Mobile framework
@@ -111,6 +115,8 @@ mms/
 |   |   |-- components/     # Reusable components
 |   |   |-- contexts/       # React contexts
 |   |   |-- pages/          # Page components
+|   |   |-- i18n/           # Translation strings and language provider
+|   |   |-- utils/          # Currency/locale formatting helpers
 |   |   |-- App.js          # Main app component
 |   |   |-- index.js        # Entry point
 |   |   |-- index.css       # Global styles
@@ -174,23 +180,18 @@ mysql -u username -p mms_db < database/migrate_to_multi_tenant.sql
 
 ### Backend Setup
 
-1. Navigate to the backend directory:
+1. Navigate to the backend directory and install dependencies:
 ```bash
-cd mms/backend
-```
-
-2. Install dependencies:
-```bash
+cd backend
 npm install
 ```
 
-3. Create environment file:
+2. Create and edit the environment file with your database credentials:
 ```bash
 cp .env.example .env
 ```
-
-4. Edit `.env` with your database credentials:
 ```env
+PORT=5000
 DB_HOST=localhost
 DB_USER=your_username
 DB_PASSWORD=your_password
@@ -198,31 +199,33 @@ DB_NAME=mms_db
 JWT_SECRET=your_jwt_secret_key
 ```
 
-5. Start the server:
+3. Start the API (the admin web dev server proxies `/api` to port 5000):
 ```bash
-npm run dev
+PORT=5000 npm run dev
 ```
 
-The API will be available at `http://localhost:3000`
+The API will be available at `http://localhost:5000`.
 
 ### Admin Web Panel Setup
 
-1. Navigate to the admin web directory:
+1. Navigate to the admin web directory and install dependencies:
 ```bash
-cd mms/admin-web
-```
-
-2. Install dependencies:
-```bash
+cd admin-web
 npm install
 ```
 
-3. Start the development server:
+2. Start the development server on port 3001 (port 3000 is commonly used by the API):
 ```bash
-npm start
+PORT=3001 npm start
 ```
 
-The admin panel will be available at `http://localhost:3001`
+The admin panel will be available at `http://localhost:3001`. Use the language switcher in the top bar to toggle English/Arabic; Arabic sets `dir="rtl"` on the document.
+
+3. Create a production build:
+```bash
+npm run build
+```
+The optimized output is written to `admin-web/build`.
 
 ### Mobile App Setup
 
@@ -421,7 +424,8 @@ GET /api/orders/my-orders?page=1&limit=10
 - [x] User management with tenant filtering
 - [x] Prescription approval workflow
 - [x] Responsive design
-- [ ] Complete reporting interface (placeholder)
+- [x] Sales reporting interface (date range, net revenue, top medicines, category breakdown)
+- [x] POS checkout with tax preview, region-aware payment methods and printable receipt
 
 ### Mobile App
 - [x] User authentication with pharmacy code
@@ -431,8 +435,8 @@ GET /api/orders/my-orders?page=1&limit=10
 - [x] Order tracking
 - [x] Profile management
 - [x] Prescription upload interface
-- [ ] Complete checkout flow (placeholder)
-- [ ] Payment integration (placeholder)
+- [x] Checkout flow (cart, tax preview, order placement and tracking)
+- [ ] Online payment gateway integration (payment methods are recorded as labels only)
 
 ## Security Features
 
@@ -456,7 +460,6 @@ GET /api/orders/my-orders?page=1&limit=10
 - Advanced analytics dashboard with charts
 - Real-time inventory updates via WebSockets
 - Delivery tracking integration
-- Multi-language support
 - Email notifications
 - SMS verification
 - Two-factor authentication

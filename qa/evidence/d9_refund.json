@@ -1,0 +1,29 @@
+{
+  "normal": {
+    "saleStatus": 201,
+    "orderStatusAtCreation": "Delivered",
+    "detailStatus": 200,
+    "cancelStatus": 400,
+    "cancelMessage": "Order cannot be cancelled as it is already Delivered",
+    "voidStatus": 200,
+    "voidMessage": "POS order voided/refunded successfully and inventory restored",
+    "statusAfterVoid": "Cancelled",
+    "paymentStatusAfterVoid": "Refunded",
+    "stockBefore": 58,
+    "stockAfterSale": 57,
+    "stockAfterVoid": 58,
+    "refundRowsAdded": 1
+  },
+  "controlled": {
+    "prescription": {
+      "uploadStatus": 201,
+      "approveStatus": 200,
+      "id": 5
+    },
+    "saleStatus": 201,
+    "voidStatus": 200,
+    "reversedBefore": 0,
+    "reversedAfter": 1,
+    "reversedRowsAdded": 1
+  }
+}

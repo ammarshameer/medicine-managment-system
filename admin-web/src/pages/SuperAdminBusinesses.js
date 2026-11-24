@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import axios from 'axios';
 import { 
-  Building2, 
   Search, 
   Filter, 
   Plus, 
@@ -14,9 +13,11 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
+import { useTranslation } from '../i18n';
 
 export const SuperAdminBusinesses = () => {
-  const [page, setPage] = useState(1);
+  const { t } = useTranslation();
+const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -92,21 +93,21 @@ export const SuperAdminBusinesses = () => {
   return (
     <div className="p-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Business Management</h1>
-        <p className="text-gray-600 mt-2">Manage all registered businesses on the platform</p>
+        <h1 className="text-3xl font-bold text-gray-800">{t('Business Management')}</h1>
+        <p className="text-gray-600 mt-2">{t('Manage all registered businesses on the platform')}</p>
       </div>
 
       {/* Filters and Search */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
-              placeholder="Search businesses..."
+              placeholder={t('Search businesses...')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full ps-10 pe-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           <select
@@ -114,17 +115,17 @@ export const SuperAdminBusinesses = () => {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            <option value="">All Status</option>
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-            <option value="Pending">Pending</option>
+            <option value="">{t('All Status')}</option>
+            <option value="Active">{t('Active')}</option>
+            <option value="Inactive">{t('Inactive')}</option>
+            <option value="Pending">{t('Pending')}</option>
           </select>
           <button
             type="submit"
             className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Filter className="w-4 h-4" />
-            Filter
+            {t('Filter')}
           </button>
           <button
             type="button"
@@ -132,7 +133,7 @@ export const SuperAdminBusinesses = () => {
             className="flex items-center gap-2 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Add Business
+            {t('Add Business')}
           </button>
         </form>
       </div>
@@ -143,32 +144,32 @@ export const SuperAdminBusinesses = () => {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Business Name
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('Business Name')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('Email')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Phone
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('Phone')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Market / Currency
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('Market / Currency')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('Status')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Users
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('Users')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Orders
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('Orders')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Created
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('Created')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('Actions')}
                 </th>
               </tr>
             </thead>
@@ -176,7 +177,7 @@ export const SuperAdminBusinesses = () => {
               {businesses.length === 0 ? (
                 <tr>
                   <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
-                    No businesses found
+                    {t('No businesses found')}
                   </td>
                 </tr>
               ) : (
@@ -184,7 +185,7 @@ export const SuperAdminBusinesses = () => {
                   <tr key={business.BusinessId} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="ml-1">
+                        <div className="ms-1">
                           <div className="text-sm font-bold text-gray-900">{business.BusinessName}</div>
                           <div className="text-xs text-gray-500 font-mono">{business.BusinessCode || business.Code}</div>
                         </div>
@@ -198,7 +199,7 @@ export const SuperAdminBusinesses = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200">
-                        {business.Country || 'USA'} • {business.Currency || 'USD'}
+                        {business.Country || t('USA')} • {business.Currency || t('USD')}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -226,21 +227,21 @@ export const SuperAdminBusinesses = () => {
                         <button
                           onClick={() => window.location.href = `/super-admin/businesses/${business.BusinessId}`}
                           className="text-blue-600 hover:text-blue-800"
-                          title="View Details"
+                          title={t('View Details')}
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => window.location.href = `/super-admin/businesses/${business.BusinessId}/edit`}
                           className="text-green-600 hover:text-green-800"
-                          title="Edit"
+                          title={t('Edit')}
                         >
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleToggleStatus(business)}
                           className={business.Status === 'Active' ? 'text-yellow-600 hover:text-yellow-800' : 'text-green-600 hover:text-green-800'}
-                          title={business.Status === 'Active' ? 'Deactivate' : 'Activate'}
+                          title={business.Status === 'Active' ? t('Deactivate') : t('Activate')}
                         >
                           {business.Status === 'Active' ? <XCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
                         </button>
@@ -250,7 +251,7 @@ export const SuperAdminBusinesses = () => {
                             setShowDeleteModal(true);
                           }}
                           className="text-red-600 hover:text-red-800"
-                          title="Delete"
+                          title={t('Delete')}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -272,35 +273,35 @@ export const SuperAdminBusinesses = () => {
                 disabled={page === 1}
                 className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
               >
-                Previous
+                {t('Previous')}
               </button>
               <button
                 onClick={() => setPage(p => Math.min(pagination.pages, p + 1))}
                 disabled={page === pagination.pages}
-                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                className="ms-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
               >
-                Next
+                {t('Next')}
               </button>
             </div>
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm text-gray-700">
-                  Showing <span className="font-medium">{(page - 1) * limit + 1}</span> to{' '}
-                  <span className="font-medium">{Math.min(page * limit, pagination.total)}</span> of{' '}
-                  <span className="font-medium">{pagination.total}</span> results
+                  {t('Showing')} <span className="font-medium">{(page - 1) * limit + 1}</span> {t('to')}{' '}
+                  <span className="font-medium">{Math.min(page * limit, pagination.total)}</span> {t('of')}{' '}
+                  <span className="font-medium">{pagination.total}</span> {t('results')}
                 </p>
               </div>
               <div>
-                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm gap-0">
                   <button
                     onClick={() => setPage(p => Math.max(1, p - 1))}
                     disabled={page === 1}
-                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                    className="relative inline-flex items-center px-2 py-2 rounded-s-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
-                    const pageNum = Math.max(1, page - 2) + i;
+const pageNum = Math.max(1, page - 2) + i;
                     if (pageNum > pagination.pages) return null;
                     return (
                       <button
@@ -319,7 +320,7 @@ export const SuperAdminBusinesses = () => {
                   <button
                     onClick={() => setPage(p => Math.min(pagination.pages, p + 1))}
                     disabled={page === pagination.pages}
-                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                    className="relative inline-flex items-center px-2 py-2 rounded-e-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
@@ -334,9 +335,9 @@ export const SuperAdminBusinesses = () => {
       {showDeleteModal && selectedBusiness && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Confirm Delete</h3>
+            <h3 className="text-lg font-bold text-gray-800 mb-4">{t('Confirm Delete')}</h3>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to delete <strong>{selectedBusiness.Name}</strong>? This action cannot be undone.
+              {t('Are you sure you want to delete')} <strong>{selectedBusiness.Name}</strong>{t('? This action cannot be undone.')}
             </p>
             <div className="flex justify-end gap-3">
               <button
@@ -346,14 +347,14 @@ export const SuperAdminBusinesses = () => {
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
               >
-                Cancel
+                {t('Cancel')}
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleteMutation.isLoading}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
               >
-                {deleteMutation.isLoading ? 'Deleting...' : 'Delete'}
+                {deleteMutation.isLoading ? t('Deleting...') : t('Delete')}
               </button>
             </div>
           </div>

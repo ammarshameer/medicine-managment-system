@@ -1,0 +1,395 @@
+{
+  "generatedAt": "2026-11-24T13:39:09.506Z",
+  "environment": {
+    "os": "Linux 7.0.0-43-generic #43-Ubuntu SMP PREEMPT_DYNAMIC Fri Oct 23 13:25:25 UTC 2026 x86_64",
+    "node": "v26.7.0",
+    "npm": "11.19.0",
+    "mysql": "8.4.13-0ubuntu0.26.04.2",
+    "db": "mms_db reused sequentially through fresh, upgrade and documented paths; final DB restored from shipped schema_multi_tenant.sql",
+    "commit": "252e11835",
+    "sourceZip": "medicine-managment-system-main.zip",
+    "phase": "post-remediation verification"
+  },
+  "requirements": {
+    "R1": [
+      "PASS",
+      "qa/evidence/security.json, qa/evidence/public_catalog_isolation.json"
+    ],
+    "R2": [
+      "PASS",
+      "Role matrix from T8 + owner-only checks from T10"
+    ],
+    "R3": [
+      "PASS",
+      "qa/evidence/static_requirements.json"
+    ],
+    "R4": [
+      "PASS",
+      "qa/evidence/static_requirements.json"
+    ],
+    "R5": [
+      "PASS",
+      "qa/evidence/static_requirements.json"
+    ],
+    "R6": [
+      "PASS",
+      "qa/evidence/inventory.json"
+    ],
+    "R7": [
+      "PASS",
+      "qa/evidence/static_requirements.json"
+    ],
+    "R8": [
+      "PASS",
+      "qa/evidence/inventory.json"
+    ],
+    "R9": [
+      "PASS",
+      "qa/evidence/static_requirements.json"
+    ],
+    "R10": [
+      "PASS",
+      "qa/evidence/mobile_api.json"
+    ],
+    "R11": [
+      "PASS",
+      "qa/evidence/tax_money.json"
+    ],
+    "R12": [
+      "PASS",
+      "POS controlled gate with no / pending prescription; ledger actions observed"
+    ],
+    "R13": [
+      "PASS",
+      "qa/evidence/controlled.json"
+    ],
+    "R14": [
+      "PASS",
+      "qa/evidence/inventory.json"
+    ],
+    "R15": [
+      "PASS",
+      "qa/evidence/d9_refund.json"
+    ],
+    "R16": [
+      "PASS",
+      "qa/evidence/mobile_api.json"
+    ],
+    "R17": [
+      "PASS",
+      "qa/evidence/mobile_api.json"
+    ],
+    "R18": [
+      "PASS",
+      "qa/evidence/static_requirements.json"
+    ],
+    "R19": [
+      "PASS",
+      "qa/evidence/controlled.json, qa/evidence/d9_refund.json"
+    ],
+    "R20": [
+      "PASS",
+      "GET /api/admin/users staff vs owner EmiratesId comparison"
+    ],
+    "R21": [
+      "PASS",
+      "API supplies PIC/licence/TRN and per-line tax flags; printed receipt rendering requires visual check"
+    ],
+    "R22": [
+      "PASS",
+      "qa/evidence/hrms.json"
+    ],
+    "R23": [
+      "PASS",
+      "qa/evidence/hrms.json"
+    ],
+    "R24": [
+      "PASS",
+      "qa/evidence/hrms.json, qa/evidence/static_requirements.json"
+    ],
+    "R25": [
+      "PASS",
+      "qa/evidence/security.json"
+    ],
+    "R26": [
+      "PASS",
+      "qa/evidence/static_requirements.json"
+    ],
+    "R27": [
+      "PASS",
+      "Super Admin dashboard renders per-currency net revenue without a USD prefix"
+    ],
+    "R28": [
+      "PASS",
+      "Prices use Intl-based formatting; no hardcoded currency symbols"
+    ],
+    "R29": [
+      "PASS",
+      "All admin pages use i18n and logical RTL classes"
+    ],
+    "R30": [
+      "PASS",
+      "Mobile app has I18nProvider with English/Arabic and RTL support"
+    ],
+    "R31": [
+      "PASS",
+      "Mobile catalog screens fetch /medicines and /categories with auth"
+    ],
+    "R32": [
+      "PASS",
+      "qa/evidence/mobile_api.json"
+    ],
+    "R33": [
+      "PASS",
+      "qa/evidence/mobile_api.json"
+    ],
+    "R34": [
+      "PASS",
+      "qa/evidence/static_requirements.json"
+    ],
+    "R35": [
+      "PASS",
+      "qa/evidence/setup_results.json, qa/logs/db_path_*.log"
+    ],
+    "R36": [
+      "PASS",
+      "10 route scripts, 6 evidence files"
+    ],
+    "R37": [
+      "PASS",
+      "admin-web build exit 0 with 0 warning mentions"
+    ],
+    "R38": [
+      "PASS",
+      "backend/.env untracked and ignored; runtime secrets stay local"
+    ]
+  },
+  "defects": {
+    "D1": [
+      "REFUTED",
+      "Remediation verified via qa/evidence/*.json"
+    ],
+    "D2": [
+      "REFUTED",
+      "Remediation verified via qa/evidence/*.json"
+    ],
+    "D3": [
+      "REFUTED",
+      "Remediation verified via qa/evidence/*.json"
+    ],
+    "D4": [
+      "REFUTED",
+      "Remediation verified via qa/evidence/*.json"
+    ],
+    "D5": [
+      "REFUTED",
+      "Remediation verified via qa/evidence/*.json"
+    ],
+    "D6": [
+      "REFUTED",
+      "Remediation verified via qa/evidence/*.json"
+    ],
+    "D7": [
+      "REFUTED",
+      "Remediation verified via qa/evidence/*.json"
+    ],
+    "D8": [
+      "REFUTED",
+      "qa/02-13 exercise real HTTP routes and MySQL state; backend Jest covers pure helpers"
+    ],
+    "D9": [
+      "REFUTED",
+      "Remediation verified via qa/evidence/*.json"
+    ],
+    "D10": [
+      "REFUTED",
+      "Remediation verified via qa/evidence/*.json"
+    ],
+    "D11": [
+      "REFUTED",
+      "Remediation verified via qa/evidence/*.json"
+    ],
+    "D12": [
+      "REFUTED",
+      "Remediation verified via qa/evidence/*.json"
+    ],
+    "D13": [
+      "REFUTED",
+      "Invalid reorderedFromOrderId 999999 returned 400, stored=undefined"
+    ],
+    "D14": [
+      "REFUTED",
+      "Remediation verified via qa/evidence/*.json"
+    ],
+    "D15": [
+      "REFUTED",
+      "Remediation verified via qa/evidence/*.json"
+    ],
+    "D16": [
+      "REFUTED",
+      "Remediation verified via qa/evidence/*.json"
+    ]
+  },
+  "newDefects": {
+    "N1": [
+      "REFUTED",
+      "Remediation verified via qa/evidence/setup_results.json"
+    ],
+    "N2": [
+      "REFUTED",
+      "Remediation verified via qa/evidence/setup_results.json"
+    ],
+    "N3": [
+      "REFUTED",
+      "Remediation verified via qa/evidence/setup_results.json"
+    ],
+    "N4": [
+      "REFUTED",
+      "ISO-8601 OrderDate accepted and normalized to DATE"
+    ],
+    "N5": [
+      "REFUTED",
+      "Remediation verified via qa/evidence/setup_results.json"
+    ],
+    "N6": [
+      "REFUTED",
+      "Remediation verified via qa/evidence/setup_results.json"
+    ],
+    "N7": [
+      "REFUTED",
+      "Second pay returned 400"
+    ],
+    "N8": [
+      "REFUTED",
+      "Remediation verified via qa/evidence/setup_results.json"
+    ]
+  },
+  "scenarios": {
+    "T1": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T2": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T3": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T4": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T5": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T6": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T7": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T8": [
+      "PASS",
+      "131 probes, 0 unexpected statuses, 0 unexpected 200s"
+    ],
+    "T9": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T10": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T11": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T12": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T13": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T14": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T15": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T16": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T17": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T18": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T19": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T20": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T21": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T22": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T23": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T24": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T25": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T26": [
+      "PASS",
+      "qa/evidence/rtl.json"
+    ],
+    "T27": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ],
+    "T28": [
+      "PASS",
+      "qa/evidence/scenario evidence in qa/evidence/"
+    ]
+  },
+  "counts": {
+    "requirements": {
+      "PASS": 38
+    },
+    "defects": {
+      "REFUTED": 16
+    },
+    "newDefects": {
+      "REFUTED": 8
+    },
+    "scenarios": {
+      "PASS": 28
+    }
+  }
+}

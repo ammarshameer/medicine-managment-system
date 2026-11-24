@@ -15,6 +15,7 @@ const superAdminRoutes = require('./routes/super-admin');
 const vendorRoutes = require('./routes/vendors');
 const purchaseOrderRoutes = require('./routes/purchase-orders');
 const hrmsRoutes = require('./routes/hrms');
+const paymentRoutes = require('./routes/payments');
 
 const app = express();
 
@@ -54,6 +55,7 @@ app.use('/api/super-admin', superAdminRoutes);
 app.use('/api/vendors', vendorRoutes);
 app.use('/api/purchase-orders', purchaseOrderRoutes);
 app.use('/api/hrms', hrmsRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

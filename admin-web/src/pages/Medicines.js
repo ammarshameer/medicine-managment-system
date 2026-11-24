@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 
 import { useCurrency } from '../utils/formatCurrency';
+import { useTranslation } from '../i18n';
 
 const emptyForm = {
   name: '',
@@ -33,7 +34,8 @@ const emptyForm = {
 };
 
 export const Medicines = () => {
-  const { format } = useCurrency();
+  const { t } = useTranslation();
+const { format } = useCurrency();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [page, setPage] = useState(1);
@@ -190,14 +192,14 @@ export const Medicines = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Medicine Management</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">{t('Medicine Management')}</h1>
         </div>
         <button
           onClick={openAddModal}
           className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
-          <Plus className="h-4 w-4 mr-2" />
-          Add New Medicine
+          <Plus className="h-4 w-4 me-2" />
+          {t('Add New Medicine')}
         </button>
       </div>
 
@@ -206,13 +208,13 @@ export const Medicines = () => {
         <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search medicines..."
+                placeholder={t('Search medicines...')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
+                className="ps-10 pe-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
               />
             </div>
           </div>
@@ -224,7 +226,7 @@ export const Medicines = () => {
             >
               {categories.map((cat) => (
                 <option key={cat} value={cat}>
-                  {cat === 'All Categories' ? 'Filter by Category' : cat}
+                  {cat === 'All Categories' ? t('Filter by Category') : cat}
                 </option>
               ))}
             </select>
@@ -233,7 +235,7 @@ export const Medicines = () => {
             type="submit"
             className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
-            Search
+            {t('Search')}
           </button>
           <button
             type="button"
@@ -244,15 +246,15 @@ export const Medicines = () => {
             }}
             className="flex items-center px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
           >
-            Clear
+            {t('Clear')}
           </button>
           <button
             type="button"
             onClick={() => setCategory('')}
             className="flex items-center px-3 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
           >
-            <AlertTriangle className="h-4 w-4 mr-2" />
-            Low Stock ({lowStockCount})
+            <AlertTriangle className="h-4 w-4 me-2" />
+            {t('Low Stock (')}{lowStockCount})
           </button>
         </form>
       </div>
@@ -263,26 +265,26 @@ export const Medicines = () => {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Image
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('Image')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('Name')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('Category')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Price
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('Price')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Stock
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('Stock')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Expiry Date
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('Expiry Date')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('Actions')}
                 </th>
               </tr>
             </thead>
@@ -290,7 +292,7 @@ export const Medicines = () => {
               {medicines.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
-                    No medicines found
+                    {t('No medicines found')}
                   </td>
                 </tr>
               ) : (
@@ -314,28 +316,28 @@ export const Medicines = () => {
                       <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                         {medicine.deaSchedule && medicine.deaSchedule !== 'None' && (
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800">
-                            DEA Sched {medicine.deaSchedule}
+                            {t('DEA Sched')} {medicine.deaSchedule}
                           </span>
                         )}
                         {medicine.uaeClassification && medicine.uaeClassification !== 'OTC' && (
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">
-                            UAE {medicine.uaeClassification}
+                            {t('UAE')} {medicine.uaeClassification}
                           </span>
                         )}
                         {medicine.isTaxable === false && (
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800">
-                            Exempt
+                            {t('Exempt')}
                           </span>
                         )}
                         {medicine.priceIncludesTax && (
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800">
-                            Tax-Inclusive
+                            {t('Tax-Inclusive')}
                           </span>
                         )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {medicine.category?.name || 'N/A'}
+                      {medicine.category?.name || t('N/A')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
                       {format(medicine.price)}
@@ -345,14 +347,14 @@ export const Medicines = () => {
                         medicine.stock < 10 ? 'text-red-600' : 'text-gray-900'
                       }`}>
                         {medicine.stock}
-                        {medicine.stock < 10 && ' (Low)'}
+                        {medicine.stock < 10 && t('(Low)')}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {medicine.expiryDate ? new Date(medicine.expiryDate).toLocaleDateString() : 'N/A'}
+                      {medicine.expiryDate ? new Date(medicine.expiryDate).toLocaleDateString() : t('N/A')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex items-center space-x-3">
+                      <div className="flex items-center gap-3">
                         <button
                           onClick={() => openEditModal(medicine)}
                           className="text-blue-600 hover:text-blue-900"
@@ -386,35 +388,35 @@ export const Medicines = () => {
                 disabled={page === 1}
                 className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
               >
-                Previous
+                {t('Previous')}
               </button>
               <button
                 onClick={() => setPage(p => Math.min(pagination.pages, p + 1))}
                 disabled={page === pagination.pages}
-                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                className="ms-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
               >
-                Next
+                {t('Next')}
               </button>
             </div>
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm text-gray-700">
-                  Showing <span className="font-medium">{(page - 1) * limit + 1}</span> to{' '}
-                  <span className="font-medium">{Math.min(page * limit, pagination.total)}</span> of{' '}
-                  <span className="font-medium">{pagination.total}</span> results
+                  {t('Showing')} <span className="font-medium">{(page - 1) * limit + 1}</span> {t('to')}{' '}
+                  <span className="font-medium">{Math.min(page * limit, pagination.total)}</span> {t('of')}{' '}
+                  <span className="font-medium">{pagination.total}</span> {t('results')}
                 </p>
               </div>
               <div>
-                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm gap-0">
                   <button
                     onClick={() => setPage(p => Math.max(1, p - 1))}
                     disabled={page === 1}
-                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                    className="relative inline-flex items-center px-2 py-2 rounded-s-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
-                    const pageNum = Math.max(1, page - 2) + i;
+const pageNum = Math.max(1, page - 2) + i;
                     if (pageNum > pagination.pages) return null;
                     return (
                       <button
@@ -433,7 +435,7 @@ export const Medicines = () => {
                   <button
                     onClick={() => setPage(p => Math.min(pagination.pages, p + 1))}
                     disabled={page === pagination.pages}
-                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                    className="relative inline-flex items-center px-2 py-2 rounded-e-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
@@ -450,7 +452,7 @@ export const Medicines = () => {
           <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h3 className="text-lg font-bold text-gray-800">
-                {editingMedicine ? 'Edit Medicine' : 'Add New Medicine'}
+                {editingMedicine ? t('Edit Medicine') : t('Add New Medicine')}
               </h3>
               <button onClick={closeFormModal} className="text-gray-400 hover:text-gray-600">
                 <X className="h-5 w-5" />
@@ -458,43 +460,43 @@ export const Medicines = () => {
             </div>
             <form onSubmit={handleFormSubmit} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('Name *')}</label>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleFormChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g. Paracetamol 500mg"
+                  placeholder={t('e.g. Paracetamol 500mg')}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('Category')}</label>
                 <select
                   name="categoryId"
                   value={formData.categoryId}
                   onChange={handleFormChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">Select category</option>
+                  <option value="">{t('Select category')}</option>
                   {categoryOptions.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Manufacturer</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('Manufacturer')}</label>
                 <input
                   type="text"
                   name="manufacturer"
                   value={formData.manufacturer}
                   onChange={handleFormChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g. MediLab"
+                  placeholder={t('e.g. MediLab')}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Price *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('Price *')}</label>
                 <input
                   type="number"
                   step="0.01"
@@ -507,7 +509,7 @@ export const Medicines = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Stock *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('Stock *')}</label>
                 <input
                   type="number"
                   min="0"
@@ -519,7 +521,7 @@ export const Medicines = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('Expiry Date')}</label>
                 <input
                   type="date"
                   name="expiryDate"
@@ -531,36 +533,36 @@ export const Medicines = () => {
 
               {/* Regulatory Classifications */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">US DEA Schedule</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('US DEA Schedule')}</label>
                 <select
                   name="deaSchedule"
                   value={formData.deaSchedule}
                   onChange={handleFormChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="None">None (Unscheduled / OTC / Non-Controlled)</option>
-                  <option value="I">Schedule I</option>
-                  <option value="II">Schedule II (e.g. Oxycodone, Adderall)</option>
-                  <option value="III">Schedule III (e.g. Ketamine, Suboxone)</option>
-                  <option value="IV">Schedule IV (e.g. Xanax, Valium)</option>
-                  <option value="V">Schedule V (e.g. Lyrica, Robitussin AC)</option>
+                  <option value="None">{t('None (Unscheduled / OTC / Non-Controlled)')}</option>
+                  <option value="I">{t('Schedule I')}</option>
+                  <option value="II">{t('Schedule II (e.g. Oxycodone, Adderall)')}</option>
+                  <option value="III">{t('Schedule III (e.g. Ketamine, Suboxone)')}</option>
+                  <option value="IV">{t('Schedule IV (e.g. Xanax, Valium)')}</option>
+                  <option value="V">{t('Schedule V (e.g. Lyrica, Robitussin AC)')}</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">UAE Classification</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('UAE Classification')}</label>
                 <select
                   name="uaeClassification"
                   value={formData.uaeClassification}
                   onChange={handleFormChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="OTC">OTC (Over the Counter)</option>
-                  <option value="Pharmacist-Only">Pharmacist-Only (Behind the counter)</option>
-                  <option value="POM">POM (Prescription Only Medicine)</option>
-                  <option value="Controlled">Controlled (e.g. Morphine, Fentanyl)</option>
-                  <option value="Semi-Controlled">Semi-Controlled (e.g. Pregabalin)</option>
-                  <option value="Narcotic">Narcotic</option>
+                  <option value="OTC">{t('OTC (Over the Counter)')}</option>
+                  <option value="Pharmacist-Only">{t('Pharmacist-Only (Behind the counter)')}</option>
+                  <option value="POM">{t('POM (Prescription Only Medicine)')}</option>
+                  <option value="Controlled">{t('Controlled (e.g. Morphine, Fentanyl)')}</option>
+                  <option value="Semi-Controlled">{t('Semi-Controlled (e.g. Pregabalin)')}</option>
+                  <option value="Narcotic">{t('Narcotic')}</option>
                 </select>
               </div>
 
@@ -575,8 +577,8 @@ export const Medicines = () => {
                     className="h-4 w-4 text-blue-600 border-gray-300 rounded"
                     id="isTaxable"
                   />
-                  <label htmlFor="isTaxable" className="ml-2 text-xs font-semibold text-gray-700">
-                    Taxable Product
+                  <label htmlFor="isTaxable" className="ms-2 text-xs font-semibold text-gray-700">
+                    {t('Taxable Product')}
                   </label>
                 </div>
 
@@ -589,8 +591,8 @@ export const Medicines = () => {
                     className="h-4 w-4 text-blue-600 border-gray-300 rounded"
                     id="priceIncludesTax"
                   />
-                  <label htmlFor="priceIncludesTax" className="ml-2 text-xs font-semibold text-gray-700">
-                    Price Includes Tax (VAT)
+                  <label htmlFor="priceIncludesTax" className="ms-2 text-xs font-semibold text-gray-700">
+                    {t('Price Includes Tax (VAT)')}
                   </label>
                 </div>
 
@@ -603,20 +605,20 @@ export const Medicines = () => {
                     className="h-4 w-4 text-blue-600 border-gray-300 rounded"
                     id="requiresPrescription"
                   />
-                  <label htmlFor="requiresPrescription" className="ml-2 text-xs font-semibold text-gray-700">
-                    Requires Prescription
+                  <label htmlFor="requiresPrescription" className="ms-2 text-xs font-semibold text-gray-700">
+                    {t('Requires Prescription')}
                   </label>
                 </div>
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('Description')}</label>
                 <textarea
                   name="description"
                   value={formData.description}
                   onChange={handleFormChange}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Optional description"
+                  placeholder={t('Optional description')}
                 />
               </div>
               <div className="md:col-span-2 flex justify-end gap-3 pt-2">
@@ -625,14 +627,14 @@ export const Medicines = () => {
                   onClick={closeFormModal}
                   className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
                 >
-                  Cancel
+                  {t('Cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={saveMutation.isLoading}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {saveMutation.isLoading ? 'Saving...' : (editingMedicine ? 'Update Medicine' : 'Create Medicine')}
+                  {saveMutation.isLoading ? t('Saving...') : (editingMedicine ? t('Update Medicine') : t('Create Medicine'))}
                 </button>
               </div>
             </form>
@@ -644,9 +646,9 @@ export const Medicines = () => {
       {showDeleteModal && selectedMedicine && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Confirm Delete</h3>
+            <h3 className="text-lg font-bold text-gray-800 mb-4">{t('Confirm Delete')}</h3>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to delete <strong>{selectedMedicine.name}</strong>? This action cannot be undone.
+              {t('Are you sure you want to delete')} <strong>{selectedMedicine.name}</strong>{t('? This action cannot be undone.')}
             </p>
             <div className="flex justify-end gap-3">
               <button
@@ -656,14 +658,14 @@ export const Medicines = () => {
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
               >
-                Cancel
+                {t('Cancel')}
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleteMutation.isLoading}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
               >
-                {deleteMutation.isLoading ? 'Deleting...' : 'Delete'}
+                {deleteMutation.isLoading ? t('Deleting...') : t('Delete')}
               </button>
             </div>
           </div>

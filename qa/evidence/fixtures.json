@@ -1,0 +1,295 @@
+{
+  "superToken": "<redacted-jwt>",
+  "tenants": {
+    "usa825": {
+      "businessId": 4,
+      "spec": {
+        "key": "usa825",
+        "businessName": "QA USA Pharmacy",
+        "businessCode": "QAUSA001",
+        "ownerName": "QA USA Owner",
+        "email": "owner.qausa001@qa.local",
+        "phone": "92300000001",
+        "country": "USA",
+        "currency": "USD",
+        "taxEnabled": true,
+        "taxRate": 0.0825,
+        "taxRegistrationNumber": "EIN-QA-001",
+        "licenseNumber": "LIC-USA-001",
+        "licenseAuthority": "DEA",
+        "locale": "en-US",
+        "timezone": "America/New_York",
+        "pharmacistInChargeName": "Dr QA Pharmacist"
+      },
+      "ownerEmail": "owner.qausa001@qa.local",
+      "ownerToken": "<redacted-jwt>",
+      "staffEmail": "staff.usa825@qa.local",
+      "staffToken": "<redacted-jwt>",
+      "customers": {
+        "c1": {
+          "userId": 13,
+          "email": "customer.c1.usa825@qa.local",
+          "token": "<redacted-jwt>",
+          "emiratesId": null
+        },
+        "c2": {
+          "userId": 14,
+          "email": "customer.c2.usa825@qa.local",
+          "token": "<redacted-jwt>",
+          "emiratesId": null
+        }
+      },
+      "categoryId": null,
+      "medicines": {
+        "taxable20": {
+          "id": 16,
+          "name": "QA Taxable 20",
+          "price": 20,
+          "stock": 100
+        },
+        "exempt50": {
+          "id": 17,
+          "name": "QA Exempt 50",
+          "price": 50,
+          "stock": 100
+        },
+        "schedule2": {
+          "id": 18,
+          "name": "QA Schedule II Morphine",
+          "price": 12,
+          "stock": 10
+        },
+        "normal": {
+          "id": 19,
+          "name": "QA Normal Item",
+          "price": 30,
+          "stock": 50
+        },
+        "lowstock": {
+          "id": 20,
+          "name": "QA Low Stock Item",
+          "price": 9,
+          "stock": 2
+        }
+      }
+    },
+    "uae": {
+      "businessId": 5,
+      "spec": {
+        "key": "uae",
+        "businessName": "QA UAE Pharmacy",
+        "businessCode": "QA UAE002",
+        "ownerName": "QA UAE Owner",
+        "email": "owner.qauae002@qa.local",
+        "phone": "92300000002",
+        "country": "UAE",
+        "currency": "AED",
+        "taxEnabled": true,
+        "taxRate": 0.05,
+        "taxRegistrationNumber": "TRN-QA-002",
+        "licenseNumber": "LIC-UAE-002",
+        "licenseAuthority": "DHA",
+        "locale": "ar-AE",
+        "timezone": "Asia/Dubai",
+        "pharmacistInChargeName": "Dr QA UAE Pharmacist"
+      },
+      "ownerEmail": "owner.qauae002@qa.local",
+      "ownerToken": "<redacted-jwt>",
+      "staffEmail": "staff.uae@qa.local",
+      "staffToken": "<redacted-jwt>",
+      "customers": {
+        "c1": {
+          "userId": 17,
+          "email": "customer.c1.uae@qa.local",
+          "token": "<redacted-jwt>",
+          "emiratesId": "784-1990-1234567-1"
+        },
+        "c2": {
+          "userId": 18,
+          "email": "customer.c2.uae@qa.local",
+          "token": "<redacted-jwt>",
+          "emiratesId": "784-1990-1234567-1"
+        }
+      },
+      "categoryId": null,
+      "medicines": {
+        "inclusive105": {
+          "id": 21,
+          "name": "QA VAT Inclusive 105",
+          "price": 105,
+          "stock": 100
+        },
+        "narcotic": {
+          "id": 22,
+          "name": "QA Narcotic Item",
+          "price": 40,
+          "stock": 10
+        },
+        "controlled": {
+          "id": 23,
+          "name": "QA Controlled Item",
+          "price": 25,
+          "stock": 10
+        }
+      }
+    },
+    "notax": {
+      "businessId": 6,
+      "spec": {
+        "key": "notax",
+        "businessName": "QA Tax-Free Pharmacy",
+        "businessCode": "QANTX003",
+        "ownerName": "QA NoTax Owner",
+        "email": "owner.qantx003@qa.local",
+        "phone": "92300000003",
+        "country": "USA",
+        "currency": "USD",
+        "taxEnabled": false,
+        "taxRate": 0,
+        "taxRegistrationNumber": "EIN-QA-003",
+        "licenseNumber": "LIC-NT-003",
+        "licenseAuthority": "DEA",
+        "locale": "en-US",
+        "timezone": "America/New_York",
+        "pharmacistInChargeName": "Dr QA NoTax"
+      },
+      "ownerEmail": "owner.qantx003@qa.local",
+      "ownerToken": "<redacted-jwt>",
+      "staffEmail": "staff.notax@qa.local",
+      "staffToken": "<redacted-jwt>",
+      "customers": {
+        "c1": {
+          "userId": 21,
+          "email": "customer.c1.notax@qa.local",
+          "token": "<redacted-jwt>",
+          "emiratesId": null
+        },
+        "c2": {
+          "userId": 22,
+          "email": "customer.c2.notax@qa.local",
+          "token": "<redacted-jwt>",
+          "emiratesId": null
+        }
+      },
+      "categoryId": null,
+      "medicines": {
+        "plain100": {
+          "id": 24,
+          "name": "QA NoTax 100",
+          "price": 100,
+          "stock": 100
+        }
+      }
+    },
+    "usa08": {
+      "businessId": 7,
+      "spec": {
+        "key": "usa08",
+        "businessName": "QA USA 8 Percent",
+        "businessCode": "QAUSA008",
+        "ownerName": "QA USA8 Owner",
+        "email": "owner.qausa008@qa.local",
+        "phone": "92300000008",
+        "country": "USA",
+        "currency": "USD",
+        "taxEnabled": true,
+        "taxRate": 0.08,
+        "taxRegistrationNumber": "EIN-QA-008",
+        "licenseNumber": "LIC-USA-008",
+        "licenseAuthority": "DEA",
+        "locale": "en-US",
+        "timezone": "America/New_York",
+        "pharmacistInChargeName": "Dr QA USA8"
+      },
+      "ownerEmail": "owner.qausa008@qa.local",
+      "ownerToken": "<redacted-jwt>",
+      "staffEmail": "staff.usa08@qa.local",
+      "staffToken": "<redacted-jwt>",
+      "customers": {
+        "c1": {
+          "userId": 25,
+          "email": "customer.c1.usa08@qa.local",
+          "token": "<redacted-jwt>",
+          "emiratesId": null
+        },
+        "c2": {
+          "userId": 26,
+          "email": "customer.c2.usa08@qa.local",
+          "token": "<redacted-jwt>",
+          "emiratesId": null
+        }
+      },
+      "categoryId": null,
+      "medicines": {
+        "taxable20": {
+          "id": 25,
+          "name": "QA T1 Taxable 20",
+          "price": 20,
+          "stock": 100
+        },
+        "exempt50": {
+          "id": 26,
+          "name": "QA T1 Exempt 50",
+          "price": 50,
+          "stock": 100
+        },
+        "normal100": {
+          "id": 27,
+          "name": "QA T5 Normal 100",
+          "price": 100,
+          "stock": 100
+        }
+      }
+    },
+    "nyc": {
+      "businessId": 8,
+      "spec": {
+        "key": "nyc",
+        "businessName": "QA NYC Pharmacy",
+        "businessCode": "QANYC009",
+        "ownerName": "QA NYC Owner",
+        "email": "owner.qanyc009@qa.local",
+        "phone": "92300000009",
+        "country": "USA",
+        "currency": "USD",
+        "taxEnabled": true,
+        "taxRate": 0.08875,
+        "taxRegistrationNumber": "EIN-QA-009",
+        "licenseNumber": "LIC-NYC-009",
+        "licenseAuthority": "DEA",
+        "locale": "en-US",
+        "timezone": "America/New_York",
+        "pharmacistInChargeName": "Dr QA NYC"
+      },
+      "ownerEmail": "owner.qanyc009@qa.local",
+      "ownerToken": "<redacted-jwt>",
+      "staffEmail": "staff.nyc@qa.local",
+      "staffToken": "<redacted-jwt>",
+      "customers": {
+        "c1": {
+          "userId": 29,
+          "email": "customer.c1.nyc@qa.local",
+          "token": "<redacted-jwt>",
+          "emiratesId": null
+        },
+        "c2": {
+          "userId": 30,
+          "email": "customer.c2.nyc@qa.local",
+          "token": "<redacted-jwt>",
+          "emiratesId": null
+        }
+      },
+      "categoryId": null,
+      "medicines": {
+        "hundred": {
+          "id": 28,
+          "name": "QA NYC 100",
+          "price": 100,
+          "stock": 100
+        }
+      }
+    }
+  },
+  "createdAt": "2026-11-24T13:38:02.023Z",
+  "password": "QaPass123"
+}

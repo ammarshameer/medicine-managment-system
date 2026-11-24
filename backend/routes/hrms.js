@@ -752,6 +752,13 @@ router.put('/salaries/:id/pay', [
       });
     }
 
+    if (existing[0].PaymentStatus === 'Paid') {
+      return res.status(400).json({
+        success: false,
+        message: 'This salary has already been paid'
+      });
+    }
+
     await dbQuery(
       `UPDATE Salaries 
        SET PaymentStatus = 'Paid', PaymentDate = ?, PaymentMethod = ?, Notes = COALESCE(?, Notes)
@@ -769,6 +776,254 @@ router.put('/salaries/:id/pay', [
       success: false,
       message: 'Failed to update salary payment'
     });
+  }
+});
+
+/**
+ * GET /api/hrms/attendance
+ * List attendance records with employee/date filters (BUSINESS_OWNER only)
+ */
+router.get('/attendance', [
+  query('employeeId').optional().isInt(),
+  query('date').optional().isISO8601(),
+  query('startDate').optional().isISO8601(),
+  query('endDate').optional().isISO8601(),
+  query('status').optional().isIn(['Present', 'Absent', 'Leave', 'Half Day', 'all'])
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, message: 'Validation errors', errors: errors.array() });
+    }
+
+    const businessId = req.user.businessId;
+    let whereClause = 'WHERE a.BusinessId = ?';
+    const params = [businessId];
+
+    if (req.query.employeeId) {
+      whereClause += ' AND a.EmployeeId = ?';
+      params.push(parseInt(req.query.employeeId, 10));
+    }
+    if (req.query.date) {
+      whereClause += ' AND a.AttendanceDate = ?';
+      params.push(String(req.query.date).slice(0, 10));
+    }
+    if (req.query.startDate) {
+      whereClause += ' AND a.AttendanceDate >= ?';
+      params.push(String(req.query.startDate).slice(0, 10));
+    }
+    if (req.query.endDate) {
+      whereClause += ' AND a.AttendanceDate <= ?';
+      params.push(String(req.query.endDate).slice(0, 10));
+    }
+    if (req.query.status && req.query.status !== 'all') {
+      whereClause += ' AND a.Status = ?';
+      params.push(req.query.status);
+    }
+
+    const rows = await dbQuery(
+      `SELECT a.AttendanceId, a.BusinessId, a.EmployeeId, a.AttendanceDate, a.Status,
+              a.CheckIn, a.CheckOut, a.Notes, a.CreatedAt, a.UpdatedAt,
+              u.Name as EmployeeName, e.Designation
+       FROM Attendance a
+       JOIN Employees e ON a.EmployeeId = e.EmployeeId
+       JOIN Users u ON e.UserId = u.UserId
+       ${whereClause}
+       ORDER BY a.AttendanceDate DESC, a.AttendanceId DESC`,
+      params
+    );
+
+    res.json({
+      success: true,
+      data: {
+        attendance: rows.map(row => ({
+          id: row.AttendanceId,
+          businessId: row.BusinessId,
+          employeeId: row.EmployeeId,
+          employeeName: row.EmployeeName,
+          designation: row.Designation,
+          date: row.AttendanceDate,
+          attendanceDate: row.AttendanceDate,
+          status: row.Status,
+          checkIn: row.CheckIn,
+          checkOut: row.CheckOut,
+          notes: row.Notes,
+          createdAt: row.CreatedAt,
+          updatedAt: row.UpdatedAt
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching attendance:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch attendance' });
+  }
+});
+
+/**
+ * POST /api/hrms/attendance
+ * Create an attendance record (BUSINESS_OWNER only)
+ */
+router.post('/attendance', [
+  body('employeeId').isInt().withMessage('Valid employee ID is required'),
+  body('date').isISO8601().withMessage('Valid attendance date is required'),
+  body('status').optional().isIn(['Present', 'Absent', 'Leave', 'Half Day']),
+  body('checkIn').optional().matches(/^([01]\d|2[0-3]):[0-5]\d$/).withMessage('CheckIn must be HH:mm'),
+  body('checkOut').optional().matches(/^([01]\d|2[0-3]):[0-5]\d$/).withMessage('CheckOut must be HH:mm'),
+  body('notes').optional().isString()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, message: 'Validation errors', errors: errors.array() });
+    }
+
+    const businessId = req.user.businessId;
+    const { employeeId, date, status = 'Present', checkIn = null, checkOut = null, notes = null } = req.body;
+    const attendanceDate = String(date).slice(0, 10);
+
+    const employees = await dbQuery(
+      'SELECT EmployeeId FROM Employees WHERE EmployeeId = ? AND BusinessId = ?',
+      [employeeId, businessId]
+    );
+    if (employees.length === 0) {
+      return res.status(404).json({ success: false, message: 'Employee not found in your business' });
+    }
+
+    const existing = await dbQuery(
+      'SELECT AttendanceId FROM Attendance WHERE BusinessId = ? AND EmployeeId = ? AND AttendanceDate = ?',
+      [businessId, employeeId, attendanceDate]
+    );
+    if (existing.length > 0) {
+      return res.status(400).json({ success: false, message: 'Attendance already recorded for this employee and date' });
+    }
+
+    const result = await dbQuery(
+      `INSERT INTO Attendance (BusinessId, EmployeeId, AttendanceDate, Status, CheckIn, CheckOut, Notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [businessId, employeeId, attendanceDate, status, checkIn, checkOut, notes]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Attendance recorded successfully',
+      data: { id: result.insertId, employeeId, date: attendanceDate, status }
+    });
+  } catch (error) {
+    console.error('Error creating attendance:', error);
+    res.status(500).json({ success: false, message: 'Failed to create attendance record' });
+  }
+});
+
+/**
+ * PUT/PATCH /api/hrms/attendance/:id
+ * Update an attendance record (BUSINESS_OWNER only)
+ */
+async function updateAttendance(req, res) {
+  try {
+    const businessId = req.user.businessId;
+    const attendanceId = parseInt(req.params.id, 10);
+
+    const existing = await dbQuery(
+      'SELECT AttendanceId FROM Attendance WHERE AttendanceId = ? AND BusinessId = ?',
+      [attendanceId, businessId]
+    );
+    if (existing.length === 0) {
+      return res.status(404).json({ success: false, message: 'Attendance record not found' });
+    }
+
+    const { employeeId, date, status, checkIn, checkOut, notes } = req.body;
+    const updates = [];
+    const params = [];
+
+    if (employeeId !== undefined) {
+      const employees = await dbQuery(
+        'SELECT EmployeeId FROM Employees WHERE EmployeeId = ? AND BusinessId = ?',
+        [employeeId, businessId]
+      );
+      if (employees.length === 0) {
+        return res.status(404).json({ success: false, message: 'Employee not found in your business' });
+      }
+      updates.push('EmployeeId = ?');
+      params.push(employeeId);
+    }
+    if (date !== undefined) {
+      updates.push('AttendanceDate = ?');
+      params.push(String(date).slice(0, 10));
+    }
+    if (status !== undefined) {
+      updates.push('Status = ?');
+      params.push(status);
+    }
+    if (checkIn !== undefined) { updates.push('CheckIn = ?'); params.push(checkIn); }
+    if (checkOut !== undefined) { updates.push('CheckOut = ?'); params.push(checkOut); }
+    if (notes !== undefined) { updates.push('Notes = ?'); params.push(notes); }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ success: false, message: 'No fields to update' });
+    }
+
+    params.push(attendanceId, businessId);
+    await dbQuery(
+      `UPDATE Attendance SET ${updates.join(', ')} WHERE AttendanceId = ? AND BusinessId = ?`,
+      params
+    );
+
+    res.json({ success: true, message: 'Attendance updated successfully' });
+  } catch (error) {
+    console.error('Error updating attendance:', error);
+    res.status(500).json({ success: false, message: 'Failed to update attendance record' });
+  }
+}
+
+router.put('/attendance/:id', [
+  body('employeeId').optional().isInt(),
+  body('date').optional().isISO8601(),
+  body('status').optional().isIn(['Present', 'Absent', 'Leave', 'Half Day']),
+  body('checkIn').optional().matches(/^([01]\d|2[0-3]):[0-5]\d$/),
+  body('checkOut').optional().matches(/^([01]\d|2[0-3]):[0-5]\d$/),
+  body('notes').optional().isString()
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, message: 'Validation errors', errors: errors.array() });
+  }
+  return updateAttendance(req, res);
+});
+
+router.patch('/attendance/:id', [
+  body('employeeId').optional().isInt(),
+  body('date').optional().isISO8601(),
+  body('status').optional().isIn(['Present', 'Absent', 'Leave', 'Half Day']),
+  body('checkIn').optional().matches(/^([01]\d|2[0-3]):[0-5]\d$/),
+  body('checkOut').optional().matches(/^([01]\d|2[0-3]):[0-5]\d$/),
+  body('notes').optional().isString()
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, message: 'Validation errors', errors: errors.array() });
+  }
+  return updateAttendance(req, res);
+});
+
+/**
+ * DELETE /api/hrms/attendance/:id
+ * Remove/deactivate an attendance record (BUSINESS_OWNER only)
+ */
+router.delete('/attendance/:id', async (req, res) => {
+  try {
+    const businessId = req.user.businessId;
+    const attendanceId = parseInt(req.params.id, 10);
+    const result = await dbQuery(
+      'DELETE FROM Attendance WHERE AttendanceId = ? AND BusinessId = ?',
+      [attendanceId, businessId]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Attendance record not found' });
+    }
+    res.json({ success: true, message: 'Attendance record removed successfully' });
+  } catch (error) {
+    console.error('Error deleting attendance:', error);
+    res.status(500).json({ success: false, message: 'Failed to remove attendance record' });
   }
 });
 

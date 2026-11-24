@@ -16,9 +16,12 @@ import {
   XCircle,
   TrendingUp
 } from 'lucide-react';
+import { useTranslation } from '../i18n';
+import { formatCurrencyIntl, getCurrencyRevenueRows } from '../utils/formatCurrency';
 
 export const SuperAdminBusinessDetails = () => {
-  const { businessId } = useParams();
+  const { t } = useTranslation();
+const { businessId } = useParams();
   const navigate = useNavigate();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -84,12 +87,19 @@ export const SuperAdminBusinessDetails = () => {
   if (!business) {
     return (
       <div className="p-6">
-        <p className="text-gray-500">Business not found</p>
+        <p className="text-gray-500">{t('Business not found')}</p>
       </div>
     );
   }
 
-  const stats = analytics?.stats || {};
+  const stats = analytics?.analytics || business?.analytics || {};
+  const revenueRows = getCurrencyRevenueRows(
+    analytics?.revenueByCurrency,
+    business?.revenueByCurrency,
+    stats.byCurrency,
+    stats.totalRevenueByCurrency,
+    stats.totalRevenue
+  ).map(row => (row.code ? row : { ...row, code: business?.Currency || null }));
 
   return (
     <div className="p-6">
@@ -100,12 +110,12 @@ export const SuperAdminBusinessDetails = () => {
           className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Businesses
+          {t('Back to Businesses')}
         </button>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-800">{business.Name}</h1>
-            <p className="text-gray-600 mt-2">Business Code: {business.Code}</p>
+            <p className="text-gray-600 mt-2">{t('Business Code:')} {business.Code}</p>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -113,7 +123,7 @@ export const SuperAdminBusinessDetails = () => {
               className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
             >
               <Edit className="w-4 h-4" />
-              Edit Business
+              {t('Edit Business')}
             </button>
             <button
               onClick={handleToggleStatus}
@@ -126,12 +136,12 @@ export const SuperAdminBusinessDetails = () => {
               {business.Status === 'Active' ? (
                 <>
                   <XCircle className="w-4 h-4" />
-                  Deactivate
+                  {t('Deactivate')}
                 </>
               ) : (
                 <>
                   <CheckCircle className="w-4 h-4" />
-                  Activate
+                  {t('Activate')}
                 </>
               )}
             </button>
@@ -139,7 +149,7 @@ export const SuperAdminBusinessDetails = () => {
               onClick={() => setShowDeleteModal(true)}
               className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
             >
-              Delete
+              {t('Delete')}
             </button>
           </div>
         </div>
@@ -161,33 +171,33 @@ export const SuperAdminBusinessDetails = () => {
       {/* Business Information */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Business Information</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-4">{t('Business Information')}</h2>
           <div className="space-y-4">
             <div className="flex items-start gap-3">
               <Mail className="w-5 h-5 text-gray-400 mt-0.5" />
               <div>
-                <p className="text-sm text-gray-500">Email</p>
+                <p className="text-sm text-gray-500">{t('Email')}</p>
                 <p className="font-medium text-gray-800">{business.Email}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <Phone className="w-5 h-5 text-gray-400 mt-0.5" />
               <div>
-                <p className="text-sm text-gray-500">Phone</p>
+                <p className="text-sm text-gray-500">{t('Phone')}</p>
                 <p className="font-medium text-gray-800">{business.Phone}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <MapPin className="w-5 h-5 text-gray-400 mt-0.5" />
               <div>
-                <p className="text-sm text-gray-500">Address</p>
-                <p className="font-medium text-gray-800">{business.Address || 'Not provided'}</p>
+                <p className="text-sm text-gray-500">{t('Address')}</p>
+                <p className="font-medium text-gray-800">{business.Address || t('Not provided')}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
               <div>
-                <p className="text-sm text-gray-500">Created</p>
+                <p className="text-sm text-gray-500">{t('Created')}</p>
                 <p className="font-medium text-gray-800">
                   {new Date(business.CreatedAt).toLocaleDateString()}
                 </p>
@@ -197,7 +207,7 @@ export const SuperAdminBusinessDetails = () => {
               <div className="flex items-start gap-3">
                 <TrendingUp className="w-5 h-5 text-gray-400 mt-0.5" />
                 <div>
-                  <p className="text-sm text-gray-500">Subscription Plan</p>
+                  <p className="text-sm text-gray-500">{t('Subscription Plan')}</p>
                   <p className="font-medium text-gray-800">{business.SubscriptionPlan}</p>
                 </div>
               </div>
@@ -207,45 +217,45 @@ export const SuperAdminBusinessDetails = () => {
 
         {/* Market, Currency & Compliance Card */}
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Market & Compliance Settings</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-4">{t('Market & Compliance Settings')}</h2>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Country & Currency</p>
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">{t('Country & Currency')}</p>
                 <p className="font-semibold text-gray-900 mt-0.5">
-                  {business.Country || 'United States'} ({business.Currency || 'USD'})
+                  {business.Country || t('United States')} ({business.Currency || t('USD')})
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Tax Engine Status</p>
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">{t('Tax Engine Status')}</p>
                 <p className="font-semibold text-gray-900 mt-0.5">
-                  {business.TaxEnabled ? `Enabled (${((parseFloat(business.TaxRate) || 0) * 100).toFixed(2)}%)` : 'Tax Disabled / Exempt'}
+                  {business.TaxEnabled ? `Enabled (${((parseFloat(business.TaxRate) || 0) * 100).toFixed(2)}%)` : t('Tax Disabled / Exempt')}
                 </p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100">
               <div>
-                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">TRN / EIN (Tax ID)</p>
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">{t('TRN / EIN (Tax ID)')}</p>
                 <p className="font-mono text-sm font-semibold text-gray-900 mt-0.5">
-                  {business.TaxRegistrationNumber || 'Not specified'}
+                  {business.TaxRegistrationNumber || t('Not specified')}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Pharmacy License #</p>
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">{t('Pharmacy License #')}</p>
                 <p className="font-mono text-sm font-semibold text-gray-900 mt-0.5">
-                  {business.LicenseNumber || 'Not specified'}
+                  {business.LicenseNumber || t('Not specified')}
                 </p>
               </div>
             </div>
 
             <div className="pt-2 border-t border-gray-100">
-              <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Pharmacist-in-Charge (PIC)</p>
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">{t('Pharmacist-in-Charge (PIC)')}</p>
               <p className="font-medium text-gray-900 mt-0.5">
-                {business.PharmacistInChargeName || 'Not assigned'}
+                {business.PharmacistInChargeName || t('Not assigned')}
               </p>
               {business.LicenseAuthority && (
-                <p className="text-xs text-gray-500 mt-0.5">Authority: {business.LicenseAuthority}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{t('Authority:')} {business.LicenseAuthority}</p>
               )}
             </div>
           </div>
@@ -253,35 +263,44 @@ export const SuperAdminBusinessDetails = () => {
 
         {/* Business Analytics */}
         <div className="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Business Analytics</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-4">{t('Business Analytics')}</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="bg-blue-50 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Users className="w-5 h-5 text-blue-600" />
-                <p className="text-sm text-gray-600">Total Users</p>
+                <p className="text-sm text-gray-600">{t('Total Users')}</p>
               </div>
               <p className="text-2xl font-bold text-gray-800">{stats.totalUsers || 0}</p>
             </div>
             <div className="bg-green-50 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <ShoppingCart className="w-5 h-5 text-green-600" />
-                <p className="text-sm text-gray-600">Total Orders</p>
+                <p className="text-sm text-gray-600">{t('Total Orders')}</p>
               </div>
               <p className="text-2xl font-bold text-gray-800">{stats.totalOrders || 0}</p>
             </div>
             <div className="bg-purple-50 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Package className="w-5 h-5 text-purple-600" />
-                <p className="text-sm text-gray-600">Medicines</p>
+                <p className="text-sm text-gray-600">{t('Medicines')}</p>
               </div>
               <p className="text-2xl font-bold text-gray-800">{stats.totalMedicines || 0}</p>
             </div>
             <div className="bg-yellow-50 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="w-5 h-5 text-yellow-600" />
-                <p className="text-sm text-gray-600">Revenue</p>
+                <p className="text-sm text-gray-600">{t('Revenue')}</p>
               </div>
-              <p className="text-2xl font-bold text-gray-800">{business.Currency || '$'} {(stats.totalRevenue || 0).toLocaleString()}</p>
+              <div className="space-y-1">
+                {revenueRows.map(row => (
+                  <div key={row.key} className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold text-yellow-700">
+                      {row.code || t('Currency not specified')}
+                    </span>
+                    <span className="text-lg font-bold">{formatCurrencyIntl(row.amount, row.code)}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -289,26 +308,26 @@ export const SuperAdminBusinessDetails = () => {
 
       {/* Business Users */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">Business Users</h2>
+        <h2 className="text-xl font-bold text-gray-800 mb-4">{t('Business Users')}</h2>
         {users?.users && users.users.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
+                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('Name')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
+                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('Email')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Role
+                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('Role')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('Status')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Created
+                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('Created')}
                   </th>
                 </tr>
               </thead>
@@ -332,7 +351,7 @@ export const SuperAdminBusinessDetails = () => {
                           ? 'bg-green-100 text-green-800' 
                           : 'bg-red-100 text-red-800'
                       }`}>
-                        {user.IsActive ? 'Active' : 'Inactive'}
+                        {user.IsActive ? t('Active') : t('Inactive')}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -344,7 +363,7 @@ export const SuperAdminBusinessDetails = () => {
             </table>
           </div>
         ) : (
-          <p className="text-gray-500 text-center py-8">No users found for this business</p>
+          <p className="text-gray-500 text-center py-8">{t('No users found for this business')}</p>
         )}
       </div>
 
@@ -352,23 +371,23 @@ export const SuperAdminBusinessDetails = () => {
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Confirm Delete</h3>
+            <h3 className="text-lg font-bold text-gray-800 mb-4">{t('Confirm Delete')}</h3>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to delete <strong>{business.Name}</strong>? This action cannot be undone and will delete all associated data.
+              {t('Are you sure you want to delete')} <strong>{business.Name}</strong>{t('? This action cannot be undone and will delete all associated data.')}
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowDeleteModal(false)}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
               >
-                Cancel
+                {t('Cancel')}
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleteMutation.isLoading}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
               >
-                {deleteMutation.isLoading ? 'Deleting...' : 'Delete'}
+                {deleteMutation.isLoading ? t('Deleting...') : t('Delete')}
               </button>
             </div>
           </div>

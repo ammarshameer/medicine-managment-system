@@ -10,7 +10,6 @@ import {
   Trash2,
   Printer,
   CheckCircle,
-  User,
   CreditCard,
   Banknote,
   Smartphone,
@@ -18,12 +17,42 @@ import {
   X,
   FileText,
   ShieldCheck,
-  Percent
+  Building2
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCurrency, formatCurrency } from '../utils/formatCurrency';
+import { useTranslation } from '../i18n';
+
+/**
+ * Payment methods are region-aware: Pakistan-only wallets are never offered
+ * to other tenants, while insurance copay and bank transfer cover the other
+ * markets. Ids are kept as the human-readable labels expected by the
+ * /api/orders/pos payload.
+ */
+const getPaymentMethods = (country) => {
+  const market = String(country || '').toLowerCase();
+  const isPakistan = market.includes('pakistan') || market === 'pk';
+  const methods = [
+    { id: 'Cash', label: 'Cash', icon: Banknote },
+    { id: 'Credit Card', label: 'Card', icon: CreditCard },
+    { id: 'Debit Card', label: 'Debit', icon: CreditCard },
+    { id: 'Bank Transfer', label: 'Bank Transfer', icon: Building2 }
+  ];
+
+  if (isPakistan) {
+    methods.push(
+      { id: 'JazzCash', label: 'JazzCash', icon: Smartphone },
+      { id: 'Easypaisa', label: 'Easypaisa', icon: Smartphone }
+    );
+  } else {
+    methods.push({ id: 'Insurance Copay', label: 'Insurance Copay', icon: ShieldCheck });
+  }
+
+  return methods;
+};
 
 export const POS = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { currency, format } = useCurrency();
   const queryClient = useQueryClient();
@@ -42,6 +71,22 @@ export const POS = () => {
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [amountTendered, setAmountTendered] = useState('');
   const [notes, setNotes] = useState('');
+
+  // Payment options follow the tenant's market (business country).
+  const businessCountry =
+    user?.business?.country ||
+    user?.business?.Country ||
+    user?.country ||
+    user?.Country ||
+    navigator.language ||
+    '';
+  const paymentMethods = useMemo(() => getPaymentMethods(businessCountry), [businessCountry]);
+
+  useEffect(() => {
+    if (!paymentMethods.some(method => method.id === paymentMethod)) {
+      setPaymentMethod('Cash');
+    }
+  }, [paymentMethods, paymentMethod]);
 
   // Real-time tax preview state from backend
   const [taxPreview, setTaxPreview] = useState(null);
@@ -272,10 +317,10 @@ export const POS = () => {
         <div>
           <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
             <ShoppingCart className="w-6 h-6 text-blue-600" />
-            Point of Sale (POS) Counter
+            {t('Point of Sale (POS) Counter')}
           </h1>
           <p className="text-xs text-gray-500">
-            Cashier: <span className="font-semibold text-gray-700">{user?.name}</span> | Currency: <span className="font-bold text-blue-700">{currency}</span>
+            {t('Cashier:')} <span className="font-semibold text-gray-700">{user?.name}</span> {t('| Currency:')} <span className="font-bold text-blue-700">{currency}</span>
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -283,8 +328,8 @@ export const POS = () => {
             onClick={() => refetchMedicines()}
             className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 shadow-sm"
           >
-            <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-            Refresh Catalog
+            <RefreshCw className="w-3.5 h-3.5 me-1.5" />
+            {t('Refresh Catalog')}
           </button>
         </div>
       </div>
@@ -296,18 +341,18 @@ export const POS = () => {
           {/* Search and Category filters */}
           <div className="p-3 border-b border-gray-100 bg-gray-50 space-y-2">
             <div className="relative">
-              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-gray-400 absolute start-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search medicine name, manufacturer..."
+                placeholder={t('Search medicine name, manufacturer...')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full ps-9 pe-4 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               />
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute end-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -323,7 +368,7 @@ export const POS = () => {
                     : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100'
                   }`}
               >
-                All Items
+                {t('All Items')}
               </button>
               {categoriesData?.map(cat => (
                 <button
@@ -349,13 +394,13 @@ export const POS = () => {
             ) : filteredMedicines.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
                 <FileText className="w-10 h-10 mx-auto text-gray-300 mb-2" />
-                <p className="text-sm font-medium">No medicines match your search</p>
-                <p className="text-xs text-gray-400 mt-1">Try a different name or category</p>
+                <p className="text-sm font-medium">{t('No medicines match your search')}</p>
+                <p className="text-xs text-gray-400 mt-1">{t('Try a different name or category')}</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-3">
                 {filteredMedicines.map(med => {
-                  const isOutOfStock = med.stock <= 0;
+const isOutOfStock = med.stock <= 0;
                   const isLowStock = med.stock > 0 && med.stock < 10;
                   const inCartItem = cart.find(i => i.id === med.id);
 
@@ -363,13 +408,13 @@ export const POS = () => {
                     <div
                       key={med.id}
                       onClick={() => !isOutOfStock && addToCart(med)}
-                      className={`relative flex flex-col justify-between p-3 rounded-xl border text-left transition-all ${isOutOfStock
+                      className={`relative flex flex-col justify-between p-3 rounded-xl border text-start transition-all ${isOutOfStock
                           ? 'bg-gray-50 border-gray-200 opacity-60 cursor-not-allowed'
                           : 'bg-white border-gray-200 hover:border-blue-500 hover:shadow-md cursor-pointer group'
                         }`}
                     >
                       {inCartItem && (
-                        <span className="absolute -top-2 -right-2 bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shadow-md">
+                        <span className="absolute -top-2 -end-2 bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shadow-md">
                           {inCartItem.quantity}
                         </span>
                       )}
@@ -381,15 +426,15 @@ export const POS = () => {
                           </h3>
                         </div>
                         <div className="flex items-center gap-1 mt-1 flex-wrap">
-                          <span className="text-[10px] text-gray-500">{med.category || 'General'}</span>
+                          <span className="text-[10px] text-gray-500">{med.category || t('General')}</span>
                           {med.isTaxable === false && (
                             <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-green-50 text-green-700 border border-green-200">
-                              Exempt
+                              {t('Exempt')}
                             </span>
                           )}
                           {med.priceIncludesTax && (
                             <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                              Incl. Tax
+                              {t('Incl. Tax')}
                             </span>
                           )}
                         </div>
@@ -402,12 +447,12 @@ export const POS = () => {
                         <div>
                           {isOutOfStock ? (
                             <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-100 text-red-700">
-                              Out
+                              {t('Out')}
                             </span>
                           ) : (
                             <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${isLowStock ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'
                               }`}>
-                              {med.stock} in stock
+                              {med.stock} {t('in stock')}
                             </span>
                           )}
                         </div>
@@ -426,9 +471,9 @@ export const POS = () => {
           <div className="p-3 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShoppingCart className="w-5 h-5 text-blue-600" />
-              <span className="font-bold text-gray-900 text-sm">Active Cart</span>
+              <span className="font-bold text-gray-900 text-sm">{t('Active Cart')}</span>
               <span className="px-2 py-0.5 text-xs font-bold bg-blue-100 text-blue-800 rounded-full">
-                {cart.reduce((s, i) => s + i.quantity, 0)} items
+                {cart.reduce((s, i) => s + i.quantity, 0)} {t('items')}
               </span>
             </div>
             {cart.length > 0 && (
@@ -437,7 +482,7 @@ export const POS = () => {
                 className="text-xs text-red-600 hover:text-red-800 font-medium flex items-center gap-1"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                Clear
+                {t('Clear')}
               </button>
             )}
           </div>
@@ -450,21 +495,21 @@ export const POS = () => {
                 className={`py-1 rounded-md transition-colors ${customerType === 'walkin_guest' ? 'bg-white text-blue-700 font-bold shadow-sm' : 'text-gray-600'
                   }`}
               >
-                Guest
+                {t('Guest')}
               </button>
               <button
                 onClick={() => setCustomerType('walkin_details')}
                 className={`py-1 rounded-md transition-colors ${customerType === 'walkin_details' ? 'bg-white text-blue-700 font-bold shadow-sm' : 'text-gray-600'
                   }`}
               >
-                Walk-in Details
+                {t('Walk-in Details')}
               </button>
               <button
                 onClick={() => setCustomerType('registered')}
                 className={`py-1 rounded-md transition-colors ${customerType === 'registered' ? 'bg-white text-blue-700 font-bold shadow-sm' : 'text-gray-600'
                   }`}
               >
-                Registered
+                {t('Registered')}
               </button>
             </div>
 
@@ -473,14 +518,14 @@ export const POS = () => {
               <div className="grid grid-cols-2 gap-2 mt-2 pt-1">
                 <input
                   type="text"
-                  placeholder="Customer Name"
+                  placeholder={t('Customer Name')}
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   className="px-2.5 py-1 text-xs border border-gray-300 rounded-md outline-none focus:border-blue-500"
                 />
                 <input
                   type="text"
-                  placeholder="Phone Number"
+                  placeholder={t('Phone Number')}
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   className="px-2.5 py-1 text-xs border border-gray-300 rounded-md outline-none focus:border-blue-500"
@@ -495,7 +540,7 @@ export const POS = () => {
                   onChange={(e) => setSelectedUserId(e.target.value)}
                   className="w-full px-2.5 py-1 text-xs border border-gray-300 rounded-md outline-none focus:border-blue-500 bg-white"
                 >
-                  <option value="">-- Select Customer --</option>
+                  <option value="">{t('-- Select Customer --')}</option>
                   {usersData?.map(u => (
                     <option key={u.id} value={u.id}>{u.name} ({u.phone || u.email})</option>
                   ))}
@@ -509,12 +554,12 @@ export const POS = () => {
             {cart.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-gray-400 py-8">
                 <ShoppingCart className="w-10 h-10 text-gray-200 mb-2" />
-                <p className="text-sm font-medium text-gray-500">Cart is empty</p>
-                <p className="text-xs text-gray-400">Click on items from catalog to add</p>
+                <p className="text-sm font-medium text-gray-500">{t('Cart is empty')}</p>
+                <p className="text-xs text-gray-400">{t('Click on items from catalog to add')}</p>
               </div>
             ) : (
               cart.map(item => {
-                const previewItem = taxPreview?.items?.find(pi => pi.medicineId === item.id);
+const previewItem = taxPreview?.items?.find(pi => pi.medicineId === item.id);
                 const isTaxable = previewItem ? previewItem.isTaxable : item.isTaxable;
 
                 return (
@@ -523,7 +568,7 @@ export const POS = () => {
                       <div className="flex items-center gap-1.5">
                         <h4 className="text-xs font-semibold text-gray-900 truncate">{item.name}</h4>
                         <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${isTaxable ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
-                          {isTaxable ? '[T]' : '[E]'}
+                          {isTaxable ? t('[T]') : t('[E]')}
                         </span>
                       </div>
                       <p className="text-[11px] text-gray-500">
@@ -555,7 +600,7 @@ export const POS = () => {
                       </button>
                       <button
                         onClick={() => removeFromCart(item.id)}
-                        className="p-1 text-red-500 hover:text-red-700 ml-1"
+                        className="p-1 text-red-500 hover:text-red-700 ms-1"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -571,15 +616,10 @@ export const POS = () => {
             {/* Payment Method Selector */}
             <div>
               <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500 block mb-1">
-                Payment Method
+                {t('Payment Method')}
               </label>
-              <div className="grid grid-cols-4 gap-1.5 text-xs">
-                {[
-                  { id: 'Cash', label: 'Cash', icon: Banknote },
-                  { id: 'Credit Card', label: 'Card', icon: CreditCard },
-                  { id: 'Debit Card', label: 'Debit', icon: CreditCard },
-                  { id: 'JazzCash', label: 'JazzCash', icon: Smartphone }
-                ].map(m => (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1.5 text-xs">
+                {paymentMethods.map(m => (
                   <button
                     key={m.id}
                     type="button"
@@ -590,7 +630,7 @@ export const POS = () => {
                       }`}
                   >
                     <m.icon className="w-3.5 h-3.5" />
-                    <span className="text-[10px]">{m.label}</span>
+                    <span className="text-[10px]">{t(m.label)}</span>
                   </button>
                 ))}
               </div>
@@ -600,17 +640,17 @@ export const POS = () => {
             {paymentMethod === 'Cash' && (
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[11px] font-medium text-gray-600 block">Amount Tendered</label>
+                  <label className="text-[11px] font-medium text-gray-600 block">{t('Amount Tendered')}</label>
                   <input
                     type="number"
-                    placeholder="e.g. 100"
+                    placeholder={t('e.g. 100')}
                     value={amountTendered}
                     onChange={(e) => setAmountTendered(e.target.value)}
                     className="w-full px-2.5 py-1 text-xs border border-gray-300 rounded-md outline-none focus:border-blue-500 bg-white font-semibold"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-medium text-gray-600 block">Change Due</label>
+                  <label className="text-[11px] font-medium text-gray-600 block">{t('Change Due')}</label>
                   <div className="px-2.5 py-1 text-xs bg-gray-200 border border-gray-300 rounded-md font-bold text-gray-800">
                     {format(changeDue)}
                   </div>
@@ -621,17 +661,17 @@ export const POS = () => {
             {/* Total breakdown */}
             <div className="bg-white p-2.5 rounded-lg border border-gray-200 space-y-1.5 text-xs">
               <div className="flex justify-between text-gray-600">
-                <span>Subtotal:</span>
+                <span>{t('Subtotal:')}</span>
                 <span className="font-semibold">{format(subtotalAmount)}</span>
               </div>
               {taxRate > 0 && (
                 <div className="flex justify-between text-gray-600">
-                  <span>Tax ({((taxRate) * 100).toFixed(2)}%):</span>
+                  <span>{t('Tax (')}{((taxRate) * 100).toFixed(2)}%):</span>
                   <span className="font-semibold">{format(taxAmount)}</span>
                 </div>
               )}
               <div className="flex justify-between items-center pt-1.5 border-t border-gray-100">
-                <span className="text-sm font-bold text-gray-900">Payable Total:</span>
+                <span className="text-sm font-bold text-gray-900">{t('Payable Total:')}</span>
                 <span className="text-base font-black text-blue-700">{format(grandTotal)}</span>
               </div>
             </div>
@@ -645,12 +685,12 @@ export const POS = () => {
               {checkoutMutation.isLoading ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  Processing Sale...
+                  {t('Processing Sale...')}
                 </>
               ) : (
                 <>
                   <CheckCircle className="w-4 h-4" />
-                  Complete Sale ({format(grandTotal)})
+                  {t('Complete Sale (')}{format(grandTotal)})
                 </>
               )}
             </button>
@@ -665,7 +705,7 @@ export const POS = () => {
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <div className="flex items-center gap-2 text-green-600 font-bold">
                 <CheckCircle className="w-5 h-5" />
-                <span>Transaction Successful</span>
+                <span>{t('Transaction Successful')}</span>
               </div>
               <button
                 onClick={() => setReceiptModalOpen(false)}
@@ -676,53 +716,53 @@ export const POS = () => {
             </div>
 
             {/* Printable Receipt Area */}
-            <div ref={receiptRef} className="p-4 bg-gray-50 rounded-xl border border-dashed border-gray-300 text-xs text-gray-800 font-mono space-y-3 print:p-0 print:border-none print:bg-white">
+            <div ref={receiptRef} className="printable-receipt p-4 bg-gray-50 rounded-xl border border-dashed border-gray-300 text-xs text-gray-800 font-mono space-y-3 print:p-0 print:border-none print:bg-white">
               <div className="text-center space-y-1">
-                <h2 className="font-bold text-base uppercase text-gray-900">{completedOrder.business?.name || 'MMS Pharmacy'}</h2>
+                <h2 className="font-bold text-base uppercase text-gray-900">{completedOrder.business?.name || t('MMS Pharmacy')}</h2>
                 {completedOrder.business?.legalName && (
                   <p className="text-[10px] text-gray-500 font-semibold">{completedOrder.business?.legalName}</p>
                 )}
                 <p className="text-[11px] text-gray-600">{completedOrder.business?.address}</p>
-                <p className="text-[11px] text-gray-600">Tel: {completedOrder.business?.phone || 'N/A'}</p>
+                <p className="text-[11px] text-gray-600">{t('Tel:')} {completedOrder.business?.phone || t('N/A')}</p>
 
                 {/* Compliance Credentials */}
                 {completedOrder.business?.taxRegistrationNumber && (
-                  <p className="text-[10px] text-gray-700 font-bold">TRN / Tax ID: {completedOrder.business?.taxRegistrationNumber}</p>
+                  <p className="text-[10px] text-gray-700 font-bold">{t('TRN / Tax ID:')} {completedOrder.business?.taxRegistrationNumber}</p>
                 )}
                 {completedOrder.business?.licenseNumber && (
-                  <p className="text-[10px] text-gray-700">Lic #: {completedOrder.business?.licenseNumber}</p>
+                  <p className="text-[10px] text-gray-700">{t('Lic #:')} {completedOrder.business?.licenseNumber}</p>
                 )}
                 {completedOrder.business?.pharmacistInChargeName && (
-                  <p className="text-[10px] text-gray-700">PIC: {completedOrder.business?.pharmacistInChargeName}</p>
+                  <p className="text-[10px] text-gray-700">{t('PIC:')} {completedOrder.business?.pharmacistInChargeName}</p>
                 )}
 
                 <div className="border-b border-gray-300 my-2"></div>
-                <p className="font-bold text-xs">OFFICIAL SALES RECEIPT</p>
-                <p className="text-[11px]">Invoice: #{completedOrder.orderId} | {new Date(completedOrder.orderDate).toLocaleString()}</p>
-                <p className="text-[11px]">Cashier: {completedOrder.cashier?.name} | Cust: {completedOrder.customer?.name}</p>
+                <p className="font-bold text-xs">{t('OFFICIAL SALES RECEIPT')}</p>
+                <p className="text-[11px]">{t('Invoice: #')}{completedOrder.orderId} | {new Date(completedOrder.orderDate).toLocaleString()}</p>
+                <p className="text-[11px]">{t('Cashier:')} {completedOrder.cashier?.name} {t('| Cust:')} {completedOrder.customer?.name}</p>
               </div>
 
               <div className="border-b border-gray-300 my-2"></div>
 
               {/* Items Table */}
-              <table className="w-full text-left">
+              <table className="w-full text-start">
                 <thead>
                   <tr className="border-b border-gray-300 text-[10px] uppercase font-bold">
-                    <th className="pb-1">Item</th>
-                    <th className="pb-1 text-center">Qty</th>
-                    <th className="pb-1 text-right">Price</th>
-                    <th className="pb-1 text-right">Total</th>
+                    <th className="pb-1">{t('Item')}</th>
+                    <th className="pb-1 text-center">{t('Qty')}</th>
+                    <th className="pb-1 text-end">{t('Price')}</th>
+                    <th className="pb-1 text-end">{t('Total')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {completedOrder.items?.map((item, idx) => (
                     <tr key={idx} className="py-1">
                       <td className="py-1 font-semibold truncate max-w-[120px]">
-                        {item.name} {item.isTaxable === false ? '[E]' : '[T]'}
+                        {item.name} {item.isTaxable === false ? t('[E]') : t('[T]')}
                       </td>
                       <td className="py-1 text-center">{item.quantity}</td>
-                      <td className="py-1 text-right">{formatCurrency(item.price, completedOrder.currency)}</td>
-                      <td className="py-1 text-right font-bold">{formatCurrency(item.subtotal, completedOrder.currency)}</td>
+                      <td className="py-1 text-end">{formatCurrency(item.price, completedOrder.currency)}</td>
+                      <td className="py-1 text-end font-bold">{formatCurrency(item.subtotal, completedOrder.currency)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -731,30 +771,30 @@ export const POS = () => {
               <div className="border-b border-gray-300 my-2"></div>
 
               {/* Totals */}
-              <div className="space-y-1 text-right">
+              <div className="space-y-1 text-end">
                 <div className="flex justify-between text-[11px] text-gray-700">
-                  <span>Subtotal:</span>
+                  <span>{t('Subtotal:')}</span>
                   <span>{formatCurrency(completedOrder.subtotal, completedOrder.currency)}</span>
                 </div>
                 {parseFloat(completedOrder.taxAmount) > 0 && (
                   <div className="flex justify-between text-[11px] text-gray-700">
-                    <span>Tax ({((parseFloat(completedOrder.taxRate) || 0) * 100).toFixed(2)}%):</span>
+                    <span>{t('Tax (')}{((parseFloat(completedOrder.taxRate) || 0) * 100).toFixed(2)}%):</span>
                     <span>{formatCurrency(completedOrder.taxAmount, completedOrder.currency)}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-bold text-sm text-gray-900 pt-1 border-t border-gray-200">
-                  <span>GRAND TOTAL:</span>
+                  <span>{t('GRAND TOTAL:')}</span>
                   <span>{formatCurrency(completedOrder.totalAmount, completedOrder.currency)}</span>
                 </div>
                 <div className="flex justify-between text-[11px] text-gray-600 pt-1">
-                  <span>Payment Method:</span>
+                  <span>{t('Payment Method:')}</span>
                   <span>{completedOrder.paymentMethod}</span>
                 </div>
               </div>
 
               <div className="border-t border-gray-300 pt-3 text-center text-[10px] text-gray-500">
-                <p>Thank you for choosing {completedOrder.business?.name}!</p>
-                <p className="mt-0.5">Medicines sold are non-refundable once unsealed.</p>
+                <p>{t('Thank you for choosing')} {completedOrder.business?.name}!</p>
+                <p className="mt-0.5">{t('Medicines sold are non-refundable once unsealed.')}</p>
               </div>
             </div>
 
@@ -765,13 +805,13 @@ export const POS = () => {
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-sm"
               >
                 <Printer className="w-4 h-4" />
-                Print Receipt
+                {t('Print Receipt')}
               </button>
               <button
                 onClick={() => setReceiptModalOpen(false)}
                 className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg font-bold text-xs"
               >
-                Close & Next Sale
+                {t('Close & Next Sale')}
               </button>
             </div>
           </div>

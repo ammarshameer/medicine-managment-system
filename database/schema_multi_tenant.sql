@@ -9,6 +9,7 @@ USE mms_db;
 CREATE TABLE Businesses (
     BusinessId INT AUTO_INCREMENT PRIMARY KEY,
     BusinessName VARCHAR(200) NOT NULL,
+    LegalName VARCHAR(200) NULL,
     BusinessCode VARCHAR(50) UNIQUE NOT NULL,
     Logo VARCHAR(255),
     OwnerName VARCHAR(100) NOT NULL,
@@ -17,7 +18,9 @@ CREATE TABLE Businesses (
     Address TEXT,
     City VARCHAR(100),
     State VARCHAR(100),
-    Country VARCHAR(100) NOT NULL,
+    ZipCode VARCHAR(20) NULL,
+    -- Safe default: seed/import rows that omit Country must still insert on MySQL 8.4.
+    Country VARCHAR(100) NULL DEFAULT 'Pakistan',
     Currency VARCHAR(3) DEFAULT 'USD',
     TaxEnabled BOOLEAN NOT NULL DEFAULT TRUE,
     TaxRate DECIMAL(6,5) DEFAULT 0.00000,
@@ -327,6 +330,47 @@ CREATE TABLE IF NOT EXISTS Salaries (
     INDEX idx_salary_status (PaymentStatus)
 );
 
+-- Attendance table (HRMS)
+CREATE TABLE IF NOT EXISTS Attendance (
+    AttendanceId INT AUTO_INCREMENT PRIMARY KEY,
+    BusinessId INT NOT NULL,
+    EmployeeId INT NOT NULL,
+    AttendanceDate DATE NOT NULL,
+    Status ENUM('Present', 'Absent', 'Leave', 'Half Day') NOT NULL DEFAULT 'Present',
+    CheckIn TIME NULL,
+    CheckOut TIME NULL,
+    Notes TEXT NULL,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_attendance_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE,
+    CONSTRAINT fk_attendance_employee FOREIGN KEY (EmployeeId) REFERENCES Employees(EmployeeId) ON DELETE CASCADE,
+    UNIQUE KEY unique_attendance_employee_date (BusinessId, EmployeeId, AttendanceDate),
+    INDEX idx_attendance_business (BusinessId),
+    INDEX idx_attendance_employee (EmployeeId),
+    INDEX idx_attendance_date (AttendanceDate)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Payment Transactions table (payment gateway audit)
+CREATE TABLE IF NOT EXISTS PaymentTransactions (
+    PaymentTransactionId INT AUTO_INCREMENT PRIMARY KEY,
+    BusinessId INT NOT NULL,
+    OrderId INT NOT NULL,
+    Provider VARCHAR(50) NOT NULL,
+    ProviderReference VARCHAR(255) NULL,
+    Amount DECIMAL(10,2) NOT NULL,
+    Currency VARCHAR(10) NOT NULL DEFAULT 'USD',
+    Status ENUM('Pending', 'Succeeded', 'Failed', 'Refunded') NOT NULL DEFAULT 'Pending',
+    PaymentMethod VARCHAR(50) NULL,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_payment_tx_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE,
+    CONSTRAINT fk_payment_tx_order FOREIGN KEY (OrderId) REFERENCES Orders(OrderId) ON DELETE CASCADE,
+    INDEX idx_payment_tx_business (BusinessId),
+    INDEX idx_payment_tx_order (OrderId),
+    INDEX idx_payment_tx_status (Status),
+    INDEX idx_payment_tx_provider (Provider)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Business Settings table
 CREATE TABLE BusinessSettings (
     SettingId INT AUTO_INCREMENT PRIMARY KEY,
@@ -364,11 +408,12 @@ CREATE TABLE IF NOT EXISTS ControlledSubstanceLog (
     MedicineId INT NOT NULL,
     OrderId INT NULL,
     PrescriptionId INT NULL,
-    Action ENUM('Dispensed', 'Received', 'Adjusted', 'Destroyed') NOT NULL,
+    Action ENUM('Dispensed', 'Received', 'Adjusted', 'Destroyed', 'Reversed') NOT NULL,
     Quantity INT NOT NULL,
     PerformedBy INT NOT NULL,
     Notes TEXT NULL,
     Timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_csl_business FOREIGN KEY (BusinessId) REFERENCES Businesses(BusinessId) ON DELETE CASCADE,
     CONSTRAINT fk_csl_medicine FOREIGN KEY (MedicineId) REFERENCES Medicines(MedicineId) ON DELETE RESTRICT,
     CONSTRAINT fk_csl_order FOREIGN KEY (OrderId) REFERENCES Orders(OrderId) ON DELETE SET NULL,
@@ -384,10 +429,10 @@ INSERT INTO Users (Name, Email, Phone, PasswordHash, Role, IsActive) VALUES
 ('Super Admin', 'superadmin@mms.com', '+923001234567', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'SUPER_ADMIN', TRUE);
 
 -- Insert sample businesses
-INSERT INTO Businesses (BusinessName, BusinessCode, OwnerName, Email, Phone, Address, City, State, SubscriptionPlan, Status) VALUES
-('MediCare Pharmacy', 'MEDICARE001', 'Ahmed Khan', 'ahmed@medicare.com', '+923001234568', '123 Main Street', 'Karachi', 'Sindh', 'Premium', 'Active'),
-('HealthPlus Drugs', 'HEALTHPLUS002', 'Fatima Ali', 'fatima@healthplus.com', '+923001234569', '456 Market Road', 'Lahore', 'Punjab', 'Basic', 'Active'),
-('CureWell Pharmacy', 'CUREWELL003', 'Usman Malik', 'usman@curewell.com', '+923001234570', '789 Garden Avenue', 'Islamabad', 'Capital', 'Free', 'Active');
+INSERT INTO Businesses (BusinessName, LegalName, BusinessCode, OwnerName, Email, Phone, Address, City, State, ZipCode, Country, Currency, SubscriptionPlan, Status) VALUES
+('MediCare Pharmacy', 'MediCare Pharmacy (Pvt) Ltd', 'MEDICARE001', 'Ahmed Khan', 'ahmed@medicare.com', '+923001234568', '123 Main Street', 'Karachi', 'Sindh', '74200', 'Pakistan', 'PKR', 'Premium', 'Active'),
+('HealthPlus Drugs', 'HealthPlus Drugs LLC', 'HEALTHPLUS002', 'Fatima Ali', 'fatima@healthplus.com', '+923001234569', '456 Market Road', 'Lahore', 'Punjab', '54000', 'Pakistan', 'PKR', 'Basic', 'Active'),
+('CureWell Pharmacy', 'CureWell Pharmacy LLC', 'CUREWELL003', 'Usman Malik', 'usman@curewell.com', '+923001234570', '789 Garden Avenue', 'Islamabad', 'Capital', '44000', 'Pakistan', 'PKR', 'Free', 'Active');
 
 -- Insert business owners for each business
 INSERT INTO Users (BusinessId, Name, Email, Phone, PasswordHash, Role, IsActive) VALUES
@@ -441,13 +486,14 @@ INSERT INTO Users (BusinessId, Name, Email, Phone, PasswordHash, Role, IsActive)
 (3, 'Ayesha Khan', 'ayesha@example.com', '+923001234576', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'CUSTOMER', TRUE);
 
 -- Insert sample orders
-INSERT INTO Orders (BusinessId, UserId, TotalAmount, Status, PaymentStatus) VALUES
-(1, 4, 200.00, 'Delivered', 'Paid'),
-(1, 5, 150.00, 'Pending', 'Pending'),
-(2, 6, 180.00, 'Approved', 'Paid'),
-(2, 7, 220.00, 'Dispatched', 'Paid'),
-(3, 8, 160.00, 'Delivered', 'Paid'),
-(3, 9, 140.00, 'Pending', 'Pending');
+-- Order UserIds below belong to the same BusinessId (FK parent rows are seeded above).
+INSERT INTO Orders (BusinessId, UserId, Subtotal, TaxRate, TaxAmount, TotalAmount, Currency, Status, PaymentStatus) VALUES
+(1, 5, 200.00, 0.00000, 0.00, 200.00, 'PKR', 'Delivered', 'Paid'),
+(1, 6, 150.00, 0.00000, 0.00, 150.00, 'PKR', 'Pending', 'Pending'),
+(2, 7, 180.00, 0.00000, 0.00, 180.00, 'PKR', 'Approved', 'Paid'),
+(2, 8, 220.00, 0.00000, 0.00, 220.00, 'PKR', 'Dispatched', 'Paid'),
+(3, 9, 160.00, 0.00000, 0.00, 160.00, 'PKR', 'Delivered', 'Paid'),
+(3, 10, 140.00, 0.00000, 0.00, 140.00, 'PKR', 'Pending', 'Pending');
 
 -- Insert default business settings
 INSERT INTO BusinessSettings (BusinessId, SettingKey, SettingValue) VALUES

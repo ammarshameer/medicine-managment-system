@@ -32,10 +32,24 @@ router.get('/analytics', async (req, res) => {
       'SELECT COUNT(*) as count FROM Orders'
     );
 
-    // Get total platform revenue (aggregated from all orders across every business)
-    const totalRevenue = await query(
-      'SELECT SUM(TotalAmount) as revenue FROM Orders'
+    // Net revenue (pre-tax) grouped by currency. Never sum different currencies.
+    const revenueByCurrencyRows = await query(
+      `SELECT o.Currency as currency, SUM(oi.Subtotal) as revenue, COUNT(DISTINCT o.OrderId) as orderCount
+       FROM Orders o
+       JOIN OrderItems oi ON o.OrderId = oi.OrderId
+       GROUP BY o.Currency
+       ORDER BY o.Currency ASC`
     );
+    const totalRevenueByCurrency = {};
+    const revenueByCurrency = revenueByCurrencyRows.map(row => {
+      const revenue = Math.round((parseFloat(row.revenue) || 0) * 100) / 100;
+      totalRevenueByCurrency[row.currency] = revenue;
+      return {
+        currency: row.currency,
+        revenue,
+        orderCount: parseInt(row.orderCount, 10) || 0
+      };
+    });
 
     // Get businesses by subscription plan
     const businessesByPlan = await query(
@@ -67,8 +81,12 @@ router.get('/analytics', async (req, res) => {
           activeBusinesses: activeBusinesses[0].count,
           totalUsers: totalUsers[0].count,
           totalOrders: totalOrders[0].count,
-          totalRevenue: totalRevenue[0].revenue || 0
+          // Per-currency map replaces the old mixed-currency totalRevenue number.
+          totalRevenue: totalRevenueByCurrency,
+          totalRevenueByCurrency,
+          currencyCount: revenueByCurrency.length
         },
+        revenueByCurrency,
         businessesByPlan,
         recentBusinesses,
         monthlyRevenue
@@ -205,11 +223,24 @@ router.get('/businesses/:id', async (req, res) => {
       `SELECT 
         COUNT(*) as total,
         SUM(CASE WHEN Status = 'Delivered' THEN 1 ELSE 0 END) as delivered,
-        SUM(CASE WHEN Status = 'Pending' THEN 1 ELSE 0 END) as pending,
-        SUM(TotalAmount) as totalRevenue
+        SUM(CASE WHEN Status = 'Pending' THEN 1 ELSE 0 END) as pending
        FROM Orders WHERE BusinessId = ?`,
       [id]
     );
+
+    // Net (pre-tax) revenue per currency for this business.
+    const revenueByCurrencyRows = await query(
+      `SELECT o.Currency as currency, SUM(oi.Subtotal) as revenue, COUNT(DISTINCT o.OrderId) as orderCount
+       FROM Orders o JOIN OrderItems oi ON o.OrderId = oi.OrderId
+       WHERE o.BusinessId = ? GROUP BY o.Currency ORDER BY o.Currency ASC`,
+      [id]
+    );
+    const totalRevenueByCurrency = {};
+    const revenueByCurrency = revenueByCurrencyRows.map(row => {
+      const revenue = Math.round((parseFloat(row.revenue) || 0) * 100) / 100;
+      totalRevenueByCurrency[row.currency] = revenue;
+      return { currency: row.currency, revenue, orderCount: parseInt(row.orderCount, 10) || 0 };
+    });
 
     // Get recent orders for this business
     const recentOrders = await query(
@@ -244,8 +275,11 @@ router.get('/businesses/:id', async (req, res) => {
           orderCount: orderCount[0].count,
           deliveredOrders: orderStats[0].delivered,
           pendingOrders: orderStats[0].pending,
-          totalRevenue: orderStats[0].totalRevenue || 0
+          totalRevenue: totalRevenueByCurrency,
+          totalRevenueByCurrency,
+          currencyCount: revenueByCurrency.length
         },
+        revenueByCurrency,
         recentOrders,
         settings: settingsMap
       }

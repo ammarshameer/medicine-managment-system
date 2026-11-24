@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   FileCheck
 } from 'lucide-react';
+import { useTranslation } from '../i18n';
 
 const COUNTRY_DEFAULTS = {
   'United States': { currency: 'USD', taxEnabled: true, taxRate: 0.0825, locale: 'en-US', timezone: 'America/New_York', licenseAuthority: 'State Board of Pharmacy / DEA' },
@@ -24,7 +25,8 @@ const COUNTRY_DEFAULTS = {
 };
 
 export const SuperAdminBusinessForm = () => {
-  const { businessId } = useParams();
+  const { t } = useTranslation();
+const { businessId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isEdit = !!businessId;
@@ -248,7 +250,7 @@ export const SuperAdminBusinessForm = () => {
           className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4 font-semibold text-sm"
         >
           <ArrowLeft className="w-4 h-4" />
-          {isEdit ? 'Back to Business Details' : 'Back to Businesses'}
+          {isEdit ? t('Back to Business Details') : t('Back to Businesses')}
         </button>
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-blue-600 text-white rounded-xl shadow-md">
@@ -256,10 +258,10 @@ export const SuperAdminBusinessForm = () => {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              {isEdit ? `Edit Pharmacy Business #${businessId}` : 'Add New Pharmacy Business'}
+              {isEdit ? `Edit Pharmacy Business #${businessId}` : t('Add New Pharmacy Business')}
             </h1>
             <p className="text-gray-500 text-sm mt-0.5">
-              {isEdit ? 'Update business settings, regional tax, and licensing' : 'Provision a new pharmacy tenant configured for USA, UAE, or International market'}
+              {isEdit ? t('Update business settings, regional tax, and licensing') : t('Provision a new pharmacy tenant configured for USA, UAE, or International market')}
             </p>
           </div>
         </div>
@@ -271,14 +273,14 @@ export const SuperAdminBusinessForm = () => {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-5">
           <h2 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-3 flex items-center gap-2">
             <Building2 className="w-5 h-5 text-blue-600" />
-            Pharmacy & Owner Profile
+            {t('Pharmacy & Owner Profile')}
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Business Name */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                Business / Pharmacy Name *
+                {t('Business / Pharmacy Name *')}
               </label>
               <input
                 type="text"
@@ -288,7 +290,7 @@ export const SuperAdminBusinessForm = () => {
                 className={`w-full px-3.5 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 text-sm ${
                   errors.businessName ? 'border-red-500' : 'border-gray-300'
                 }`}
-                placeholder="e.g. Apex Health Pharmacy"
+                placeholder={t('e.g. Apex Health Pharmacy')}
               />
               {errors.businessName && <p className="text-red-500 text-xs mt-1">{errors.businessName}</p>}
             </div>
@@ -296,7 +298,7 @@ export const SuperAdminBusinessForm = () => {
             {/* Business Code */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                Business Code * {isEdit && <span className="text-gray-400 font-normal">(Locked)</span>}
+                {t('Business Code *')} {isEdit && <span className="text-gray-400 font-normal">{t('(Locked)')}</span>}
               </label>
               <input
                 type="text"
@@ -307,7 +309,7 @@ export const SuperAdminBusinessForm = () => {
                 className={`w-full px-3.5 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 text-sm disabled:bg-gray-100 uppercase font-mono font-bold ${
                   errors.businessCode ? 'border-red-500' : 'border-gray-300'
                 }`}
-                placeholder="e.g. APEX01"
+                placeholder={t('e.g. APEX01')}
               />
               {errors.businessCode && <p className="text-red-500 text-xs mt-1">{errors.businessCode}</p>}
             </div>
@@ -315,7 +317,7 @@ export const SuperAdminBusinessForm = () => {
             {/* Owner Name */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                Owner Name *
+                {t('Owner Name *')}
               </label>
               <input
                 type="text"
@@ -325,7 +327,7 @@ export const SuperAdminBusinessForm = () => {
                 className={`w-full px-3.5 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 text-sm ${
                   errors.ownerName ? 'border-red-500' : 'border-gray-300'
                 }`}
-                placeholder="e.g. Dr. Sarah Jenkins"
+                placeholder={t('e.g. Dr. Sarah Jenkins')}
               />
               {errors.ownerName && <p className="text-red-500 text-xs mt-1">{errors.ownerName}</p>}
             </div>
@@ -333,7 +335,7 @@ export const SuperAdminBusinessForm = () => {
             {/* Owner Email */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                Owner Email * {isEdit && <span className="text-gray-400 font-normal">(Login identifier)</span>}
+                {t('Owner Email *')} {isEdit && <span className="text-gray-400 font-normal">{t('(Login identifier)')}</span>}
               </label>
               <input
                 type="email"
@@ -344,7 +346,7 @@ export const SuperAdminBusinessForm = () => {
                 className={`w-full px-3.5 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 text-sm disabled:bg-gray-100 ${
                   errors.email ? 'border-red-500' : 'border-gray-300'
                 }`}
-                placeholder="sarah@apexhealth.com"
+                placeholder={t('sarah@apexhealth.com')}
               />
               {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
             </div>
@@ -352,7 +354,7 @@ export const SuperAdminBusinessForm = () => {
             {/* Phone */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                Phone Number *
+                {t('Phone Number *')}
               </label>
               <input
                 type="text"
@@ -362,7 +364,7 @@ export const SuperAdminBusinessForm = () => {
                 className={`w-full px-3.5 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 text-sm ${
                   errors.phone ? 'border-red-500' : 'border-gray-300'
                 }`}
-                placeholder="+1 555-0199 or +971 50 123 4567"
+                placeholder={t('+1 555-0199 or +971 50 123 4567')}
               />
               {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
             </div>
@@ -371,21 +373,21 @@ export const SuperAdminBusinessForm = () => {
             {!isEdit && (
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                  Initial Password
+                  {t('Initial Password')}
                 </label>
                 <div className="relative">
                   <input
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? t('text') : t('password')}
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className="w-full px-3.5 py-2.5 pr-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm"
-                    placeholder="Leave empty for auto-generated password"
+                    className="w-full px-3.5 py-2.5 pe-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm"
+                    placeholder={t('Leave empty for auto-generated password')}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute end-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -399,14 +401,14 @@ export const SuperAdminBusinessForm = () => {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-5">
           <h2 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-3 flex items-center gap-2">
             <Globe className="w-5 h-5 text-indigo-600" />
-            Market, Currency & Tax Engine Settings
+            {t('Market, Currency & Tax Engine Settings')}
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
             {/* Country Selector */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                Deployment Country *
+                {t('Deployment Country *')}
               </label>
               <select
                 name="country"
@@ -414,18 +416,18 @@ export const SuperAdminBusinessForm = () => {
                 onChange={handleCountryChange}
                 className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm bg-white font-semibold"
               >
-                <option value="United States">United States (USA)</option>
-                <option value="United Arab Emirates">United Arab Emirates (UAE)</option>
-                <option value="Pakistan">Pakistan</option>
-                <option value="Saudi Arabia">Saudi Arabia (KSA)</option>
-                <option value="United Kingdom">United Kingdom (UK)</option>
+                <option value="United States">{t('United States (USA)')}</option>
+                <option value="United Arab Emirates">{t('United Arab Emirates (UAE)')}</option>
+                <option value="Pakistan">{t('Pakistan')}</option>
+                <option value="Saudi Arabia">{t('Saudi Arabia (KSA)')}</option>
+                <option value="United Kingdom">{t('United Kingdom (UK)')}</option>
               </select>
             </div>
 
             {/* Currency Selector */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                Operating Currency *
+                {t('Operating Currency *')}
               </label>
               <select
                 name="currency"
@@ -433,19 +435,19 @@ export const SuperAdminBusinessForm = () => {
                 onChange={handleChange}
                 className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm bg-white font-bold"
               >
-                <option value="USD">USD ($) - US Dollar</option>
-                <option value="AED">AED - UAE Dirham</option>
-                <option value="PKR">PKR (Rs.) - Pakistani Rupee</option>
-                <option value="SAR">SAR - Saudi Riyal</option>
-                <option value="GBP">GBP (£) - British Pound</option>
-                <option value="EUR">EUR (€) - Euro</option>
+                <option value="USD">{t('USD ($) - US Dollar')}</option>
+                <option value="AED">{t('AED - UAE Dirham')}</option>
+                <option value="PKR">{t('PKR (Rs.) - Pakistani Rupee')}</option>
+                <option value="SAR">{t('SAR - Saudi Riyal')}</option>
+                <option value="GBP">{t('GBP (£) - British Pound')}</option>
+                <option value="EUR">{t('EUR (€) - Euro')}</option>
               </select>
             </div>
 
             {/* Master Tax Engine Toggle */}
             <div className="flex flex-col justify-center">
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                Tax Engine Status
+                {t('Tax Engine Status')}
               </label>
               <label className="flex items-center gap-2.5 cursor-pointer mt-1">
                 <input
@@ -456,7 +458,7 @@ export const SuperAdminBusinessForm = () => {
                   className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                 />
                 <span className="text-xs font-bold text-gray-800">
-                  {formData.taxEnabled ? 'Tax Engine Enabled' : 'Tax Exempt / Disabled'}
+                  {formData.taxEnabled ? t('Tax Engine Enabled') : t('Tax Exempt / Disabled')}
                 </span>
               </label>
             </div>
@@ -464,7 +466,7 @@ export const SuperAdminBusinessForm = () => {
             {/* Tax Rate */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                Standard Tax / VAT Rate (%)
+                {t('Standard Tax / VAT Rate (%)')}
               </label>
               <div className="relative">
                 <input
@@ -477,18 +479,18 @@ export const SuperAdminBusinessForm = () => {
                     const val = parseFloat(e.target.value) || 0;
                     setFormData(prev => ({ ...prev, taxRate: val / 100 }));
                   }}
-                  className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm font-bold pr-8"
-                  placeholder="e.g. 8.25 or 5.0"
+                  className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm font-bold pe-8"
+                  placeholder={t('e.g. 8.25 or 5.0')}
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-gray-400">%</span>
+                <span className="absolute end-3 top-1/2 -translate-y-1/2 font-bold text-gray-400">%</span>
               </div>
-              <p className="text-[11px] text-gray-400 mt-1">Decimal: {formData.taxRate}</p>
+              <p className="text-[11px] text-gray-400 mt-1">{t('Decimal:')} {formData.taxRate}</p>
             </div>
 
             {/* Tax Registration Number */}
             <div className="sm:col-span-2">
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                Tax ID / TRN / EIN
+                {t('Tax ID / TRN / EIN')}
               </label>
               <input
                 type="text"
@@ -496,7 +498,7 @@ export const SuperAdminBusinessForm = () => {
                 value={formData.taxRegistrationNumber}
                 onChange={handleChange}
                 className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm font-mono"
-                placeholder="e.g. 100-2345-6789 (UAE TRN) or 12-3456789 (US EIN)"
+                placeholder={t('e.g. 100-2345-6789 (UAE TRN) or 12-3456789 (US EIN)')}
               />
             </div>
           </div>
@@ -506,14 +508,14 @@ export const SuperAdminBusinessForm = () => {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-5">
           <h2 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-3 flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-green-600" />
-            Regulatory Compliance & Pharmacy Credentials
+            {t('Regulatory Compliance & Pharmacy Credentials')}
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {/* Pharmacist-in-Charge */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                Pharmacist-In-Charge (PIC)
+                {t('Pharmacist-In-Charge (PIC)')}
               </label>
               <input
                 type="text"
@@ -521,14 +523,14 @@ export const SuperAdminBusinessForm = () => {
                 value={formData.pharmacistInChargeName}
                 onChange={handleChange}
                 className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm"
-                placeholder="e.g. Pharm. Robert Smith, RPh"
+                placeholder={t('e.g. Pharm. Robert Smith, RPh')}
               />
             </div>
 
             {/* Pharmacy License Number */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                Pharmacy License #
+                {t('Pharmacy License #')}
               </label>
               <input
                 type="text"
@@ -536,14 +538,14 @@ export const SuperAdminBusinessForm = () => {
                 value={formData.licenseNumber}
                 onChange={handleChange}
                 className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm font-mono"
-                placeholder="e.g. PH-99238-US or DHA-PH-4412"
+                placeholder={t('e.g. PH-99238-US or DHA-PH-4412')}
               />
             </div>
 
             {/* Licensing Authority */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                Licensing Authority
+                {t('Licensing Authority')}
               </label>
               <input
                 type="text"
@@ -551,7 +553,7 @@ export const SuperAdminBusinessForm = () => {
                 value={formData.licenseAuthority}
                 onChange={handleChange}
                 className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm"
-                placeholder="e.g. State Board of Pharmacy, DEA, DHA, MOHAP"
+                placeholder={t('e.g. State Board of Pharmacy, DEA, DHA, MOHAP')}
               />
             </div>
           </div>
@@ -561,14 +563,14 @@ export const SuperAdminBusinessForm = () => {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-5">
           <h2 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-3 flex items-center gap-2">
             <FileCheck className="w-5 h-5 text-gray-600" />
-            Address & Subscription Plan
+            {t('Address & Subscription Plan')}
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {/* Address */}
             <div className="md:col-span-3">
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                Street Address
+                {t('Street Address')}
               </label>
               <input
                 type="text"
@@ -576,14 +578,14 @@ export const SuperAdminBusinessForm = () => {
                 value={formData.address}
                 onChange={handleChange}
                 className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm"
-                placeholder="123 Medical Center Blvd, Suite 100"
+                placeholder={t('123 Medical Center Blvd, Suite 100')}
               />
             </div>
 
             {/* City */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                City
+                {t('City')}
               </label>
               <input
                 type="text"
@@ -591,14 +593,14 @@ export const SuperAdminBusinessForm = () => {
                 value={formData.city}
                 onChange={handleChange}
                 className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm"
-                placeholder="e.g. Houston or Dubai"
+                placeholder={t('e.g. Houston or Dubai')}
               />
             </div>
 
             {/* State */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                State / Emirate / Province
+                {t('State / Emirate / Province')}
               </label>
               <input
                 type="text"
@@ -606,14 +608,14 @@ export const SuperAdminBusinessForm = () => {
                 value={formData.state}
                 onChange={handleChange}
                 className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm"
-                placeholder="e.g. Texas or Dubai"
+                placeholder={t('e.g. Texas or Dubai')}
               />
             </div>
 
             {/* Subscription Plan */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                Subscription Plan
+                {t('Subscription Plan')}
               </label>
               <select
                 name="subscriptionPlan"
@@ -621,9 +623,9 @@ export const SuperAdminBusinessForm = () => {
                 onChange={handleChange}
                 className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm bg-white font-semibold"
               >
-                <option value="Free">Free</option>
-                <option value="Basic">Basic</option>
-                <option value="Premium">Premium (Enterprise)</option>
+                <option value="Free">{t('Free')}</option>
+                <option value="Basic">{t('Basic')}</option>
+                <option value="Premium">{t('Premium (Enterprise)')}</option>
               </select>
             </div>
           </div>
@@ -636,7 +638,7 @@ export const SuperAdminBusinessForm = () => {
             onClick={() => isEdit ? navigate(`/super-admin/businesses/${businessId}`) : navigate('/super-admin/businesses')}
             className="px-6 py-2.5 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 text-sm font-semibold transition-colors"
           >
-            Cancel
+            {t('Cancel')}
           </button>
           <button
             type="submit"
@@ -646,12 +648,12 @@ export const SuperAdminBusinessForm = () => {
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Saving...
+                {t('Saving...')}
               </>
             ) : (
               <>
                 <Save className="w-4 h-4" />
-                {isEdit ? 'Update Business' : 'Provision Pharmacy'}
+                {isEdit ? t('Update Business') : t('Provision Pharmacy')}
               </>
             )}
           </button>

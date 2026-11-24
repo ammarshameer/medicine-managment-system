@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');
 const { query: dbQuery } = require('../config/database');
 const { authenticateToken, requireTenant, requireBusinessAccess } = require('../middleware/auth');
+const { isValidPhone } = require('../utils/validators');
 const { uploadSingle } = require('../middleware/upload');
 const router = express.Router();
 
@@ -54,7 +55,10 @@ router.get('/profile', authenticateToken, requireTenant, async (req, res) => {
 // Update user profile (with tenant filtering)
 router.put('/profile', authenticateToken, requireTenant, [
   body('name').optional().trim().isLength({ min: 2, max: 100 }).withMessage('Name must be between 2 and 100 characters'),
-  body('phone').optional().isMobilePhone('any').withMessage('Valid phone number required')
+  body('phone').optional().custom((value) => {
+    if (!isValidPhone(value)) throw new Error('Valid phone number required');
+    return true;
+  })
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

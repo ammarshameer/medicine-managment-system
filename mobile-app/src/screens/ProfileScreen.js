@@ -8,25 +8,40 @@ import {
   ScrollView
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../contexts/I18nContext';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const ProfileScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
+  const { t, language, isRTL, toggleLanguage } = useI18n();
   const business = user?.business;
 
+  const handleToggleLanguage = () => {
+    toggleLanguage();
+    // forceRTL updates native layout direction; mounted screens may need a reload.
+    Alert.alert(t('languageUpdated'), t('languageNote'));
+  };
+
   const menuItems = [
-    { id: 4, title: 'Order History', icon: 'history', onPress: () => navigation.navigate('Orders') },
-    { id: 5, title: 'Prescriptions', icon: 'description', onPress: () => navigation.navigate('Prescriptions') },
-    { id: 7, title: 'Help & Support', icon: 'help', onPress: () => {} },
+    {
+      id: 1,
+      title: t('language'),
+      value: language === 'ar' ? 'العربية' : 'English',
+      icon: 'language',
+      onPress: handleToggleLanguage,
+    },
+    { id: 4, title: t('orderHistory'), icon: 'history', onPress: () => navigation.navigate('Orders') },
+    { id: 5, title: t('prescriptions'), icon: 'description', onPress: () => navigation.navigate('Prescription') },
+    { id: 7, title: t('helpSupport'), icon: 'help', onPress: () => {} },
   ];
 
   const handleLogout = () => {
     Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
+      t('logout'),
+      t('logoutConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Logout', onPress: logout },
+        { text: t('cancel'), style: 'cancel' },
+        { text: t('logout'), onPress: logout },
       ]
     );
   };
@@ -35,7 +50,8 @@ const ProfileScreen = ({ navigation }) => {
     <TouchableOpacity style={styles.menuItem} onPress={item.onPress}>
       <Icon name={item.icon} size={24} color="#666" />
       <Text style={styles.menuText}>{item.title}</Text>
-      <Icon name="chevron-right" size={20} color="#ccc" />
+      {item.value && <Text style={styles.menuValue}>{item.value}</Text>}
+      <Icon name={isRTL ? 'chevron-left' : 'chevron-right'} size={20} color="#ccc" />
     </TouchableOpacity>
   );
 
@@ -47,7 +63,7 @@ const ProfileScreen = ({ navigation }) => {
             <Icon name="person" size={40} color="#fff" />
           </View>
           <View style={styles.userInfo}>
-            <Text style={styles.userName}>{user?.name || 'Patient'}</Text>
+            <Text style={styles.userName}>{user?.name || t('patient')}</Text>
             <Text style={styles.userEmail}>{user?.email || 'patient@example.com'}</Text>
             {user?.emiratesId && (
               <View style={styles.idBadge}>
@@ -68,7 +84,7 @@ const ProfileScreen = ({ navigation }) => {
         <View style={styles.pharmacyCard}>
           <View style={styles.pharmacyCardHeader}>
             <Icon name="local-pharmacy" size={20} color="#1976d2" />
-            <Text style={styles.pharmacyTitle}>Assigned Pharmacy</Text>
+            <Text style={styles.pharmacyTitle}>{t('assignedPharmacy')}</Text>
             <View style={styles.countryTag}>
               <Text style={styles.countryTagText}>{business.country || 'USA'} ({business.currency || 'USD'})</Text>
             </View>
@@ -80,19 +96,19 @@ const ProfileScreen = ({ navigation }) => {
           <View style={styles.pharmacyDetails}>
             {business.pharmacistInChargeName && (
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Pharmacist-In-Charge:</Text>
+                <Text style={styles.detailLabel}>{t('pharmacistInCharge')}</Text>
                 <Text style={styles.detailValue}>{business.pharmacistInChargeName}</Text>
               </View>
             )}
             {business.licenseNumber && (
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Pharmacy License #:</Text>
+                <Text style={styles.detailLabel}>{t('pharmacyLicense')}</Text>
                 <Text style={styles.detailValue}>{business.licenseNumber}</Text>
               </View>
             )}
             {business.taxRegistrationNumber && (
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Tax ID / TRN:</Text>
+                <Text style={styles.detailLabel}>{t('taxId')}</Text>
                 <Text style={styles.detailValue}>{business.taxRegistrationNumber}</Text>
               </View>
             )}
@@ -110,7 +126,7 @@ const ProfileScreen = ({ navigation }) => {
       {/* Logout Button */}
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Icon name="logout" size={22} color="#f44336" />
-        <Text style={styles.logoutText}>Log Out</Text>
+        <Text style={styles.logoutText}>{t('logout')}</Text>
       </TouchableOpacity>
       <View style={{ height: 30 }} />
     </ScrollView>
@@ -261,6 +277,12 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#334155',
     marginLeft: 12,
+  },
+  menuValue: {
+    fontSize: 13,
+    color: '#1976d2',
+    fontWeight: 'bold',
+    marginRight: 8,
   },
   logoutButton: {
     flexDirection: 'row',

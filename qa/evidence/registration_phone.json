@@ -1,0 +1,10 @@
+{
+  "international": {
+    "status": 201,
+    "storedPhone": "+92300000002"
+  },
+  "invalid": {
+    "status": 400,
+    "message": "Validation errors"
+  }
+}

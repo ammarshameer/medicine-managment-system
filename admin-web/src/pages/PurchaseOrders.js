@@ -12,14 +12,15 @@ import {
   Ban,
   PackageCheck,
   Trash2,
-  AlertTriangle,
   Loader2,
   X
 } from 'lucide-react';
 import { useCurrency } from '../utils/formatCurrency';
+import { useTranslation } from '../i18n';
 
 export const PurchaseOrders = () => {
-  const { currency, format } = useCurrency();
+  const { t } = useTranslation();
+const { currency, format } = useCurrency();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -192,6 +193,7 @@ export const PurchaseOrders = () => {
     });
   };
 
+  // eslint-disable-next-line no-unused-vars
   const openDetailsModal = (id) => {
     setSelectedPOId(id);
     setDetailsModalOpen(true);
@@ -204,33 +206,33 @@ export const PurchaseOrders = () => {
   };
 
   const getStatusBadge = (status) => {
-    switch (status) {
+switch (status) {
       case 'Received':
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-            <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-green-600" />
-            Received
+            <CheckCircle2 className="w-3.5 h-3.5 me-1 text-green-600" />
+            {t('Received')}
           </span>
         );
       case 'Ordered':
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-            <Clock className="w-3.5 h-3.5 mr-1 text-blue-600" />
-            Ordered
+            <Clock className="w-3.5 h-3.5 me-1 text-blue-600" />
+            {t('Ordered')}
           </span>
         );
       case 'Draft':
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
-            <ClipboardList className="w-3.5 h-3.5 mr-1 text-amber-600" />
-            Draft
+            <ClipboardList className="w-3.5 h-3.5 me-1 text-amber-600" />
+            {t('Draft')}
           </span>
         );
       case 'Cancelled':
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800">
-            <Ban className="w-3.5 h-3.5 mr-1 text-red-600" />
-            Cancelled
+            <Ban className="w-3.5 h-3.5 me-1 text-red-600" />
+            {t('Cancelled')}
           </span>
         );
       default:
@@ -247,10 +249,10 @@ export const PurchaseOrders = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <ClipboardList className="w-7 h-7 text-blue-600" />
-            Purchase Orders & Stock In
+            {t('Purchase Orders & Stock In')}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Create vendor procurement orders, track deliveries, and atomically receive inventory with weighted cost averaging
+            {t('Create vendor procurement orders, track deliveries, and atomically receive inventory with weighted cost averaging')}
           </p>
         </div>
         <button
@@ -260,36 +262,36 @@ export const PurchaseOrders = () => {
           }}
           className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-lg shadow-sm transition-colors"
         >
-          <Plus className="w-4 h-4 mr-1.5" />
-          Create Purchase Order
+          <Plus className="w-4 h-4 me-1.5" />
+          {t('Create Purchase Order')}
         </button>
       </div>
 
       {/* Filters and search */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col sm:flex-row gap-3 justify-between items-center">
         <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-gray-400 absolute start-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search PO number or vendor..."
+            placeholder={t('Search PO number or vendor...')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            className="w-full ps-9 pe-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
           />
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <span className="text-xs text-gray-500 font-medium">Status:</span>
+          <span className="text-xs text-gray-500 font-medium">{t('Status:')}</span>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="text-xs border border-gray-300 rounded-lg px-3 py-2 bg-white outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="all">All Statuses</option>
-            <option value="Ordered">Ordered</option>
-            <option value="Draft">Draft</option>
-            <option value="Received">Received</option>
-            <option value="Cancelled">Cancelled</option>
+            <option value="all">{t('All Statuses')}</option>
+            <option value="Ordered">{t('Ordered')}</option>
+            <option value="Draft">{t('Draft')}</option>
+            <option value="Received">{t('Received')}</option>
+            <option value="Cancelled">{t('Cancelled')}</option>
           </select>
         </div>
       </div>
@@ -303,21 +305,21 @@ export const PurchaseOrders = () => {
         ) : purchaseOrders.length === 0 ? (
           <div className="text-center py-16 text-gray-500">
             <ClipboardList className="w-12 h-12 mx-auto text-gray-300 mb-2" />
-            <p className="text-base font-semibold">No purchase orders found</p>
-            <p className="text-xs text-gray-400 mt-1">Create a purchase order to restock your pharmacy catalog</p>
+            <p className="text-base font-semibold">{t('No purchase orders found')}</p>
+            <p className="text-xs text-gray-400 mt-1">{t('Create a purchase order to restock your pharmacy catalog')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-left text-sm">
+            <table className="min-w-full divide-y divide-gray-200 text-start text-sm">
               <thead className="bg-gray-50 text-xs font-semibold uppercase text-gray-500">
                 <tr>
-                  <th className="px-6 py-3">PO Number</th>
-                  <th className="px-6 py-3">Vendor / Supplier</th>
-                  <th className="px-6 py-3">Order Date</th>
-                  <th className="px-6 py-3">Total Amount</th>
-                  <th className="px-6 py-3">Items</th>
-                  <th className="px-6 py-3">Status</th>
-                  <th className="px-6 py-3 text-right">Actions</th>
+                  <th className="px-6 py-3">{t('PO Number')}</th>
+                  <th className="px-6 py-3">{t('Vendor / Supplier')}</th>
+                  <th className="px-6 py-3">{t('Order Date')}</th>
+                  <th className="px-6 py-3">{t('Total Amount')}</th>
+                  <th className="px-6 py-3">{t('Items')}</th>
+                  <th className="px-6 py-3">{t('Status')}</th>
+                  <th className="px-6 py-3 text-end">{t('Actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -337,19 +339,19 @@ export const PurchaseOrders = () => {
                       {format(po.totalAmount)}
                     </td>
                     <td className="px-6 py-4 text-xs text-gray-600">
-                      {po.itemCount} items
+                      {po.itemCount} {t('items')}
                     </td>
                     <td className="px-6 py-4">
                       {getStatusBadge(po.status)}
                     </td>
-                    <td className="px-6 py-4 text-right space-x-2">
+                    <td className="px-6 py-4 text-end gap-2">
                       <button
                         onClick={() => {
                           setSelectedPOId(po.id);
                           setDetailsModalOpen(true);
                         }}
                         className="p-1.5 text-blue-600 hover:text-blue-800 rounded hover:bg-blue-50"
-                        title="View Details"
+                        title={t('View Details')}
                       >
                         <Eye className="w-4 h-4" />
                       </button>
@@ -359,7 +361,7 @@ export const PurchaseOrders = () => {
                           onClick={() => receiveMutation.mutate(po.id)}
                           disabled={receiveMutation.isLoading}
                           className="p-1.5 text-green-600 hover:text-green-800 rounded hover:bg-green-50"
-                          title="Receive & Add to Stock"
+                          title={t('Receive & Add to Stock')}
                         >
                           <PackageCheck className="w-4 h-4" />
                         </button>
@@ -370,7 +372,7 @@ export const PurchaseOrders = () => {
                           onClick={() => cancelMutation.mutate(po.id)}
                           disabled={cancelMutation.isLoading}
                           className="p-1.5 text-red-600 hover:text-red-800 rounded hover:bg-red-50"
-                          title="Cancel Order"
+                          title={t('Cancel Order')}
                         >
                           <Ban className="w-4 h-4" />
                         </button>
@@ -389,7 +391,7 @@ export const PurchaseOrders = () => {
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <h3 className="text-lg font-bold text-gray-900">Create Purchase Order</h3>
+              <h3 className="text-lg font-bold text-gray-900">{t('Create Purchase Order')}</h3>
               <button onClick={() => setCreateModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
               </button>
@@ -398,14 +400,14 @@ export const PurchaseOrders = () => {
             <form onSubmit={handleCreateSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1">Select Vendor *</label>
+                  <label className="text-xs font-semibold text-gray-700 block mb-1">{t('Select Vendor *')}</label>
                   <select
                     required
                     value={formData.vendorId}
                     onChange={(e) => setFormData({ ...formData, vendorId: e.target.value })}
                     className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   >
-                    <option value="">-- Choose Vendor --</option>
+                    <option value="">{t('-- Choose Vendor --')}</option>
                     {vendorsData?.map(v => (
                       <option key={v.id} value={v.id}>{v.name} ({v.contactPerson || v.phone})</option>
                     ))}
@@ -413,7 +415,7 @@ export const PurchaseOrders = () => {
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1">Order Date *</label>
+                  <label className="text-xs font-semibold text-gray-700 block mb-1">{t('Order Date *')}</label>
                   <input
                     type="date"
                     required
@@ -427,13 +429,13 @@ export const PurchaseOrders = () => {
               {/* Line Items */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold text-gray-800">Order Items (Procurement)</label>
+                  <label className="text-xs font-bold text-gray-800">{t('Order Items (Procurement)')}</label>
                   <button
                     type="button"
                     onClick={addItemRow}
                     className="text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1"
                   >
-                    <Plus className="w-3.5 h-3.5" /> Add Medicine
+                    <Plus className="w-3.5 h-3.5" /> {t('Add Medicine')}
                   </button>
                 </div>
 
@@ -447,9 +449,9 @@ export const PurchaseOrders = () => {
                           onChange={(e) => handleItemChange(idx, 'medicineId', e.target.value)}
                           className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                         >
-                          <option value="">-- Select Medicine --</option>
+                          <option value="">{t('-- Select Medicine --')}</option>
                           {medicinesData?.map(m => (
-                            <option key={m.id} value={m.id}>{m.name} (Stock: {m.stock})</option>
+                            <option key={m.id} value={m.id}>{m.name} {t('(Stock:')} {m.stock})</option>
                           ))}
                         </select>
                       </div>
@@ -459,7 +461,7 @@ export const PurchaseOrders = () => {
                           type="number"
                           min="1"
                           required
-                          placeholder="Qty"
+                          placeholder={t('Qty')}
                           value={item.quantity}
                           onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
                           className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg text-center outline-none focus:ring-2 focus:ring-blue-500 font-semibold"
@@ -468,21 +470,21 @@ export const PurchaseOrders = () => {
 
                       <div className="w-32">
                         <div className="relative">
-                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 font-bold">{currency}</span>
+                          <span className="absolute start-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 font-bold">{currency}</span>
                           <input
                             type="number"
                             step="0.01"
                             min="0.01"
                             required
-                            placeholder="UnitCost"
+                            placeholder={t('UnitCost')}
                             value={item.unitCost}
                             onChange={(e) => handleItemChange(idx, 'unitCost', e.target.value)}
-                            className="w-full pl-8 pr-2 py-1.5 text-xs border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-bold text-right"
+                            className="w-full ps-8 pe-2 py-1.5 text-xs border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-bold text-end"
                           />
                         </div>
                       </div>
 
-                      <div className="w-24 text-right text-xs font-bold text-gray-800">
+                      <div className="w-24 text-end text-xs font-bold text-gray-800">
                         {format((item.quantity || 0) * (item.unitCost || 0))}
                       </div>
 
@@ -498,15 +500,15 @@ export const PurchaseOrders = () => {
                 </div>
 
                 <div className="flex justify-end p-2 bg-blue-50 rounded-lg text-xs font-bold text-blue-950">
-                  <span>Total Procurement Amount: {format(formData.items.reduce((sum, i) => sum + ((i.quantity || 0) * (i.unitCost || 0)), 0))}</span>
+                  <span>{t('Total Procurement Amount:')} {format(formData.items.reduce((sum, i) => sum + ((i.quantity || 0) * (i.unitCost || 0)), 0))}</span>
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-gray-700 block mb-1">Procurement Notes</label>
+                <label className="text-xs font-semibold text-gray-700 block mb-1">{t('Procurement Notes')}</label>
                 <textarea
                   rows="2"
-                  placeholder="e.g. Expected delivery by Tuesday, batch # required on invoice..."
+                  placeholder={t('e.g. Expected delivery by Tuesday, batch # required on invoice...')}
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
@@ -519,7 +521,7 @@ export const PurchaseOrders = () => {
                   onClick={() => setCreateModalOpen(false)}
                   className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-lg"
                 >
-                  Cancel
+                  {t('Cancel')}
                 </button>
                 <button
                   type="submit"
@@ -527,7 +529,7 @@ export const PurchaseOrders = () => {
                   className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm disabled:bg-gray-400 flex items-center gap-1.5"
                 >
                   {createMutation.isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Create Purchase Order
+                  {t('Create Purchase Order')}
                 </button>
               </div>
             </form>
@@ -542,7 +544,7 @@ export const PurchaseOrders = () => {
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <div>
                 <span className="text-xs font-mono font-bold text-blue-700 block">{poDetailsData?.orderNumber}</span>
-                <h3 className="text-lg font-bold text-gray-900">Purchase Order Details</h3>
+                <h3 className="text-lg font-bold text-gray-900">{t('Purchase Order Details')}</h3>
               </div>
               <button onClick={() => setDetailsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
@@ -558,32 +560,32 @@ export const PurchaseOrders = () => {
                 {/* Meta info grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-gray-50 p-3 rounded-xl border border-gray-200 text-xs">
                   <div>
-                    <span className="text-gray-500 block">Vendor:</span>
+                    <span className="text-gray-500 block">{t('Vendor:')}</span>
                     <span className="font-bold text-gray-900">{poDetailsData.vendorName}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500 block">Order Date:</span>
+                    <span className="text-gray-500 block">{t('Order Date:')}</span>
                     <span className="font-bold text-gray-900">{new Date(poDetailsData.orderDate).toLocaleDateString()}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500 block">Status:</span>
+                    <span className="text-gray-500 block">{t('Status:')}</span>
                     <div className="mt-0.5">{getStatusBadge(poDetailsData.status)}</div>
                   </div>
                   <div>
-                    <span className="text-gray-500 block">Created By:</span>
-                    <span className="font-bold text-gray-900">{poDetailsData.creatorName || 'Owner'}</span>
+                    <span className="text-gray-500 block">{t('Created By:')}</span>
+                    <span className="font-bold text-gray-900">{poDetailsData.creatorName || t('Owner')}</span>
                   </div>
                 </div>
 
                 {/* Line Items Table */}
                 <div className="border border-gray-200 rounded-xl overflow-hidden">
-                  <table className="min-w-full divide-y divide-gray-200 text-left text-xs">
+                  <table className="min-w-full divide-y divide-gray-200 text-start text-xs">
                     <thead className="bg-gray-50 font-semibold uppercase text-gray-500">
                       <tr>
-                        <th className="px-4 py-2.5">Medicine</th>
-                        <th className="px-4 py-2.5 text-center">Ordered Qty</th>
-                        <th className="px-4 py-2.5 text-right">Vendor Unit Cost</th>
-                        <th className="px-4 py-2.5 text-right">Line Subtotal</th>
+                        <th className="px-4 py-2.5">{t('Medicine')}</th>
+                        <th className="px-4 py-2.5 text-center">{t('Ordered Qty')}</th>
+                        <th className="px-4 py-2.5 text-end">{t('Vendor Unit Cost')}</th>
+                        <th className="px-4 py-2.5 text-end">{t('Line Subtotal')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -591,8 +593,8 @@ export const PurchaseOrders = () => {
                         <tr key={item.id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 font-semibold text-gray-900">{item.medicineName}</td>
                           <td className="px-4 py-3 text-center">{item.quantity}</td>
-                          <td className="px-4 py-3 text-right font-mono">{format(item.unitCost)}</td>
-                          <td className="px-4 py-3 text-right font-mono font-bold text-gray-900">
+                          <td className="px-4 py-3 text-end font-mono">{format(item.unitCost)}</td>
+                          <td className="px-4 py-3 text-end font-mono font-bold text-gray-900">
                             {format(item.subtotal)}
                           </td>
                         </tr>
@@ -600,8 +602,8 @@ export const PurchaseOrders = () => {
                     </tbody>
                     <tfoot className="bg-gray-50 font-bold border-t border-gray-200">
                       <tr>
-                        <td colSpan="3" className="px-4 py-2.5 text-right uppercase">Total Purchase Amount:</td>
-                        <td className="px-4 py-2.5 text-right text-blue-900 font-bold font-mono">
+                        <td colSpan="3" className="px-4 py-2.5 text-end uppercase">{t('Total Purchase Amount:')}</td>
+                        <td className="px-4 py-2.5 text-end text-blue-900 font-bold font-mono">
                           {format(poDetailsData.totalAmount)}
                         </td>
                       </tr>
@@ -611,7 +613,7 @@ export const PurchaseOrders = () => {
 
                 {poDetailsData.notes && (
                   <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs">
-                    <span className="font-bold text-gray-700 block mb-0.5">Notes:</span>
+                    <span className="font-bold text-gray-700 block mb-0.5">{t('Notes:')}</span>
                     <p className="text-gray-600">{poDetailsData.notes}</p>
                   </div>
                 )}
@@ -628,7 +630,7 @@ export const PurchaseOrders = () => {
                         }}
                         className="px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg"
                       >
-                        Cancel Order
+                        {t('Cancel Order')}
                       </button>
                     )}
                   </div>
@@ -640,14 +642,14 @@ export const PurchaseOrders = () => {
                         className="px-4 py-2 text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg shadow-sm flex items-center gap-1.5"
                       >
                         {receiveMutation.isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <PackageCheck className="w-4 h-4" />}
-                        Receive Order into Inventory
+                        {t('Receive Order into Inventory')}
                       </button>
                     )}
                     <button
                       onClick={() => setDetailsModalOpen(false)}
                       className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-lg"
                     >
-                      Close
+                      {t('Close')}
                     </button>
                   </div>
                 </div>

@@ -1,0 +1,74 @@
+{
+  "T12": {
+    "saleStatus": 201,
+    "stockBefore": 50,
+    "stockAfter": 48,
+    "inventoryRowsAdded": 1,
+    "orderItems": [
+      {
+        "CostPrice": "0.00",
+        "Subtotal": "60.00"
+      }
+    ],
+    "oversellStatus": 400,
+    "oversellMessage": "Insufficient stock for \"QA Normal Item\". Available: 48, Requested: 9999",
+    "stockUnchangedAfterOversell": true
+  },
+  "T14": {
+    "first": {
+      "poStatus": 201,
+      "receiveStatus": 200,
+      "message": "Purchase order #PO-20261124-8498 received successfully. Inventory and average costs updated."
+    },
+    "second": {
+      "poStatus": 201,
+      "receiveStatus": 200,
+      "message": "Purchase order #PO-20261124-5758 received successfully. Inventory and average costs updated."
+    },
+    "doubleReceive": {
+      "status": 400,
+      "message": "This purchase order has already been received"
+    },
+    "stockAfterReceipts": 20,
+    "averageCostAfterReceipts": 6
+  },
+  "T7": {
+    "beforeReceipts": [
+      {
+        "CostPrice": "0.00",
+        "Subtotal": "60.00"
+      }
+    ],
+    "afterReceipts": [
+      {
+        "CostPrice": "0.00"
+      }
+    ],
+    "currentAverageCost": 1.03,
+    "costChange": {
+      "poStatus": 201,
+      "receiveStatus": 200
+    }
+  },
+  "T13": {
+    "stockBefore": 1,
+    "statuses": [
+      201,
+      400
+    ],
+    "stockAfter": 0
+  },
+  "T15": {
+    "orderStatus": 201,
+    "orderId": 14,
+    "cancelStatus": 200,
+    "stockBeforeCancel": 58,
+    "stockAfterOrder": 56,
+    "stockAfterCancel": 58,
+    "logRowsAdded": 2
+  },
+  "R6": {
+    "lowStockMedicines": 1,
+    "status": 200
+  }
+}

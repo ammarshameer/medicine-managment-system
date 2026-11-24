@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Pill, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { useTranslation } from '../i18n';
 
 export const Login = () => {
-  const [formData, setFormData] = useState({
+  const { t } = useTranslation();
+const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
@@ -41,16 +43,16 @@ export const Login = () => {
       <div className="max-w-md w-full space-y-8">
         <div>
           <div className="flex justify-center">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2">
               <Pill className="h-8 w-8 text-primary-600" />
-              <h1 className="text-2xl font-bold text-gray-900">MMS Admin</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{t('MMS Admin')}</h1>
             </div>
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
+            {t('Sign in to your account')}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Medicine Management System Admin Panel
+            {t('Medicine Management System Admin Panel')}
           </p>
         </div>
         
@@ -58,7 +60,7 @@ export const Login = () => {
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="email" className="sr-only">
-                Email address
+                {t('Email address')}
               </label>
               <input
                 id="email"
@@ -67,29 +69,29 @@ export const Login = () => {
                 autoComplete="email"
                 required
                 className="relative block w-full appearance-none rounded-none rounded-t-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-primary-500 focus:outline-none focus:ring-primary-500 sm:text-sm"
-                placeholder="Email address"
+                placeholder={t('Email address')}
                 value={formData.email}
                 onChange={handleChange}
               />
             </div>
             <div className="relative">
               <label htmlFor="password" className="sr-only">
-                Password
+                {t('Password')}
               </label>
               <input
                 id="password"
                 name="password"
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? t('text') : t('password')}
                 autoComplete="current-password"
                 required
-                className="relative block w-full appearance-none rounded-none rounded-b-md border border-gray-300 px-3 py-2 pr-10 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-primary-500 focus:outline-none focus:ring-primary-500 sm:text-sm"
-                placeholder="Password"
+                className="relative block w-full appearance-none rounded-none rounded-b-md border border-gray-300 px-3 py-2 pe-10 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-primary-500 focus:outline-none focus:ring-primary-500 sm:text-sm"
+                placeholder={t('Password')}
                 value={formData.password}
                 onChange={handleChange}
               />
               <button
                 type="button"
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                className="absolute inset-y-0 end-0 pe-3 flex items-center"
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? (
@@ -109,18 +111,18 @@ export const Login = () => {
             >
               {loading ? (
                 <>
-                  <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
-                  Signing in...
+                  <Loader2 className="animate-spin -ms-1 me-3 h-5 w-5 text-white" />
+                  {t('Signing in...')}
                 </>
               ) : (
-                'Sign in'
+                t('Sign in')
               )}
             </button>
           </div>
 
           <div className="text-center">
             <p className="text-sm text-gray-600">
-              Demo credentials: admin@mms.com / admin123
+              {t('Demo credentials: admin@mms.com / admin123')}
             </p>
           </div>
         </form>

@@ -8,6 +8,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { useCurrency } from '../utils/formatCurrency';
+import { useTranslation } from '../i18n';
 
 const isoStart = (d) => `${d}T00:00:00`;
 const isoEnd = (d) => `${d}T23:59:59`;
@@ -20,7 +21,8 @@ const defaultStart = () => {
 const defaultEnd = () => new Date().toISOString().slice(0, 10);
 
 export const Reports = () => {
-  const { format, currency } = useCurrency();
+  const { t } = useTranslation();
+const { format, currency } = useCurrency();
   const [startDate, setStartDate] = useState(defaultStart());
   const [endDate, setEndDate] = useState(defaultEnd());
   const [range, setRange] = useState({ start: defaultStart(), end: defaultEnd() });
@@ -50,13 +52,13 @@ export const Reports = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900">Reports</h1>
-        <p className="mt-1 text-sm text-gray-600">Sales analytics for delivered orders ({currency})</p>
+        <h1 className="text-2xl font-semibold text-gray-900">{t('Reports')}</h1>
+        <p className="mt-1 text-sm text-gray-600">{t('Sales analytics for delivered orders (')}{currency})</p>
       </div>
 
       <form onSubmit={applyRange} className="bg-white shadow rounded-lg p-4 flex flex-wrap items-end gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Start date</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('Start date')}</label>
           <input
             type="date"
             value={startDate}
@@ -65,7 +67,7 @@ export const Reports = () => {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">End date</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('End date')}</label>
           <input
             type="date"
             value={endDate}
@@ -77,7 +79,7 @@ export const Reports = () => {
           type="submit"
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
-          Apply
+          {t('Apply')}
         </button>
       </form>
 
@@ -87,14 +89,14 @@ export const Reports = () => {
         </div>
       ) : isError ? (
         <div className="bg-white shadow rounded-lg p-6 text-center text-red-600">
-          Failed to load report. Please adjust the date range and try again.
+          {t('Failed to load report. Please adjust the date range and try again.')}
         </div>
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white shadow rounded-lg p-6 flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Net Revenue</p>
+                <p className="text-sm font-medium text-gray-600">{t('Total Net Revenue')}</p>
                 <p className="text-2xl font-semibold text-gray-900 mt-2">{format(totalRevenue)}</p>
               </div>
               <div className="p-3 bg-yellow-500 rounded-full">
@@ -103,7 +105,7 @@ export const Reports = () => {
             </div>
             <div className="bg-white shadow rounded-lg p-6 flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Orders</p>
+                <p className="text-sm font-medium text-gray-600">{t('Total Orders')}</p>
                 <p className="text-2xl font-semibold text-gray-900 mt-2">{totalOrders}</p>
               </div>
               <div className="p-3 bg-green-500 rounded-full">
@@ -113,16 +115,16 @@ export const Reports = () => {
           </div>
 
           <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Top Selling Medicines</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">{t('Top Selling Medicines')}</h3>
             {topMedicines.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-6">No sales in this period.</p>
+              <p className="text-sm text-gray-500 text-center py-6">{t('No sales in this period.')}</p>
             ) : (
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Medicine</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Units Sold</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Revenue</th>
+                    <th className="px-4 py-2 text-start text-xs font-medium text-gray-500 uppercase">{t('Medicine')}</th>
+                    <th className="px-4 py-2 text-start text-xs font-medium text-gray-500 uppercase">{t('Units Sold')}</th>
+                    <th className="px-4 py-2 text-start text-xs font-medium text-gray-500 uppercase">{t('Revenue')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -139,16 +141,16 @@ export const Reports = () => {
           </div>
 
           <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Sales by Category</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">{t('Sales by Category')}</h3>
             {salesByCategory.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-6">No category sales in this period.</p>
+              <p className="text-sm text-gray-500 text-center py-6">{t('No category sales in this period.')}</p>
             ) : (
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Items</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Revenue</th>
+                    <th className="px-4 py-2 text-start text-xs font-medium text-gray-500 uppercase">{t('Category')}</th>
+                    <th className="px-4 py-2 text-start text-xs font-medium text-gray-500 uppercase">{t('Items')}</th>
+                    <th className="px-4 py-2 text-start text-xs font-medium text-gray-500 uppercase">{t('Revenue')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -166,7 +168,7 @@ export const Reports = () => {
 
           {salesByDate.length === 0 && (
             <div className="bg-white shadow rounded-lg p-6 flex items-center justify-center text-gray-500">
-              <BarChart3 className="h-5 w-5 mr-2" /> No delivered orders in the selected period.
+              <BarChart3 className="h-5 w-5 me-2" /> {t('No delivered orders in the selected period.')}
             </div>
           )}
         </>

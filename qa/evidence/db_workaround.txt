@@ -1,0 +1,3 @@
+N2/N3 QA workaround (test DB only, not repository code):
+ALTER TABLE Businesses ADD COLUMN LegalName VARCHAR(200) NULL AFTER BusinessName, ADD COLUMN ZipCode VARCHAR(20) NULL AFTER State;
+Reason: POS /admin/settings SELECT these columns; no shipped SQL creates them (POS returned 500 Unknown column LegalName).

@@ -36,37 +36,37 @@ export const Layout = ({ children }) => {
 
   // Navigation for Business Owners (Full features)
   const businessOwnerNavigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'POS Counter', href: '/pos', icon: Calculator, badge: 'Active' },
-    { name: 'Medicines', href: '/medicines', icon: Pill },
-    { name: 'Orders', href: '/orders', icon: ShoppingCart },
-    { name: 'Prescriptions', href: '/prescriptions', icon: FileText },
-    { name: 'Inventory', href: '/inventory', icon: Package },
-    { name: 'Vendors', href: '/vendors', icon: Truck },
-    { name: 'Purchase Orders', href: '/purchase-orders', icon: ClipboardList },
-    { name: 'HRMS & Payroll', href: '/hrms', icon: UserCheck },
-    { name: 'Staff & Users', href: '/users', icon: Users },
-    { name: 'Categories', href: '/categories', icon: Tag },
-    { name: 'Reports', href: '/reports', icon: BarChart3 },
-    { name: 'Compliance Logs', href: '/compliance', icon: ShieldCheck },
-    { name: 'Settings', href: '/settings', icon: SettingsIcon },
+    { name: t('Dashboard'), href: '/dashboard', icon: LayoutDashboard },
+    { name: t('POS Counter'), href: '/pos', icon: Calculator, badge: t('Active') },
+    { name: t('Medicines'), href: '/medicines', icon: Pill },
+    { name: t('Orders'), href: '/orders', icon: ShoppingCart },
+    { name: t('Prescriptions'), href: '/prescriptions', icon: FileText },
+    { name: t('Inventory'), href: '/inventory', icon: Package },
+    { name: t('Vendors'), href: '/vendors', icon: Truck },
+    { name: t('Purchase Orders'), href: '/purchase-orders', icon: ClipboardList },
+    { name: t('HRMS & Payroll'), href: '/hrms', icon: UserCheck },
+    { name: t('Staff & Users'), href: '/users', icon: Users },
+    { name: t('Categories'), href: '/categories', icon: Tag },
+    { name: t('Reports'), href: '/reports', icon: BarChart3 },
+    { name: t('Compliance Logs'), href: '/compliance', icon: ShieldCheck },
+    { name: t('Settings'), href: '/settings', icon: SettingsIcon },
   ];
 
   // Navigation for Staff (Operational only - no financial/salary data)
   const staffNavigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'POS Counter', href: '/pos', icon: Calculator, badge: 'Active' },
-    { name: 'Medicines', href: '/medicines', icon: Pill },
-    { name: 'Orders', href: '/orders', icon: ShoppingCart },
-    { name: 'Customers', href: '/users', icon: Users },
-    { name: 'Prescriptions', href: '/prescriptions', icon: FileText },
-    { name: 'Inventory', href: '/inventory', icon: Package },
+    { name: t('Dashboard'), href: '/dashboard', icon: LayoutDashboard },
+    { name: t('POS Counter'), href: '/pos', icon: Calculator, badge: t('Active') },
+    { name: t('Medicines'), href: '/medicines', icon: Pill },
+    { name: t('Orders'), href: '/orders', icon: ShoppingCart },
+    { name: t('Customers'), href: '/users', icon: Users },
+    { name: t('Prescriptions'), href: '/prescriptions', icon: FileText },
+    { name: t('Inventory'), href: '/inventory', icon: Package },
   ];
 
   // Navigation for Super Admin
   const superAdminNavigation = [
-    { name: 'Dashboard', href: '/super-admin/dashboard', icon: LayoutDashboard },
-    { name: 'Businesses', href: '/super-admin/businesses', icon: Building2 },
+    { name: t('Dashboard'), href: '/super-admin/dashboard', icon: LayoutDashboard },
+    { name: t('Businesses'), href: '/super-admin/businesses', icon: Building2 },
   ];
 
   let navigation = businessOwnerNavigation;
@@ -89,9 +89,9 @@ export const Layout = ({ children }) => {
           className={`fixed inset-0 bg-gray-600 bg-opacity-75 transition-opacity ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`}
           onClick={() => setSidebarOpen(false)}
         />
-        <div className={`fixed inset-y-0 left-0 flex w-64 flex-col bg-white transition-transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className={`fixed inset-y-0 start-0 flex w-64 flex-col bg-white transition-transform ${sidebarOpen ? 'translate-x-0' : 'ltr:-translate-x-full rtl:translate-x-full'}`}>
           <div className="flex h-16 items-center justify-between px-4 border-b">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold">
                 M
               </div>
@@ -106,7 +106,7 @@ export const Layout = ({ children }) => {
           </div>
           <div className="px-4 py-2 border-b bg-blue-50 flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-blue-800">
-              Role: {user?.role?.replace('_', ' ')}
+              {t('Role:')} {user?.role?.replace('_', ' ')}
             </span>
           </div>
           <nav className="flex-1 space-y-1 px-2 py-4 overflow-y-auto">
@@ -124,7 +124,7 @@ export const Layout = ({ children }) => {
                   onClick={() => setSidebarOpen(false)}
                 >
                   <div className="flex items-center">
-                    <item.icon className={`mr-3 h-5 w-5 ${isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
+                    <item.icon className={`me-3 h-5 w-5 ${isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
                     {item.name}
                   </div>
                   {item.badge && (
@@ -140,10 +140,10 @@ export const Layout = ({ children }) => {
       </div>
 
       {/* Desktop sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex flex-col flex-grow bg-white border-r border-gray-200">
+      <div className="hidden lg:fixed lg:inset-y-0 lg:start-0 lg:flex lg:w-64 lg:flex-col">
+        <div className="flex flex-col flex-grow bg-white border-e border-gray-200">
           <div className="flex h-16 items-center px-6 border-b">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center gap-3">
               <div className="h-9 w-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">
                 M
               </div>
@@ -167,7 +167,7 @@ export const Layout = ({ children }) => {
                   }`}
                 >
                   <div className="flex items-center">
-                    <item.icon className={`mr-3 h-5 w-5 transition-colors ${isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
+                    <item.icon className={`me-3 h-5 w-5 transition-colors ${isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
                     {item.name}
                   </div>
                   {item.badge && (
@@ -182,11 +182,11 @@ export const Layout = ({ children }) => {
           {user?.role === 'STAFF' && (
             <div className="p-3 m-3 bg-amber-50 rounded-lg border border-amber-200">
               <div className="flex items-center text-amber-800 text-xs font-medium">
-                <ShieldAlert className="w-4 h-4 mr-1 text-amber-600" />
-                Staff Operational Mode
+                <ShieldAlert className="w-4 h-4 me-1 text-amber-600" />
+                {t('Staff Operational Mode')}
               </div>
               <p className="text-[11px] text-amber-700 mt-1">
-                Financial reports & vendor purchasing are restricted.
+                {t('Financial reports & vendor purchasing are restricted.')}
               </p>
             </div>
           )}
@@ -194,7 +194,7 @@ export const Layout = ({ children }) => {
       </div>
 
       {/* Main content wrapper */}
-      <div className="lg:pl-64 flex flex-col flex-1">
+      <div className="lg:ps-64 flex flex-col flex-1">
         {/* Top bar */}
         <div className="sticky top-0 z-40 flex h-16 items-center justify-between bg-white px-4 shadow-sm border-b border-gray-200 lg:px-6">
           <button
@@ -204,7 +204,7 @@ export const Layout = ({ children }) => {
             <Menu className="h-6 w-6" />
           </button>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-3">
             {user?.business ? (
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-gray-900 hidden sm:inline">
@@ -221,12 +221,12 @@ export const Layout = ({ children }) => {
               </div>
             ) : (
               <span className="text-sm font-medium text-gray-700 hidden sm:inline">
-                Pharmacy System
+                {t('Pharmacy System')}
               </span>
             )}
           </div>
 
-          <div className="flex items-center space-x-3 sm:space-x-4">
+          <div className="flex items-center gap-3 gap-4">
             {/* Language Switcher */}
             <div className="flex items-center bg-gray-100 p-0.5 rounded-lg text-xs font-bold">
               <button
@@ -251,7 +251,7 @@ export const Layout = ({ children }) => {
                 to="/pos"
                 className="hidden sm:inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-semibold rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
               >
-                <Calculator className="w-3.5 h-3.5 mr-1.5" />
+                <Calculator className="w-3.5 h-3.5 me-1.5" />
                 {t('pos') || 'Open POS Register'}
               </Link>
             )}
@@ -260,12 +260,12 @@ export const Layout = ({ children }) => {
             <div className="relative">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center space-x-3 rounded-lg p-1.5 text-gray-700 hover:bg-gray-100 transition-colors"
+                className="flex items-center gap-3 rounded-lg p-1.5 text-gray-700 hover:bg-gray-100 transition-colors"
               >
                 <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium text-sm">
                   {user?.name?.charAt(0)?.toUpperCase() || 'U'}
                 </div>
-                <div className="hidden md:block text-left">
+                <div className="hidden md:block text-start">
                   <span className="text-xs font-semibold block text-gray-900 leading-tight">{user?.name}</span>
                   <span className="text-[10px] text-gray-500 block leading-tight">{user?.role?.replace('_', ' ')}</span>
                 </div>
@@ -274,11 +274,11 @@ export const Layout = ({ children }) => {
 
               {userMenuOpen && (
                 <div 
-                  className="absolute right-0 mt-2 w-56 rounded-lg bg-white shadow-xl ring-1 ring-black ring-opacity-5 z-50 divide-y divide-gray-100"
+                  className="absolute end-0 mt-2 w-56 rounded-lg bg-white shadow-xl ring-1 ring-black ring-opacity-5 z-50 divide-y divide-gray-100"
                   onMouseLeave={() => setUserMenuOpen(false)}
                 >
                   <div className="px-4 py-3">
-                    <p className="text-xs font-medium text-gray-500">Signed in as</p>
+                    <p className="text-xs font-medium text-gray-500">{t('Signed in as')}</p>
                     <p className="text-sm font-bold text-gray-900 truncate">{user?.name}</p>
                     <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                   </div>
@@ -289,16 +289,16 @@ export const Layout = ({ children }) => {
                         onClick={() => setUserMenuOpen(false)}
                         className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                       >
-                        <UserPlus className="mr-3 h-4 w-4 text-gray-400" />
-                        Add Pharmacy Business
+                        <UserPlus className="me-3 h-4 w-4 text-gray-400" />
+                        {t('Add Pharmacy Business')}
                       </Link>
                     )}
                     <button
                       onClick={handleLogout}
                       className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                     >
-                      <LogOut className="mr-3 h-4 w-4 text-red-500" />
-                      Logout
+                      <LogOut className="me-3 h-4 w-4 text-red-500" />
+                      {t('Logout')}
                     </button>
                   </div>
                 </div>

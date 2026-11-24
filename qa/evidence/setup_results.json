@@ -1,0 +1,39 @@
+{
+  "mysqlVersion": "8.4.13-0ubuntu0.26.04.2",
+  "exits": {
+    "pathASchema": 0,
+    "pathASeed": 0,
+    "pathBSchema": 0,
+    "pathBMigrate": 0,
+    "pathBHandoff": 0,
+    "pathBUsaUae": 0,
+    "pathBRunMigration": 0,
+    "pathCStep1": 0,
+    "pathCStep2": 0,
+    "pathCStep3": 0
+  },
+  "logErrors": {
+    "fresh": 0,
+    "upgrade": 0,
+    "sequence": 0
+  },
+  "seeded": {
+    "businesses": 3,
+    "users": 13,
+    "medicines": 20
+  },
+  "columnsOk": true,
+  "jest": {
+    "suitesPassed": "4",
+    "allPass": false
+  },
+  "adminBuild": {
+    "exit0": true,
+    "warnings": 0,
+    "ready": true
+  },
+  "mobile": {
+    "bundled": true,
+    "metroStarted": true
+  }
+}

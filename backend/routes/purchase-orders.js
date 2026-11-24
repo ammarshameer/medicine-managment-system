@@ -2,6 +2,7 @@ const express = require('express');
 const { body, query, validationResult } = require('express-validator');
 const { query: dbQuery, pool } = require('../config/database');
 const { authenticateToken, requireTenant, requireBusinessOwner } = require('../middleware/auth');
+const { isControlledMedicine, insertControlledLog } = require('../utils/controlledDrugs');
 
 const router = express.Router();
 
@@ -232,6 +233,8 @@ router.post('/', [
 
     const businessId = req.user.businessId;
     const { vendorId, orderDate, notes, items, status = 'Draft' } = req.body;
+    // OrderDate is a DATE column: normalize any ISO timestamp to YYYY-MM-DD.
+    const normalizedOrderDate = String(orderDate).slice(0, 10);
 
     // Verify vendor belongs to this business
     const [vendors] = await connection.query(
@@ -286,7 +289,7 @@ router.post('/', [
     const [poResult] = await connection.query(
       `INSERT INTO PurchaseOrders (BusinessId, VendorId, OrderNumber, OrderDate, Status, TotalAmount, Notes, CreatedBy)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [businessId, vendorId, orderNumber, orderDate, status, totalAmount, notes || null, req.user.UserId]
+      [businessId, vendorId, orderNumber, normalizedOrderDate, status, totalAmount, notes || null, req.user.UserId]
     );
 
     const poId = poResult.insertId;
@@ -392,18 +395,24 @@ router.post('/:id/receive', async (req, res) => {
       });
     }
 
+    const [businessRows] = await connection.query(
+      'SELECT Country FROM Businesses WHERE BusinessId = ?',
+      [businessId]
+    );
+    const country = businessRows.length > 0 ? businessRows[0].Country : null;
+
     // Update each medicine atomically
     for (const item of items) {
       const [meds] = await connection.query(
-        `SELECT MedicineId, Stock, AverageCost, Name
+        `SELECT MedicineId, Stock, AverageCost, Name, DEASchedule, UAEClassification
          FROM Medicines
          WHERE MedicineId = ? AND BusinessId = ?
          FOR UPDATE`,
-        [item.medicineId, businessId]
+        [item.MedicineId, businessId]
       );
 
       if (meds.length === 0) {
-        throw new Error(`Medicine #${item.medicineId} not found in this business`);
+        throw new Error(`Medicine #${item.MedicineId} not found in this business`);
       }
 
       const med = meds[0];
@@ -425,7 +434,7 @@ router.post('/:id/receive', async (req, res) => {
         `UPDATE Medicines 
          SET Stock = ?, AverageCost = ? 
          WHERE MedicineId = ? AND BusinessId = ?`,
-        [newStock, newAvgCost, item.medicineId, businessId]
+        [newStock, newAvgCost, item.MedicineId, businessId]
       );
 
       // 2. Insert InventoryTransactions record
@@ -435,14 +444,28 @@ router.post('/:id/receive', async (req, res) => {
          VALUES (?, ?, 'Stock In', ?, ?, ?, ?, ?)`,
         [
           businessId,
-          item.medicineId,
+          item.MedicineId,
           addQty,
           currentStock,
           newStock,
-          `PO Received #${po.OrderNumber} (Cost: PKR ${incomingUnitCost.toFixed(2)})`,
+          `PO Received #${po.OrderNumber} (Unit cost ${incomingUnitCost.toFixed(2)})`,
           req.user.UserId
         ]
       );
+
+      // 3. Controlled substances must be logged when received into stock
+      if (isControlledMedicine(med, country)) {
+        await insertControlledLog((sql, params) => connection.query(sql, params).then(([rows]) => rows), {
+          businessId,
+          medicineId: item.MedicineId,
+          orderId: null,
+          prescriptionId: null,
+          action: 'Received',
+          quantity: addQty,
+          performedBy: req.user.UserId,
+          notes: `PO Received #${po.OrderNumber}`
+        });
+      }
     }
 
     // Update PO status

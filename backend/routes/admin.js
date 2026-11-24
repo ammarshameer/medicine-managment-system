@@ -2,7 +2,8 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { body, query, validationResult } = require('express-validator');
 const { query: dbQuery } = require('../config/database');
-const { authenticateToken, requireTenant, requireBusinessAccess, requireBusinessOwner } = require('../middleware/auth');
+const { authenticateToken, requireTenant, requireBusinessAccess, requireBusinessOwner, requireBusinessOwnerAccess } = require('../middleware/auth');
+const { isControlledMedicine, insertControlledLog } = require('../utils/controlledDrugs');
 const router = express.Router();
 
 /**
@@ -818,7 +819,7 @@ router.get('/inventory', authenticateToken, requireTenant, requireBusinessAccess
  * POST /api/admin/inventory/adjust
  * Stock adjustment with inventory transaction logging
  */
-router.post('/inventory/adjust', authenticateToken, requireTenant, requireBusinessAccess, [
+router.post('/inventory/adjust', authenticateToken, requireTenant, requireBusinessOwnerAccess, [
   query('medicineId').isInt({ min: 1 }).withMessage('Invalid medicine ID'),
   query('quantity').isInt().withMessage('Quantity must be integer'),
   query('reason').trim().isLength({ min: 1 }).withMessage('Reason is required')
@@ -840,7 +841,7 @@ router.post('/inventory/adjust', authenticateToken, requireTenant, requireBusine
     const performedBy = req.user.UserId;
 
     const medicines = await dbQuery(
-      'SELECT MedicineId, Name, Stock FROM Medicines WHERE MedicineId = ? AND BusinessId = ?',
+      'SELECT MedicineId, Name, Stock, DEASchedule, UAEClassification FROM Medicines WHERE MedicineId = ? AND BusinessId = ?',
       [medicineId, businessId]
     );
 
@@ -875,6 +876,18 @@ router.post('/inventory/adjust', authenticateToken, requireTenant, requireBusine
       [businessId, medicineId, transactionType, Math.abs(quantity), previousStock, newStock, reason, performedBy]
     );
 
+    const businesses = await dbQuery('SELECT Country FROM Businesses WHERE BusinessId = ?', [businessId]);
+    if (isControlledMedicine(medicine, businesses[0] && businesses[0].Country)) {
+      await insertControlledLog(dbQuery, {
+        businessId,
+        medicineId,
+        action: 'Adjusted',
+        quantity,
+        performedBy,
+        notes: `Inventory adjustment: ${reason}`
+      });
+    }
+
     res.json({
       success: true,
       message: 'Stock adjusted successfully',
@@ -893,6 +906,87 @@ router.post('/inventory/adjust', authenticateToken, requireTenant, requireBusine
       success: false,
       message: 'Internal server error'
     });
+  }
+});
+
+/**
+ * POST /api/admin/inventory/destroy
+ * Owner-only controlled-stock destruction: reduces stock, logs the inventory
+ * movement and writes a ControlledSubstanceLog 'Destroyed' entry.
+ */
+router.post('/inventory/destroy', authenticateToken, requireTenant, requireBusinessOwnerAccess, [
+  query('medicineId').isInt({ min: 1 }).withMessage('Invalid medicine ID'),
+  query('quantity').isInt({ min: 1 }).withMessage('Quantity must be a positive integer'),
+  query('reason').trim().isLength({ min: 1 }).withMessage('Reason is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation errors',
+        errors: errors.array()
+      });
+    }
+
+    const businessId = req.user.businessId;
+    const medicineId = parseInt(req.query.medicineId, 10);
+    const quantity = parseInt(req.query.quantity, 10);
+    const reason = req.query.reason;
+    const performedBy = req.user.UserId;
+
+    const medicines = await dbQuery(
+      'SELECT MedicineId, Name, Stock, DEASchedule, UAEClassification FROM Medicines WHERE MedicineId = ? AND BusinessId = ?',
+      [medicineId, businessId]
+    );
+    if (medicines.length === 0) {
+      return res.status(404).json({ success: false, message: 'Medicine not found' });
+    }
+
+    const medicine = medicines[0];
+    const previousStock = parseInt(medicine.Stock, 10) || 0;
+    if (previousStock < quantity) {
+      return res.status(400).json({ success: false, message: 'Cannot destroy more stock than is available' });
+    }
+    const newStock = previousStock - quantity;
+
+    await dbQuery(
+      'UPDATE Medicines SET Stock = ?, UpdatedAt = CURRENT_TIMESTAMP WHERE MedicineId = ? AND BusinessId = ?',
+      [newStock, medicineId, businessId]
+    );
+
+    await dbQuery(
+      `INSERT INTO InventoryTransactions (BusinessId, MedicineId, TransactionType, Quantity, PreviousStock, NewStock, Reason, PerformedBy)
+       VALUES (?, ?, 'Stock Out', ?, ?, ?, ?, ?)`,
+      [businessId, medicineId, quantity, previousStock, newStock, `Destroyed: ${reason}`, performedBy]
+    );
+
+    const businesses = await dbQuery('SELECT Country FROM Businesses WHERE BusinessId = ?', [businessId]);
+    if (isControlledMedicine(medicine, businesses[0] && businesses[0].Country)) {
+      await insertControlledLog(dbQuery, {
+        businessId,
+        medicineId,
+        action: 'Destroyed',
+        quantity,
+        performedBy,
+        notes: `Stock destroyed: ${reason}`
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Stock destroyed successfully',
+      data: {
+        medicineId,
+        medicineName: medicine.Name,
+        previousStock,
+        newStock,
+        quantityDestroyed: quantity
+      }
+    });
+  } catch (error) {
+    console.error('Destroy stock error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 });
 
@@ -1130,7 +1224,7 @@ router.get('/compliance/controlled-logs', authenticateToken, requireTenant, requ
   query('page').optional().isInt({ min: 1 }),
   query('limit').optional().isInt({ min: 1, max: 100 }),
   query('medicineId').optional().isInt(),
-  query('action').optional().isIn(['Dispensed', 'Received', 'Adjusted', 'Destroyed']),
+  query('action').optional().isIn(['Dispensed', 'Received', 'Adjusted', 'Destroyed', 'Reversed']),
   query('startDate').optional().isISO8601(),
   query('endDate').optional().isISO8601()
 ], async (req, res) => {
@@ -1199,6 +1293,7 @@ router.get('/compliance/controlled-logs', authenticateToken, requireTenant, requ
           orderId: log.OrderId,
           prescriptionId: log.PrescriptionId,
           action: log.Action,
+          Action: log.Action,
           quantity: log.Quantity,
           performedBy: {
             id: log.PerformedBy,

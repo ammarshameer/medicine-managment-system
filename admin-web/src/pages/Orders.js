@@ -6,28 +6,21 @@ import toast from 'react-hot-toast';
 import {
   ShoppingCart,
   X,
-  Calendar,
-  User,
-  DollarSign,
-  FileText,
   Search,
-  Filter,
   Loader2,
-  ChevronLeft,
-  ChevronRight,
   Calculator,
   Globe,
   Phone,
   CheckCircle2,
-  Clock,
-  Printer,
   Plus,
   Trash2
 } from 'lucide-react';
 import { useCurrency, formatCurrency } from '../utils/formatCurrency';
+import { useTranslation } from '../i18n';
 
 const CreateOrderModal = ({ onClose }) => {
-  const { format } = useCurrency();
+  const { t } = useTranslation();
+const { format } = useCurrency();
   const queryClient = useQueryClient();
   const [customerMode, setCustomerMode] = useState('walkin'); // 'walkin' | 'registered'
   const [selectedUserId, setSelectedUserId] = useState('');
@@ -160,9 +153,9 @@ const CreateOrderModal = ({ onClose }) => {
           <div>
             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
               <Plus className="w-5 h-5 text-blue-600" />
-              Create Direct / Manual Order
+              {t('Create Direct / Manual Order')}
             </h2>
-            <p className="text-xs text-gray-500 mt-0.5">Place an order with customer details and line items</p>
+            <p className="text-xs text-gray-500 mt-0.5">{t('Place an order with customer details and line items')}</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-1">
             <X className="h-6 w-6" />
@@ -172,21 +165,21 @@ const CreateOrderModal = ({ onClose }) => {
         <form onSubmit={handleSubmit} className="p-6 space-y-5 text-xs">
           {/* Customer Mode Switcher */}
           <div>
-            <label className="font-bold text-gray-700 block mb-1.5">Customer Type</label>
+            <label className="font-bold text-gray-700 block mb-1.5">{t('Customer Type')}</label>
             <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-xl font-bold text-xs">
               <button
                 type="button"
                 onClick={() => setCustomerMode('walkin')}
                 className={`py-2 rounded-lg transition-all ${customerMode === 'walkin' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-600'}`}
               >
-                Walk-in / Custom Customer
+                {t('Walk-in / Custom Customer')}
               </button>
               <button
                 type="button"
                 onClick={() => setCustomerMode('registered')}
                 className={`py-2 rounded-lg transition-all ${customerMode === 'registered' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-600'}`}
               >
-                Registered Customer ({customers.length})
+                {t('Registered Customer (')}{customers.length})
               </button>
             </div>
           </div>
@@ -194,14 +187,14 @@ const CreateOrderModal = ({ onClose }) => {
           {/* Customer Details */}
           {customerMode === 'registered' ? (
             <div>
-              <label className="font-semibold text-gray-700 block mb-1">Select Customer <span className="text-red-500">*</span></label>
+              <label className="font-semibold text-gray-700 block mb-1">{t('Select Customer')} <span className="text-red-500">*</span></label>
               <select
                 required
                 value={selectedUserId}
                 onChange={(e) => setSelectedUserId(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               >
-                <option value="">-- Choose Registered Customer --</option>
+                <option value="">{t('-- Choose Registered Customer --')}</option>
                 {customers.map(c => (
                   <option key={c.id} value={c.id}>
                     {c.name} ({c.email}) {c.phone ? `- ${c.phone}` : ''}
@@ -212,18 +205,18 @@ const CreateOrderModal = ({ onClose }) => {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="font-semibold text-gray-700 block mb-1">Customer Name <span className="text-red-500">*</span></label>
+                <label className="font-semibold text-gray-700 block mb-1">{t('Customer Name')} <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Tariq Mehmood"
+                  placeholder={t('e.g. Tariq Mehmood')}
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <label className="font-semibold text-gray-700 block mb-1">Customer Phone</label>
+                <label className="font-semibold text-gray-700 block mb-1">{t('Customer Phone')}</label>
                 <input
                   type="text"
                   placeholder="03001234567"
@@ -238,14 +231,14 @@ const CreateOrderModal = ({ onClose }) => {
           {/* Medicine Line Items */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="font-bold text-gray-800">Order Items (Medicines) <span className="text-red-500">*</span></label>
+              <label className="font-bold text-gray-800">{t('Order Items (Medicines)')} <span className="text-red-500">*</span></label>
               <button
                 type="button"
                 onClick={addItemRow}
                 className="inline-flex items-center text-blue-600 hover:text-blue-700 font-bold gap-1"
               >
                 <Plus className="w-3.5 h-3.5" />
-                Add Medicine
+                {t('Add Medicine')}
               </button>
             </div>
 
@@ -259,10 +252,10 @@ const CreateOrderModal = ({ onClose }) => {
                       onChange={(e) => handleMedicineChange(idx, e.target.value)}
                       className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-xs bg-white outline-none focus:ring-1 focus:ring-blue-500 font-medium"
                     >
-                      <option value="">-- Choose Medicine --</option>
+                      <option value="">{t('-- Choose Medicine --')}</option>
                       {medicines.map(m => (
                         <option key={m.id} value={m.id} disabled={m.stock <= 0}>
-                          {m.name} — {format(m.price)} (Stock: {m.stock})
+                          {m.name} — {format(m.price)} {t('(Stock:')} {m.stock})
                         </option>
                       ))}
                     </select>
@@ -276,11 +269,11 @@ const CreateOrderModal = ({ onClose }) => {
                       value={item.quantity}
                       onChange={(e) => handleQtyChange(idx, e.target.value)}
                       className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-xs text-center font-bold outline-none focus:ring-1 focus:ring-blue-500"
-                      placeholder="Qty"
+                      placeholder={t('Qty')}
                     />
                   </div>
 
-                  <div className="w-24 text-right font-mono font-bold text-gray-900">
+                  <div className="w-24 text-end font-mono font-bold text-gray-900">
                     {format(parseFloat(item.price || 0) * (item.quantity || 1))}
                   </div>
 
@@ -297,7 +290,7 @@ const CreateOrderModal = ({ onClose }) => {
 
             {/* Total Row */}
             <div className="flex justify-between items-center mt-3 p-3 bg-blue-50 rounded-xl border border-blue-100">
-              <span className="font-bold text-blue-900 uppercase">Estimated Grand Total:</span>
+              <span className="font-bold text-blue-900 uppercase">{t('Estimated Grand Total:')}</span>
               <span className="font-bold text-base font-mono text-blue-900">{format(grandTotal)}</span>
             </div>
           </div>
@@ -305,37 +298,37 @@ const CreateOrderModal = ({ onClose }) => {
           {/* Delivery and Payment Details */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="font-semibold text-gray-700 block mb-1">Delivery Address / Destination</label>
+              <label className="font-semibold text-gray-700 block mb-1">{t('Delivery Address / Destination')}</label>
               <input
                 type="text"
-                placeholder="Direct Pickup or Delivery Address"
+                placeholder={t('Direct Pickup or Delivery Address')}
                 value={deliveryAddress}
                 onChange={(e) => setDeliveryAddress(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
-              <label className="font-semibold text-gray-700 block mb-1">Payment Method</label>
+              <label className="font-semibold text-gray-700 block mb-1">{t('Payment Method')}</label>
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               >
-                <option value="Cash">Cash</option>
-                <option value="Cash on Delivery">Cash on Delivery</option>
-                <option value="Credit Card">Credit Card</option>
-                <option value="Bank Transfer">Bank Transfer</option>
-                <option value="JazzCash">JazzCash</option>
-                <option value="EasyPaisa">EasyPaisa</option>
+                <option value="Cash">{t('Cash')}</option>
+                <option value="Cash on Delivery">{t('Cash on Delivery')}</option>
+                <option value="Credit Card">{t('Credit Card')}</option>
+                <option value="Bank Transfer">{t('Bank Transfer')}</option>
+                <option value="JazzCash">{t('JazzCash')}</option>
+                <option value="EasyPaisa">{t('EasyPaisa')}</option>
               </select>
             </div>
           </div>
 
           <div>
-            <label className="font-semibold text-gray-700 block mb-1">Order Notes / Instructions (Optional)</label>
+            <label className="font-semibold text-gray-700 block mb-1">{t('Order Notes / Instructions (Optional)')}</label>
             <textarea
               rows="2"
-              placeholder="e.g. Special dosage requests or packaging notes"
+              placeholder={t('e.g. Special dosage requests or packaging notes')}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
@@ -349,7 +342,7 @@ const CreateOrderModal = ({ onClose }) => {
               onClick={onClose}
               className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 font-semibold rounded-lg transition-colors"
             >
-              Cancel
+              {t('Cancel')}
             </button>
             <button
               type="submit"
@@ -357,7 +350,7 @@ const CreateOrderModal = ({ onClose }) => {
               className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold rounded-lg shadow-sm transition-all inline-flex items-center gap-1.5"
             >
               {createOrderMutation.isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-              {createOrderMutation.isLoading ? 'Creating Order...' : 'Submit Order'}
+              {createOrderMutation.isLoading ? t('Creating Order...') : t('Submit Order')}
             </button>
           </div>
         </form>
@@ -367,6 +360,7 @@ const CreateOrderModal = ({ onClose }) => {
 };
 
 const OrderDetailsModal = ({ order, onClose }) => {
+  const { t } = useTranslation();
   const [status, setStatus] = useState(order.status);
   const queryClient = useQueryClient();
 
@@ -402,15 +396,15 @@ const OrderDetailsModal = ({ order, onClose }) => {
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-gray-900">Order #{fullOrder.id}</h2>
+              <h2 className="text-xl font-bold text-gray-900">{t('Order #')}{fullOrder.id}</h2>
               <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${
                 fullOrder.source === 'POS' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
               }`}>
-                {fullOrder.source === 'POS' ? <Calculator className="w-3 h-3 mr-1" /> : <Globe className="w-3 h-3 mr-1" />}
-                {fullOrder.source || 'Online'}
+                {fullOrder.source === 'POS' ? <Calculator className="w-3 h-3 me-1" /> : <Globe className="w-3 h-3 me-1" />}
+                {fullOrder.source || t('Online')}
               </span>
             </div>
-            <p className="text-xs text-gray-500 mt-0.5">Placed on {new Date(fullOrder.orderDate).toLocaleString()}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{t('Placed on')} {new Date(fullOrder.orderDate).toLocaleString()}</p>
           </div>
           <button
             onClick={onClose}
@@ -424,9 +418,9 @@ const OrderDetailsModal = ({ order, onClose }) => {
           {/* Order Summary Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200 text-xs">
             <div>
-              <span className="text-gray-500 font-semibold block">Customer Information</span>
+              <span className="text-gray-500 font-semibold block">{t('Customer Information')}</span>
               <span className="font-bold text-gray-900 text-sm block mt-0.5">
-                {fullOrder.customerName || fullOrder.user?.name || 'Walk-in Customer'}
+                {fullOrder.customerName || fullOrder.user?.name || t('Walk-in Customer')}
               </span>
               {fullOrder.customerPhone && (
                 <span className="text-gray-600 block mt-0.5 flex items-center gap-1">
@@ -438,15 +432,15 @@ const OrderDetailsModal = ({ order, onClose }) => {
             </div>
 
             <div>
-              <span className="text-gray-500 font-semibold block">Fulfillment / Cashier</span>
+              <span className="text-gray-500 font-semibold block">{t('Fulfillment / Cashier')}</span>
               <span className="font-semibold text-gray-800 block mt-0.5">
-                {fullOrder.source === 'POS' ? `Cashier: ${fullOrder.creatorName || 'Counter Staff'}` : 'Delivery / Online'}
+                {fullOrder.source === 'POS' ? `Cashier: ${fullOrder.creatorName || 'Counter Staff'}` : t('Delivery / Online')}
               </span>
-              <span className="text-gray-500 block mt-0.5">Address: {fullOrder.deliveryAddress || 'Counter Pickup'}</span>
+              <span className="text-gray-500 block mt-0.5">{t('Address:')} {fullOrder.deliveryAddress || t('Counter Pickup')}</span>
             </div>
 
             <div>
-              <span className="text-gray-500 font-semibold block">Payment Info</span>
+              <span className="text-gray-500 font-semibold block">{t('Payment Info')}</span>
               <span className="font-bold text-gray-900 block mt-0.5">{fullOrder.paymentMethod}</span>
               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold mt-1 ${
                 fullOrder.paymentStatus === 'Paid' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
@@ -458,15 +452,15 @@ const OrderDetailsModal = ({ order, onClose }) => {
 
           {/* Line Items Table */}
           <div>
-            <h3 className="text-sm font-bold text-gray-900 mb-2">Order Line Items</h3>
+            <h3 className="text-sm font-bold text-gray-900 mb-2">{t('Order Line Items')}</h3>
             <div className="border border-gray-200 rounded-xl overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200 text-left text-xs">
+              <table className="min-w-full divide-y divide-gray-200 text-start text-xs">
                 <thead className="bg-gray-50 font-semibold uppercase text-gray-500">
                   <tr>
-                    <th className="px-4 py-2.5">Medicine</th>
-                    <th className="px-4 py-2.5 text-center">Quantity</th>
-                    <th className="px-4 py-2.5 text-right">Unit Price</th>
-                    <th className="px-4 py-2.5 text-right">Subtotal</th>
+                    <th className="px-4 py-2.5">{t('Medicine')}</th>
+                    <th className="px-4 py-2.5 text-center">{t('Quantity')}</th>
+                    <th className="px-4 py-2.5 text-end">{t('Unit Price')}</th>
+                    <th className="px-4 py-2.5 text-end">{t('Subtotal')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -476,8 +470,8 @@ const OrderDetailsModal = ({ order, onClose }) => {
                         {item.name || item.medicine?.name || `Medicine #${item.medicineId}`}
                       </td>
                       <td className="px-4 py-3 text-center">{item.quantity}</td>
-                      <td className="px-4 py-3 text-right">{formatCurrency(item.price, orderCurrency)}</td>
-                      <td className="px-4 py-3 text-right font-bold text-gray-900">
+                      <td className="px-4 py-3 text-end">{formatCurrency(item.price, orderCurrency)}</td>
+                      <td className="px-4 py-3 text-end font-bold text-gray-900">
                         {formatCurrency(item.subtotal, orderCurrency)}
                       </td>
                     </tr>
@@ -485,24 +479,24 @@ const OrderDetailsModal = ({ order, onClose }) => {
                 </tbody>
                 <tfoot className="bg-gray-50 font-bold border-t border-gray-200 divide-y divide-gray-200">
                   <tr>
-                    <td colSpan="3" className="px-4 py-2 text-right uppercase text-gray-600">Subtotal:</td>
-                    <td className="px-4 py-2 text-right font-semibold">
+                    <td colSpan="3" className="px-4 py-2 text-end uppercase text-gray-600">{t('Subtotal:')}</td>
+                    <td className="px-4 py-2 text-end font-semibold">
                       {formatCurrency(fullOrder.subtotal || fullOrder.totalAmount, orderCurrency)}
                     </td>
                   </tr>
                   {parseFloat(fullOrder.taxAmount) > 0 && (
                     <tr>
-                      <td colSpan="3" className="px-4 py-2 text-right uppercase text-gray-600">
-                        Tax ({((parseFloat(fullOrder.taxRate) || 0) * 100).toFixed(2)}%):
+                      <td colSpan="3" className="px-4 py-2 text-end uppercase text-gray-600">
+                        {t('Tax (')}{((parseFloat(fullOrder.taxRate) || 0) * 100).toFixed(2)}%):
                       </td>
-                      <td className="px-4 py-2 text-right font-semibold">
+                      <td className="px-4 py-2 text-end font-semibold">
                         {formatCurrency(fullOrder.taxAmount, orderCurrency)}
                       </td>
                     </tr>
                   )}
                   <tr>
-                    <td colSpan="3" className="px-4 py-3 text-right uppercase text-gray-900">Grand Total:</td>
-                    <td className="px-4 py-3 text-right text-blue-900 text-sm font-black">
+                    <td colSpan="3" className="px-4 py-3 text-end uppercase text-gray-900">{t('Grand Total:')}</td>
+                    <td className="px-4 py-3 text-end text-blue-900 text-sm font-black">
                       {formatCurrency(fullOrder.totalAmount, orderCurrency)}
                     </td>
                   </tr>
@@ -514,17 +508,17 @@ const OrderDetailsModal = ({ order, onClose }) => {
           {/* Status Update Control */}
           <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-gray-700">Update Order Status:</span>
+              <span className="text-xs font-bold text-gray-700">{t('Update Order Status:')}</span>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
                 className="text-xs border border-gray-300 rounded-lg px-3 py-1.5 bg-white font-semibold outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="Pending">Pending</option>
-                <option value="Approved">Approved</option>
-                <option value="Dispatched">Dispatched</option>
-                <option value="Delivered">Delivered</option>
-                <option value="Cancelled">Cancelled</option>
+                <option value="Pending">{t('Pending')}</option>
+                <option value="Approved">{t('Approved')}</option>
+                <option value="Dispatched">{t('Dispatched')}</option>
+                <option value="Delivered">{t('Delivered')}</option>
+                <option value="Cancelled">{t('Cancelled')}</option>
               </select>
             </div>
 
@@ -533,7 +527,7 @@ const OrderDetailsModal = ({ order, onClose }) => {
               disabled={status === order.status || updateStatusMutation.isLoading}
               className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold text-xs rounded-lg shadow-sm transition-all"
             >
-              {updateStatusMutation.isLoading ? 'Saving...' : 'Save Status'}
+              {updateStatusMutation.isLoading ? t('Saving...') : t('Save Status')}
             </button>
           </div>
         </div>
@@ -543,7 +537,7 @@ const OrderDetailsModal = ({ order, onClose }) => {
             onClick={onClose}
             className="px-4 py-2 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
           >
-            Close
+            {t('Close')}
           </button>
         </div>
       </div>
@@ -552,6 +546,7 @@ const OrderDetailsModal = ({ order, onClose }) => {
 };
 
 export const Orders = () => {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [limit] = useState(15);
   const [status, setStatus] = useState('all');
@@ -578,17 +573,17 @@ export const Orders = () => {
   const pagination = ordersData?.pagination || { total: 0, pages: 0 };
 
   const getStatusBadge = (st) => {
-    switch (st) {
+switch (st) {
       case 'Delivered':
-        return <span className="inline-flex px-2 py-0.5 text-xs font-bold rounded-full bg-green-100 text-green-800">Delivered</span>;
+        return <span className="inline-flex px-2 py-0.5 text-xs font-bold rounded-full bg-green-100 text-green-800">{t('Delivered')}</span>;
       case 'Dispatched':
-        return <span className="inline-flex px-2 py-0.5 text-xs font-bold rounded-full bg-blue-100 text-blue-800">Dispatched</span>;
+        return <span className="inline-flex px-2 py-0.5 text-xs font-bold rounded-full bg-blue-100 text-blue-800">{t('Dispatched')}</span>;
       case 'Approved':
-        return <span className="inline-flex px-2 py-0.5 text-xs font-bold rounded-full bg-indigo-100 text-indigo-800">Approved</span>;
+        return <span className="inline-flex px-2 py-0.5 text-xs font-bold rounded-full bg-indigo-100 text-indigo-800">{t('Approved')}</span>;
       case 'Pending':
-        return <span className="inline-flex px-2 py-0.5 text-xs font-bold rounded-full bg-amber-100 text-amber-800">Pending</span>;
+        return <span className="inline-flex px-2 py-0.5 text-xs font-bold rounded-full bg-amber-100 text-amber-800">{t('Pending')}</span>;
       case 'Cancelled':
-        return <span className="inline-flex px-2 py-0.5 text-xs font-bold rounded-full bg-red-100 text-red-800">Cancelled</span>;
+        return <span className="inline-flex px-2 py-0.5 text-xs font-bold rounded-full bg-red-100 text-red-800">{t('Cancelled')}</span>;
       default:
         return st;
     }
@@ -601,10 +596,10 @@ export const Orders = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <ShoppingCart className="w-7 h-7 text-blue-600" />
-            Orders Management
+            {t('Orders Management')}
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Monitor online customer orders, POS counter sales, and fulfillment status
+            {t('Monitor online customer orders, POS counter sales, and fulfillment status')}
           </p>
         </div>
 
@@ -615,14 +610,14 @@ export const Orders = () => {
             className="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all gap-1.5"
           >
             <Calculator className="w-4 h-4" />
-            Open POS Counter
+            {t('Open POS Counter')}
           </Link>
           <button
             onClick={() => setCreateModalOpen(true)}
             className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all gap-1.5"
           >
             <Plus className="w-4 h-4" />
-            Create Direct Order
+            {t('Create Direct Order')}
           </button>
         </div>
       </div>
@@ -631,16 +626,16 @@ export const Orders = () => {
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row gap-3 justify-between items-center">
         {/* Search */}
         <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-gray-400 absolute start-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search Order ID, Customer name, Phone..."
+            placeholder={t('Search Order ID, Customer name, Phone...')}
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
               setPage(1);
             }}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            className="w-full ps-9 pe-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
           />
         </div>
 
@@ -654,7 +649,7 @@ export const Orders = () => {
                 source === 'all' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-600'
               }`}
             >
-              All Channels
+              {t('All Channels')}
             </button>
             <button
               onClick={() => { setSource('POS'); setPage(1); }}
@@ -663,7 +658,7 @@ export const Orders = () => {
               }`}
             >
               <Calculator className="w-3 h-3" />
-              POS Counter
+              {t('POS Counter')}
             </button>
             <button
               onClick={() => { setSource('Online'); setPage(1); }}
@@ -672,7 +667,7 @@ export const Orders = () => {
               }`}
             >
               <Globe className="w-3 h-3" />
-              Online Orders
+              {t('Online Orders')}
             </button>
           </div>
 
@@ -685,12 +680,12 @@ export const Orders = () => {
             }}
             className="text-xs border border-gray-300 rounded-lg px-3 py-2 bg-white font-semibold outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="all">All Statuses</option>
-            <option value="Pending">Pending</option>
-            <option value="Approved">Approved</option>
-            <option value="Dispatched">Dispatched</option>
-            <option value="Delivered">Delivered</option>
-            <option value="Cancelled">Cancelled</option>
+            <option value="all">{t('All Statuses')}</option>
+            <option value="Pending">{t('Pending')}</option>
+            <option value="Approved">{t('Approved')}</option>
+            <option value="Dispatched">{t('Dispatched')}</option>
+            <option value="Delivered">{t('Delivered')}</option>
+            <option value="Cancelled">{t('Cancelled')}</option>
           </select>
         </div>
       </div>
@@ -704,22 +699,22 @@ export const Orders = () => {
         ) : orders.length === 0 ? (
           <div className="text-center py-16 text-gray-500">
             <ShoppingCart className="w-12 h-12 mx-auto text-gray-300 mb-2" />
-            <p className="text-base font-semibold">No orders found</p>
-            <p className="text-xs text-gray-400 mt-1">Orders placed online or via POS counter will appear here</p>
+            <p className="text-base font-semibold">{t('No orders found')}</p>
+            <p className="text-xs text-gray-400 mt-1">{t('Orders placed online or via POS counter will appear here')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-left text-sm">
+            <table className="min-w-full divide-y divide-gray-200 text-start text-sm">
               <thead className="bg-gray-50 text-xs font-semibold uppercase text-gray-500">
                 <tr>
-                  <th className="px-6 py-3">Order ID</th>
-                  <th className="px-6 py-3">Channel</th>
-                  <th className="px-6 py-3">Customer</th>
-                  <th className="px-6 py-3">Date</th>
-                  <th className="px-6 py-3">Total Amount</th>
-                  <th className="px-6 py-3">Payment</th>
-                  <th className="px-6 py-3">Status</th>
-                  <th className="px-6 py-3 text-right">Actions</th>
+                  <th className="px-6 py-3">{t('Order ID')}</th>
+                  <th className="px-6 py-3">{t('Channel')}</th>
+                  <th className="px-6 py-3">{t('Customer')}</th>
+                  <th className="px-6 py-3">{t('Date')}</th>
+                  <th className="px-6 py-3">{t('Total Amount')}</th>
+                  <th className="px-6 py-3">{t('Payment')}</th>
+                  <th className="px-6 py-3">{t('Status')}</th>
+                  <th className="px-6 py-3 text-end">{t('Actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -732,8 +727,8 @@ export const Orders = () => {
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${
                         order.source === 'POS' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
                       }`}>
-                        {order.source === 'POS' ? <Calculator className="w-3 h-3 mr-1" /> : <Globe className="w-3 h-3 mr-1" />}
-                        {order.source || 'Online'}
+                        {order.source === 'POS' ? <Calculator className="w-3 h-3 me-1" /> : <Globe className="w-3 h-3 me-1" />}
+                        {order.source || t('Online')}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -755,12 +750,12 @@ export const Orders = () => {
                     <td className="px-6 py-4">
                       {getStatusBadge(order.status)}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-end">
                       <button
                         onClick={() => setSelectedOrder(order)}
                         className="px-3 py-1 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       >
-                        View Details
+                        {t('View Details')}
                       </button>
                     </td>
                   </tr>
@@ -774,9 +769,9 @@ export const Orders = () => {
         {pagination.pages > 1 && (
           <div className="bg-white px-6 py-3 flex items-center justify-between border-t border-gray-200">
             <div className="text-xs text-gray-500">
-              Showing <span className="font-bold">{(page - 1) * limit + 1}</span> to{' '}
-              <span className="font-bold">{Math.min(page * limit, pagination.total)}</span> of{' '}
-              <span className="font-bold">{pagination.total}</span> orders
+              {t('Showing')} <span className="font-bold">{(page - 1) * limit + 1}</span> {t('to')}{' '}
+              <span className="font-bold">{Math.min(page * limit, pagination.total)}</span> {t('of')}{' '}
+              <span className="font-bold">{pagination.total}</span> {t('orders')}
             </div>
             <div className="flex items-center gap-1">
               <button
@@ -784,15 +779,15 @@ export const Orders = () => {
                 disabled={page === 1}
                 className="px-3 py-1 border border-gray-300 rounded-md text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
               >
-                Previous
+                {t('Previous')}
               </button>
-              <span className="px-3 text-xs font-bold text-gray-700">Page {page} of {pagination.pages}</span>
+              <span className="px-3 text-xs font-bold text-gray-700">{t('Page')} {page} {t('of')} {pagination.pages}</span>
               <button
                 onClick={() => setPage(p => Math.min(pagination.pages, p + 1))}
                 disabled={page === pagination.pages}
                 className="px-3 py-1 border border-gray-300 rounded-md text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
               >
-                Next
+                {t('Next')}
               </button>
             </div>
           </div>

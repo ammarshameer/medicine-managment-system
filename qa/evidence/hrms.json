@@ -1,0 +1,108 @@
+{
+  "T20": {
+    "newEmployee": {
+      "status": 201,
+      "data": {
+        "success": true,
+        "message": "Employee record created successfully",
+        "data": {
+          "employeeId": 1,
+          "userId": 31,
+          "designation": "Pharmacist",
+          "department": "Pharmacy",
+          "salary": 1000,
+          "employmentStatus": "Active"
+        }
+      }
+    },
+    "newLoginStatus": 200,
+    "linkExisting": {
+      "status": 201,
+      "data": {
+        "success": true,
+        "message": "Employee record created successfully",
+        "data": {
+          "employeeId": 2,
+          "userId": 12,
+          "designation": "QA Linked Staff",
+          "department": "Pharmacy",
+          "salary": 500,
+          "employmentStatus": "Active"
+        }
+      }
+    },
+    "deactivate": {
+      "status": 200,
+      "id": 1
+    },
+    "loginAfterDeactivate": {
+      "status": 401,
+      "message": "Account is deactivated"
+    }
+  },
+  "T21": {
+    "salaryCreate": {
+      "status": 201,
+      "data": {
+        "success": true,
+        "message": "Salary record created successfully",
+        "data": {
+          "salaryId": 1,
+          "employeeId": 1,
+          "month": 6,
+          "year": 2026,
+          "basicSalary": 1000,
+          "allowances": 200,
+          "deductions": 50,
+          "netSalary": 1150,
+          "paymentStatus": "Pending"
+        }
+      }
+    },
+    "batch": {
+      "status": 200,
+      "data": {
+        "success": true,
+        "message": "Generated 1 salary records for 7/2026. (0 already existed)"
+      }
+    },
+    "pay": {
+      "status": 200,
+      "message": "Salary marked as paid successfully"
+    },
+    "payAgain": {
+      "status": 400,
+      "message": "This salary has already been paid"
+    },
+    "salaryRow": {
+      "id": 1,
+      "businessId": 4,
+      "employeeId": 1,
+      "employeeName": "QA HRMS New",
+      "employeeEmail": "hrms.new.1795527493261@qa.local",
+      "employeePhone": "92300000123",
+      "designation": "Pharmacist",
+      "department": "Pharmacy",
+      "month": 6,
+      "year": 2026,
+      "basicSalary": 1000,
+      "allowances": 200,
+      "deductions": 50,
+      "netSalary": 1150,
+      "paymentStatus": "Paid",
+      "paymentDate": "2026-06-29T19:00:00.000Z",
+      "paymentMethod": "Bank Transfer",
+      "notes": null,
+      "createdAt": "2026-11-24T13:38:13.000Z",
+      "updatedAt": "2026-11-24T13:38:13.000Z"
+    }
+  },
+  "R24": {
+    "staffListStatus": 403,
+    "createStatus": 201,
+    "listStatus": 200,
+    "listCount": 1,
+    "updateStatus": 200,
+    "deleteStatus": 200
+  }
+}

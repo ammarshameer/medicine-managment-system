@@ -4,13 +4,17 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const { query } = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
+const { isValidPhone } = require('../utils/validators');
 const router = express.Router();
 
 // Register endpoint for customers (with business code)
 router.post('/register', [
   body('name').trim().isLength({ min: 2, max: 100 }).withMessage('Name must be between 2 and 100 characters'),
   body('email').isEmail().normalizeEmail().withMessage('Valid email required'),
-  body('phone').optional().isMobilePhone('any').withMessage('Valid phone number required'),
+  body('phone').optional().custom((value) => {
+    if (!isValidPhone(value)) throw new Error('Valid phone number required');
+    return true;
+  }),
   body('password').isLength({ min: 4 }).withMessage('Password must be at least 4 characters long'),
   body('businessCode').optional().isLength({ min: 3, max: 50 }).withMessage('Business code required'),
   body('emiratesId').optional().trim(),

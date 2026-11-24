@@ -20,6 +20,7 @@ import PrescriptionScreen from './src/screens/PrescriptionScreen';
 // Import context
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { CartProvider } from './src/contexts/CartContext';
+import { I18nProvider } from './src/contexts/I18nContext';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -101,11 +102,13 @@ const AppNavigator = () => {
 const App = () => {
   return (
     <PaperProvider>
-      <AuthProvider>
-        <CartProvider>
-          <AppNavigator />
-        </CartProvider>
-      </AuthProvider>
+      <I18nProvider>
+        <AuthProvider>
+          <CartProvider>
+            <AppNavigator />
+          </CartProvider>
+        </AuthProvider>
+      </I18nProvider>
     </PaperProvider>
   );
 };

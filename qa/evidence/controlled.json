@@ -1,0 +1,111 @@
+{
+  "prescriptions": {
+    "uploadStatus": 201,
+    "rxPending": 1,
+    "rxOtherCustomer": 2,
+    "approvedStatus": 200
+  },
+  "T16": {
+    "noPrescription": {
+      "status": 400,
+      "message": "Controlled medicine \"QA Schedule II Morphine\" requires an approved prescriptionId"
+    },
+    "pendingPrescription": {
+      "status": 400,
+      "message": "A customer (userId) or an approved prescription identifying the customer is required for controlled medicines"
+    },
+    "approvedPrescription": {
+      "status": 201,
+      "message": "POS checkout completed successfully"
+    },
+    "ledger": {
+      "Dispensed": 1
+    }
+  },
+  "T17": {
+    "customerNoRx": {
+      "status": 400,
+      "message": "An approved prescription is required for \"QA Schedule II Morphine\""
+    },
+    "staffNoRx": {
+      "status": 400,
+      "message": "An approved prescription is required for \"QA Schedule II Morphine\""
+    },
+    "ownerNoRx": {
+      "status": 400,
+      "message": "An approved prescription is required for \"QA Schedule II Morphine\""
+    },
+    "customerPendingRx": {
+      "status": 400,
+      "message": "Prescription must be approved before dispensing controlled medicines"
+    },
+    "customerOtherCustomersApprovedRx": {
+      "status": 400,
+      "message": "Prescription does not belong to the ordering customer"
+    }
+  },
+  "T18": {
+    "posNoRx": {
+      "status": 400,
+      "message": "Controlled medicine \"QA Narcotic Item\" requires an approved prescriptionId"
+    },
+    "customerNoRx": {
+      "status": 400,
+      "message": "An approved prescription is required for \"QA Narcotic Item\""
+    },
+    "staffNoRx": {
+      "status": 400,
+      "message": "An approved prescription is required for \"QA Narcotic Item\""
+    }
+  },
+  "D5": {
+    "approvedC1Status": 200,
+    "orderCreateStatus": 201,
+    "orderStatusAtCreation": "Pending",
+    "deliveredStatus": 200,
+    "cancelDeliveredStatus": 400,
+    "before": {
+      "Dispensed": 1
+    },
+    "during": {
+      "Dispensed": 1
+    },
+    "afterDelivery": {
+      "Dispensed": 2
+    },
+    "dispensedAddedAtCreation": 0,
+    "dispensedAddedAtDelivery": 1
+  },
+  "T19": {
+    "receive": {
+      "poStatus": 201,
+      "poId": 4,
+      "receiveStatus": 200,
+      "message": "Purchase order #PO-20261124-6574 received successfully. Inventory and average costs updated."
+    },
+    "afterReceive": {
+      "Dispensed": 2,
+      "Received": 1
+    },
+    "adjustStatus": 200,
+    "afterAdjust": {
+      "Dispensed": 2,
+      "Received": 1,
+      "Adjusted": 1
+    },
+    "destroyStatus": 200,
+    "afterDestroy": {
+      "Dispensed": 2,
+      "Received": 1,
+      "Adjusted": 1,
+      "Destroyed": 1
+    },
+    "complianceStatus": 200,
+    "complianceActions": [
+      "Adjusted",
+      "Destroyed",
+      "Dispensed",
+      "Received"
+    ]
+  }
+}

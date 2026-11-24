@@ -1,12 +1,15 @@
 const express = require('express');
 const { body, query, validationResult } = require('express-validator');
 const { query: dbQuery } = require('../config/database');
-const { authenticateToken, requireTenant, requireBusinessAccess, requireSuperAdmin } = require('../middleware/auth');
+const { authenticateToken, requireTenant, requireBusinessOwnerAccess } = require('../middleware/auth');
 const { uploadSingle } = require('../middleware/upload');
 const router = express.Router();
 
-// Get all medicines (public endpoint with optional tenant filtering)
+// Get all medicines (authenticated, tenant scoped; SUPER_ADMIN may opt into one business)
 router.get('/', [
+  authenticateToken,
+  requireTenant,
+  query('businessId').optional().isInt({ min: 1 }).withMessage('Business ID must be an integer'),
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
   query('category').optional().isInt().withMessage('Category must be an integer'),
@@ -36,8 +39,14 @@ router.get('/', [
     let whereClause = 'WHERE m.IsActive = TRUE';
     const params = [];
 
-    // Add tenant filtering if user is authenticated and not SUPER_ADMIN
-    if (req.user && req.user.Role !== 'SUPER_ADMIN' && req.user.businessId) {
+    // Tenant filtering: non-super-admins always see their own business only.
+    // SUPER_ADMIN sees all businesses unless businessId is supplied.
+    if (req.user.Role === 'SUPER_ADMIN') {
+      if (req.query.businessId) {
+        whereClause += ' AND m.BusinessId = ?';
+        params.push(parseInt(req.query.businessId, 10));
+      }
+    } else {
       whereClause += ' AND m.BusinessId = ?';
       params.push(req.user.businessId);
     }
@@ -131,17 +140,32 @@ router.get('/', [
   }
 });
 
-// Get single medicine by ID (with tenant filtering)
-router.get('/:id', async (req, res) => {
+// Get single medicine by ID (authenticated, tenant scoped)
+router.get('/:id', authenticateToken, requireTenant, [
+  query('businessId').optional().isInt({ min: 1 }).withMessage('Business ID must be an integer')
+], async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation errors',
+        errors: errors.array()
+      });
+    }
+
     const medicineId = req.params.id;
 
     // Build WHERE clause with tenant filtering
     let whereClause = 'WHERE m.MedicineId = ? AND m.IsActive = TRUE';
     const params = [medicineId];
 
-    // Add tenant filtering if user is authenticated and not SUPER_ADMIN
-    if (req.user && req.user.Role !== 'SUPER_ADMIN' && req.user.businessId) {
+    if (req.user.Role === 'SUPER_ADMIN') {
+      if (req.query.businessId) {
+        whereClause += ' AND m.BusinessId = ?';
+        params.push(parseInt(req.query.businessId, 10));
+      }
+    } else {
       whereClause += ' AND m.BusinessId = ?';
       params.push(req.user.businessId);
     }
@@ -203,8 +227,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Add new medicine (business owner/staff only with tenant isolation)
-router.post('/', authenticateToken, requireTenant, requireBusinessAccess, [
+// Add new medicine (business owner or SUPER_ADMIN only, with tenant isolation)
+router.post('/', authenticateToken, requireTenant, requireBusinessOwnerAccess, [
   body('name').trim().isLength({ min: 2, max: 200 }).withMessage('Name must be between 2 and 200 characters'),
   body('categoryId').optional().isInt().withMessage('Category ID must be an integer'),
   body('description').optional().trim().isLength({ max: 1000 }).withMessage('Description too long'),
@@ -337,8 +361,8 @@ router.post('/', authenticateToken, requireTenant, requireBusinessAccess, [
   }
 });
 
-// Update medicine (business owner/staff only with tenant isolation)
-router.put('/:id', authenticateToken, requireTenant, requireBusinessAccess, [
+// Update medicine (business owner or SUPER_ADMIN only, with tenant isolation)
+router.put('/:id', authenticateToken, requireTenant, requireBusinessOwnerAccess, [
   body('name').optional().trim().isLength({ min: 2, max: 200 }).withMessage('Name must be between 2 and 200 characters'),
   body('categoryId').optional().isInt().withMessage('Category ID must be an integer'),
   body('description').optional().trim().isLength({ max: 1000 }).withMessage('Description too long'),
@@ -500,8 +524,8 @@ router.put('/:id', authenticateToken, requireTenant, requireBusinessAccess, [
   }
 });
 
-// Delete medicine (business owner/staff only with tenant isolation)
-router.delete('/:id', authenticateToken, requireTenant, requireBusinessAccess, async (req, res) => {
+// Delete medicine (business owner or SUPER_ADMIN only, with tenant isolation)
+router.delete('/:id', authenticateToken, requireTenant, requireBusinessOwnerAccess, async (req, res) => {
   try {
     const medicineId = req.params.id;
 
@@ -542,8 +566,8 @@ router.delete('/:id', authenticateToken, requireTenant, requireBusinessAccess, a
   }
 });
 
-// Upload medicine image (business owner/staff only with tenant isolation)
-router.post('/:id/image', authenticateToken, requireTenant, requireBusinessAccess, uploadSingle('medicineImage'), async (req, res) => {
+// Upload medicine image (business owner or SUPER_ADMIN only, with tenant isolation)
+router.post('/:id/image', authenticateToken, requireTenant, requireBusinessOwnerAccess, uploadSingle('medicineImage'), async (req, res) => {
   try {
     const medicineId = req.params.id;
 

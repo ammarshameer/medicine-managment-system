@@ -1,0 +1,38 @@
+{
+  "unauthenticated": {
+    "/medicines": {
+      "status": 401,
+      "message": "Access token required"
+    },
+    "/categories": {
+      "status": 401,
+      "message": "Access token required"
+    }
+  },
+  "authenticated": {
+    "/medicines": {
+      "status": 200,
+      "callerBusinessId": 5,
+      "rowCount": 3,
+      "businessIds": [
+        5
+      ],
+      "foreignRows": 0
+    },
+    "/categories": {
+      "status": 200,
+      "callerBusinessId": 5,
+      "rowCount": 10,
+      "businessIds": [
+        5
+      ],
+      "foreignRows": 0
+    }
+  },
+  "forcedBusinessId": {
+    "status": 200,
+    "businessIds": [
+      5
+    ]
+  }
+}

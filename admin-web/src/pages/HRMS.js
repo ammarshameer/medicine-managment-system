@@ -8,7 +8,6 @@ import {
   Plus,
   Search,
   DollarSign,
-  Calendar,
   CheckCircle2,
   Clock,
   Edit2,
@@ -22,9 +21,11 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import { useCurrency } from '../utils/formatCurrency';
+import { useTranslation } from '../i18n';
 
 export const HRMS = () => {
-  const { currency, format } = useCurrency();
+  const { t } = useTranslation();
+const { currency, format } = useCurrency();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('employees'); // 'employees' | 'payroll'
 
@@ -59,6 +60,7 @@ export const HRMS = () => {
   const [payrollStatusFilter, setPayrollStatusFilter] = useState('all');
 
   // Salary modals
+  // eslint-disable-next-line no-unused-vars
   const [salaryModalOpen, setSalaryModalOpen] = useState(false);
   const [payModalOpen, setPayModalOpen] = useState(false);
   const [selectedSalary, setSelectedSalary] = useState(null);
@@ -269,6 +271,7 @@ export const HRMS = () => {
     }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const handleSalarySubmit = (e) => {
     e.preventDefault();
     if (!salaryForm.employeeId) {
@@ -322,10 +325,10 @@ export const HRMS = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <UserCheck className="w-7 h-7 text-blue-600" />
-            Human Resources & Payroll (HRMS)
+            {t('Human Resources & Payroll (HRMS)')}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Confidential employee directory, designations, and monthly salary disbursement
+            {t('Confidential employee directory, designations, and monthly salary disbursement')}
           </p>
         </div>
 
@@ -339,7 +342,7 @@ export const HRMS = () => {
               }`}
           >
             <Users className="w-4 h-4" />
-            Employees ({employees.length})
+            {t('Employees (')}{employees.length})
           </button>
           <button
             onClick={() => setActiveTab('payroll')}
@@ -349,7 +352,7 @@ export const HRMS = () => {
               }`}
           >
             <DollarSign className="w-4 h-4" />
-            Monthly Payroll
+            {t('Monthly Payroll')}
           </button>
         </div>
       </div>
@@ -360,13 +363,13 @@ export const HRMS = () => {
           {/* Action bar */}
           <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col sm:flex-row gap-3 justify-between items-center">
             <div className="relative w-full sm:w-80">
-              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-gray-400 absolute start-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search employee name, role, designation..."
+                placeholder={t('Search employee name, role, designation...')}
                 value={employeeSearch}
                 onChange={(e) => setEmployeeSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full ps-9 pe-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               />
             </div>
 
@@ -376,19 +379,19 @@ export const HRMS = () => {
                 onChange={(e) => setEmployeeStatusFilter(e.target.value)}
                 className="text-xs border border-gray-300 rounded-lg px-3 py-2 bg-white outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="all">All Statuses</option>
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-                <option value="On Leave">On Leave</option>
-                <option value="Terminated">Terminated</option>
+                <option value="all">{t('All Statuses')}</option>
+                <option value="Active">{t('Active')}</option>
+                <option value="Inactive">{t('Inactive')}</option>
+                <option value="On Leave">{t('On Leave')}</option>
+                <option value="Terminated">{t('Terminated')}</option>
               </select>
 
               <button
                 onClick={openAddEmployeeModal}
                 className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg shadow-sm transition-colors whitespace-nowrap"
               >
-                <Plus className="w-4 h-4 mr-1.5" />
-                Add Employee
+                <Plus className="w-4 h-4 me-1.5" />
+                {t('Add Employee')}
               </button>
             </div>
           </div>
@@ -402,21 +405,21 @@ export const HRMS = () => {
             ) : employees.length === 0 ? (
               <div className="text-center py-16 text-gray-500">
                 <Users className="w-12 h-12 mx-auto text-gray-300 mb-2" />
-                <p className="text-base font-semibold">No employees found</p>
-                <p className="text-xs text-gray-400 mt-1">Add staff pharmacists and cashiers to manage roles and salaries</p>
+                <p className="text-base font-semibold">{t('No employees found')}</p>
+                <p className="text-xs text-gray-400 mt-1">{t('Add staff pharmacists and cashiers to manage roles and salaries')}</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 text-left text-sm">
+                <table className="min-w-full divide-y divide-gray-200 text-start text-sm">
                   <thead className="bg-gray-50 text-xs font-semibold uppercase text-gray-500">
                     <tr>
-                      <th className="px-6 py-3">Employee Name</th>
-                      <th className="px-6 py-3">Designation & Dept</th>
-                      <th className="px-6 py-3">System Role</th>
-                      <th className="px-6 py-3">Base Salary</th>
-                      <th className="px-6 py-3">Joining Date</th>
-                      <th className="px-6 py-3">Status</th>
-                      <th className="px-6 py-3 text-right">Actions</th>
+                      <th className="px-6 py-3">{t('Employee Name')}</th>
+                      <th className="px-6 py-3">{t('Designation & Dept')}</th>
+                      <th className="px-6 py-3">{t('System Role')}</th>
+                      <th className="px-6 py-3">{t('Base Salary')}</th>
+                      <th className="px-6 py-3">{t('Joining Date')}</th>
+                      <th className="px-6 py-3">{t('Status')}</th>
+                      <th className="px-6 py-3 text-end">{t('Actions')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -451,11 +454,11 @@ export const HRMS = () => {
                             {emp.employmentStatus}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-right space-x-2">
+                        <td className="px-6 py-4 text-end gap-2">
                           <button
                             onClick={() => openEditEmployeeModal(emp)}
                             className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Edit Profile"
+                            title={t('Edit Profile')}
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
@@ -467,7 +470,7 @@ export const HRMS = () => {
                                 }
                               }}
                               className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Deactivate"
+                              title={t('Deactivate')}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -490,7 +493,7 @@ export const HRMS = () => {
           <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col sm:flex-row gap-3 justify-between items-center">
             <div className="flex items-center gap-3 w-full sm:w-auto">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-gray-700">Month:</span>
+                <span className="text-xs font-bold text-gray-700">{t('Month:')}</span>
                 <select
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(parseInt(e.target.value, 10))}
@@ -503,7 +506,7 @@ export const HRMS = () => {
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-gray-700">Year:</span>
+                <span className="text-xs font-bold text-gray-700">{t('Year:')}</span>
                 <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
@@ -520,9 +523,9 @@ export const HRMS = () => {
                 onChange={(e) => setPayrollStatusFilter(e.target.value)}
                 className="text-xs border border-gray-300 rounded-lg px-3 py-2 bg-white outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="all">All Payment Statuses</option>
-                <option value="Pending">Pending</option>
-                <option value="Paid">Paid</option>
+                <option value="all">{t('All Payment Statuses')}</option>
+                <option value="Pending">{t('Pending')}</option>
+                <option value="Paid">{t('Paid')}</option>
               </select>
             </div>
 
@@ -537,8 +540,8 @@ export const HRMS = () => {
                 disabled={batchGeneratePayrollMutation.isLoading}
                 className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg shadow-sm transition-colors whitespace-nowrap"
               >
-                {batchGeneratePayrollMutation.isLoading ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <FileSpreadsheet className="w-4 h-4 mr-1.5" />}
-                Generate {monthNames[selectedMonth - 1]} Payroll
+                {batchGeneratePayrollMutation.isLoading ? <Loader2 className="w-4 h-4 me-1.5 animate-spin" /> : <FileSpreadsheet className="w-4 h-4 me-1.5" />}
+                {t('Generate')} {monthNames[selectedMonth - 1]} {t('Payroll')}
               </button>
 
               <button
@@ -556,8 +559,8 @@ export const HRMS = () => {
                 }}
                 className="inline-flex items-center px-3 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold text-xs rounded-lg shadow-sm"
               >
-                <Plus className="w-3.5 h-3.5 mr-1" />
-                Custom Slip
+                <Plus className="w-3.5 h-3.5 me-1" />
+                {t('Custom Slip')}
               </button>
             </div>
           </div>
@@ -571,21 +574,21 @@ export const HRMS = () => {
             ) : salaries.length === 0 ? (
               <div className="text-center py-16 text-gray-500">
                 <DollarSign className="w-12 h-12 mx-auto text-gray-300 mb-2" />
-                <p className="text-base font-semibold">No payroll records for {monthNames[selectedMonth - 1]} {selectedYear}</p>
-                <p className="text-xs text-gray-400 mt-1">Click "Generate Payroll" to automatically create salary slips for all active employees</p>
+                <p className="text-base font-semibold">{t('No payroll records for')} {monthNames[selectedMonth - 1]} {selectedYear}</p>
+                <p className="text-xs text-gray-400 mt-1">{t('Click "Generate Payroll" to automatically create salary slips for all active employees')}</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 text-left text-sm">
+                <table className="min-w-full divide-y divide-gray-200 text-start text-sm">
                   <thead className="bg-gray-50 text-xs font-semibold uppercase text-gray-500">
                     <tr>
-                      <th className="px-6 py-3">Employee</th>
-                      <th className="px-6 py-3">Period</th>
-                      <th className="px-6 py-3">Basic Salary</th>
-                      <th className="px-6 py-3">Allowances / Deductions</th>
-                      <th className="px-6 py-3">Net Payable</th>
-                      <th className="px-6 py-3">Status</th>
-                      <th className="px-6 py-3 text-right">Actions</th>
+                      <th className="px-6 py-3">{t('Employee')}</th>
+                      <th className="px-6 py-3">{t('Period')}</th>
+                      <th className="px-6 py-3">{t('Basic Salary')}</th>
+                      <th className="px-6 py-3">{t('Allowances / Deductions')}</th>
+                      <th className="px-6 py-3">{t('Net Payable')}</th>
+                      <th className="px-6 py-3">{t('Status')}</th>
+                      <th className="px-6 py-3 text-end">{t('Actions')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -602,8 +605,8 @@ export const HRMS = () => {
                           {format(sal.basicSalary)}
                         </td>
                         <td className="px-6 py-4 text-xs space-y-0.5">
-                          {sal.allowances > 0 && <span className="text-green-600 block">+{format(sal.allowances)} (Allow)</span>}
-                          {sal.deductions > 0 && <span className="text-red-600 block">-{format(sal.deductions)} (Deduct)</span>}
+                          {sal.allowances > 0 && <span className="text-green-600 block">+{format(sal.allowances)} {t('(Allow)')}</span>}
+                          {sal.deductions > 0 && <span className="text-red-600 block">-{format(sal.deductions)} {t('(Deduct)')}</span>}
                           {sal.allowances === 0 && sal.deductions === 0 && <span className="text-gray-400">—</span>}
                         </td>
                         <td className="px-6 py-4 font-bold font-mono text-blue-900">
@@ -612,21 +615,21 @@ export const HRMS = () => {
                         <td className="px-6 py-4">
                           {sal.paymentStatus === 'Paid' ? (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-                              <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-green-600" />
-                              Paid ({sal.paymentMethod})
+                              <CheckCircle2 className="w-3.5 h-3.5 me-1 text-green-600" />
+                              {t('Paid (')}{sal.paymentMethod})
                             </span>
                           ) : (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
-                              <Clock className="w-3.5 h-3.5 mr-1 text-amber-600" />
-                              Pending
+                              <Clock className="w-3.5 h-3.5 me-1 text-amber-600" />
+                              {t('Pending')}
                             </span>
                           )}
                         </td>
-                        <td className="px-6 py-4 text-right space-x-2">
+                        <td className="px-6 py-4 text-end gap-2">
                           <button
                             onClick={() => openPayslipModal(sal)}
                             className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Print Payslip"
+                            title={t('Print Payslip')}
                           >
                             <Printer className="w-4 h-4" />
                           </button>
@@ -636,7 +639,7 @@ export const HRMS = () => {
                               className="px-2.5 py-1 text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded-md transition-colors inline-flex items-center gap-1 shadow-sm"
                             >
                               <CreditCard className="w-3.5 h-3.5" />
-                              Mark Paid
+                              {t('Mark Paid')}
                             </button>
                           )}
                         </td>
@@ -656,7 +659,7 @@ export const HRMS = () => {
           <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <h3 className="text-lg font-bold text-gray-900">
-                {editingEmployee ? 'Edit Employee Profile' : 'Add Employee'}
+                {editingEmployee ? t('Edit Employee Profile') : t('Add Employee')}
               </h3>
               <button onClick={() => setEmployeeModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
@@ -673,7 +676,7 @@ export const HRMS = () => {
                     }`}
                 >
                   <UserPlus className="w-4 h-4" />
-                  Create New Account
+                  {t('Create New Account')}
                 </button>
                 <button
                   type="button"
@@ -682,7 +685,7 @@ export const HRMS = () => {
                     }`}
                 >
                   <LinkIcon className="w-4 h-4" />
-                  Link Existing User
+                  {t('Link Existing User')}
                 </button>
               </div>
             )}
@@ -692,7 +695,7 @@ export const HRMS = () => {
               {!editingEmployee && addMode === 'link_existing' ? (
                 <div>
                   <label className="font-semibold text-gray-700 block mb-1">
-                    Select Registered User <span className="text-red-500">*</span>
+                    {t('Select Registered User')} <span className="text-red-500">*</span>
                   </label>
                   <select
                     required
@@ -700,16 +703,16 @@ export const HRMS = () => {
                     onChange={(e) => setEmpForm({ ...empForm, userId: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   >
-                    <option value="">-- Choose User without Employee Profile --</option>
+                    <option value="">{t('-- Choose User without Employee Profile --')}</option>
                     {unlinkedUsersData?.map(u => (
                       <option key={u.id} value={u.id}>
-                        {u.name} ({u.email}) - Current Role: {u.role}
+                        {u.name} ({u.email}{t(') - Current Role:')} {u.role}
                       </option>
                     ))}
                   </select>
                   {unlinkedUsersData?.length === 0 && (
                     <p className="text-[11px] text-amber-600 mt-1">
-                      No unlinked users found. Switch to "Create New Account" to register a new employee.
+                      {t('No unlinked users found. Switch to "Create New Account" to register a new employee.')}
                     </p>
                   )}
                 </div>
@@ -717,11 +720,11 @@ export const HRMS = () => {
                 /* New User Fields */
                 <div className="space-y-3">
                   <div>
-                    <label className="font-semibold text-gray-700 block mb-1">Full Name <span className="text-red-500">*</span></label>
+                    <label className="font-semibold text-gray-700 block mb-1">{t('Full Name')} <span className="text-red-500">*</span></label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Asim Raza"
+                      placeholder={t('e.g. Asim Raza')}
                       value={empForm.name}
                       onChange={(e) => setEmpForm({ ...empForm, name: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
@@ -731,23 +734,23 @@ export const HRMS = () => {
                   {!editingEmployee ? (
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="font-semibold text-gray-700 block mb-1">Email <span className="text-red-500">*</span></label>
+                        <label className="font-semibold text-gray-700 block mb-1">{t('Email')} <span className="text-red-500">*</span></label>
                         <input
                           type="email"
                           required
-                          placeholder="staff@pharmacy.com"
+                          placeholder={t('staff@pharmacy.com')}
                           value={empForm.email}
                           onChange={(e) => setEmpForm({ ...empForm, email: e.target.value })}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
                       <div>
-                        <label className="font-semibold text-gray-700 block mb-1">Password / PIN <span className="text-red-500">*</span></label>
+                        <label className="font-semibold text-gray-700 block mb-1">{t('Password / PIN')} <span className="text-red-500">*</span></label>
                         <input
                           type="password"
                           required
                           minLength="4"
-                          placeholder="Min 4 digits / PIN"
+                          placeholder={t('Min 4 digits / PIN')}
                           value={empForm.password}
                           onChange={(e) => setEmpForm({ ...empForm, password: e.target.value })}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
@@ -757,12 +760,12 @@ export const HRMS = () => {
                   ) : (
                     <div>
                       <label className="font-semibold text-gray-700 block mb-1">
-                        Reset Password / 4-Digit PIN <span className="text-gray-400 font-normal">(Leave blank to keep unchanged)</span>
+                        {t('Reset Password / 4-Digit PIN')} <span className="text-gray-400 font-normal">{t('(Leave blank to keep unchanged)')}</span>
                       </label>
                       <input
                         type="password"
                         minLength="4"
-                        placeholder="Enter new 4+ digit PIN / password"
+                        placeholder={t('Enter new 4+ digit PIN / password')}
                         value={empForm.password}
                         onChange={(e) => setEmpForm({ ...empForm, password: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
@@ -772,7 +775,7 @@ export const HRMS = () => {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="font-semibold text-gray-700 block mb-1">Phone Number</label>
+                      <label className="font-semibold text-gray-700 block mb-1">{t('Phone Number')}</label>
                       <input
                         type="text"
                         placeholder="+92 300 1234567"
@@ -782,14 +785,14 @@ export const HRMS = () => {
                       />
                     </div>
                     <div>
-                      <label className="font-semibold text-gray-700 block mb-1">System Role</label>
+                      <label className="font-semibold text-gray-700 block mb-1">{t('System Role')}</label>
                       <select
                         value={empForm.role}
                         onChange={(e) => setEmpForm({ ...empForm, role: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                       >
-                        <option value="STAFF">STAFF (Cashier / Pharmacist)</option>
-                        <option value="BUSINESS_OWNER">BUSINESS_OWNER</option>
+                        <option value="STAFF">{t('STAFF (Cashier / Pharmacist)')}</option>
+                        <option value="BUSINESS_OWNER">{t('BUSINESS_OWNER')}</option>
                       </select>
                     </div>
                   </div>
@@ -800,21 +803,21 @@ export const HRMS = () => {
               <div className="pt-2 border-t border-gray-100 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="font-semibold text-gray-700 block mb-1">Job Designation <span className="text-red-500">*</span></label>
+                    <label className="font-semibold text-gray-700 block mb-1">{t('Job Designation')} <span className="text-red-500">*</span></label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Senior Pharmacist"
+                      placeholder={t('e.g. Senior Pharmacist')}
                       value={empForm.designation}
                       onChange={(e) => setEmpForm({ ...empForm, designation: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div>
-                    <label className="font-semibold text-gray-700 block mb-1">Department</label>
+                    <label className="font-semibold text-gray-700 block mb-1">{t('Department')}</label>
                     <input
                       type="text"
-                      placeholder="e.g. Pharmacy, Dispensing"
+                      placeholder={t('e.g. Pharmacy, Dispensing')}
                       value={empForm.department}
                       onChange={(e) => setEmpForm({ ...empForm, department: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
@@ -824,20 +827,20 @@ export const HRMS = () => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="font-semibold text-gray-700 block mb-1">Monthly Base Salary ({currency}) <span className="text-red-500">*</span></label>
+                    <label className="font-semibold text-gray-700 block mb-1">{t('Monthly Base Salary (')}{currency}) <span className="text-red-500">*</span></label>
                     <input
                       type="number"
                       required
                       min="0"
                       step="1"
-                      placeholder="e.g. 5000"
+                      placeholder={t('e.g. 5000')}
                       value={empForm.salary}
                       onChange={(e) => setEmpForm({ ...empForm, salary: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-bold"
                     />
                   </div>
                   <div>
-                    <label className="font-semibold text-gray-700 block mb-1">Joining Date <span className="text-red-500">*</span></label>
+                    <label className="font-semibold text-gray-700 block mb-1">{t('Joining Date')} <span className="text-red-500">*</span></label>
                     <input
                       type="date"
                       required
@@ -849,16 +852,16 @@ export const HRMS = () => {
                 </div>
 
                 <div>
-                  <label className="font-semibold text-gray-700 block mb-1">Employment Status</label>
+                  <label className="font-semibold text-gray-700 block mb-1">{t('Employment Status')}</label>
                   <select
                     value={empForm.employmentStatus}
                     onChange={(e) => setEmpForm({ ...empForm, employmentStatus: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   >
-                    <option value="Active">Active</option>
-                    <option value="On Leave">On Leave</option>
-                    <option value="Inactive">Inactive</option>
-                    <option value="Terminated">Terminated</option>
+                    <option value="Active">{t('Active')}</option>
+                    <option value="On Leave">{t('On Leave')}</option>
+                    <option value="Inactive">{t('Inactive')}</option>
+                    <option value="Terminated">{t('Terminated')}</option>
                   </select>
                 </div>
               </div>
@@ -869,7 +872,7 @@ export const HRMS = () => {
                   onClick={() => setEmployeeModalOpen(false)}
                   className="px-4 py-2 font-semibold text-gray-600 hover:bg-gray-100 rounded-lg"
                 >
-                  Cancel
+                  {t('Cancel')}
                 </button>
                 <button
                   type="submit"
@@ -877,7 +880,7 @@ export const HRMS = () => {
                   className="px-5 py-2 font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm disabled:bg-gray-400 flex items-center gap-1.5"
                 >
                   {saveEmployeeMutation.isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {editingEmployee ? 'Update Profile' : 'Save Employee'}
+                  {editingEmployee ? t('Update Profile') : t('Save Employee')}
                 </button>
               </div>
             </form>
@@ -892,7 +895,7 @@ export const HRMS = () => {
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <h3 className="text-base font-bold text-gray-900 flex items-center gap-1.5">
                 <CreditCard className="w-5 h-5 text-green-600" />
-                Process Salary Payment
+                {t('Process Salary Payment')}
               </h3>
               <button onClick={() => setPayModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
@@ -901,28 +904,28 @@ export const HRMS = () => {
 
             <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 text-xs">
               <p className="font-bold text-blue-900">{selectedSalary.employeeName}</p>
-              <p className="text-blue-700">Period: {monthNames[selectedSalary.month - 1]} {selectedSalary.year}</p>
-              <p className="text-base font-black text-blue-900 mt-1">Amount: {format(selectedSalary.netSalary)}</p>
+              <p className="text-blue-700">{t('Period:')} {monthNames[selectedSalary.month - 1]} {selectedSalary.year}</p>
+              <p className="text-base font-black text-blue-900 mt-1">{t('Amount:')} {format(selectedSalary.netSalary)}</p>
             </div>
 
             <form onSubmit={handlePaySubmit} className="space-y-3 text-xs">
               <div>
-                <label className="font-semibold text-gray-700 block mb-1">Payment Method <span className="text-red-500">*</span></label>
+                <label className="font-semibold text-gray-700 block mb-1">{t('Payment Method')} <span className="text-red-500">*</span></label>
                 <select
                   value={payForm.paymentMethod}
                   onChange={(e) => setPayForm({ ...payForm, paymentMethod: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white font-semibold"
                 >
-                  <option value="Bank Transfer">Bank Transfer</option>
-                  <option value="Cash">Cash</option>
-                  <option value="Cheque">Cheque</option>
-                  <option value="JazzCash">JazzCash</option>
-                  <option value="EasyPaisa">EasyPaisa</option>
+                  <option value="Bank Transfer">{t('Bank Transfer')}</option>
+                  <option value="Cash">{t('Cash')}</option>
+                  <option value="Cheque">{t('Cheque')}</option>
+                  <option value="JazzCash">{t('JazzCash')}</option>
+                  <option value="EasyPaisa">{t('EasyPaisa')}</option>
                 </select>
               </div>
 
               <div>
-                <label className="font-semibold text-gray-700 block mb-1">Payment Date <span className="text-red-500">*</span></label>
+                <label className="font-semibold text-gray-700 block mb-1">{t('Payment Date')} <span className="text-red-500">*</span></label>
                 <input
                   type="date"
                   required
@@ -933,10 +936,10 @@ export const HRMS = () => {
               </div>
 
               <div>
-                <label className="font-semibold text-gray-700 block mb-1">Transaction Ref / Notes</label>
+                <label className="font-semibold text-gray-700 block mb-1">{t('Transaction Ref / Notes')}</label>
                 <input
                   type="text"
-                  placeholder="e.g. Txn # 981248 / Bank Transfer"
+                  placeholder={t('e.g. Txn # 981248 / Bank Transfer')}
                   value={payForm.notes}
                   onChange={(e) => setPayForm({ ...payForm, notes: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
@@ -949,7 +952,7 @@ export const HRMS = () => {
                   onClick={() => setPayModalOpen(false)}
                   className="px-4 py-2 font-semibold text-gray-600 hover:bg-gray-100 rounded-lg"
                 >
-                  Cancel
+                  {t('Cancel')}
                 </button>
                 <button
                   type="submit"
@@ -957,7 +960,7 @@ export const HRMS = () => {
                   className="px-5 py-2 font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg shadow-sm disabled:bg-gray-400 flex items-center gap-1.5"
                 >
                   {markAsPaidMutation.isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Confirm Payment
+                  {t('Confirm Payment')}
                 </button>
               </div>
             </form>
@@ -972,7 +975,7 @@ export const HRMS = () => {
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
                 <Printer className="w-5 h-5 text-blue-600" />
-                Employee Payslip
+                {t('Employee Payslip')}
               </h3>
               <button onClick={() => setPayslipModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
@@ -981,44 +984,44 @@ export const HRMS = () => {
 
             <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 text-xs font-mono space-y-3">
               <div className="text-center pb-2 border-b border-gray-300">
-                <h2 className="text-sm font-bold uppercase text-gray-900">SALARY SLIP</h2>
+                <h2 className="text-sm font-bold uppercase text-gray-900">{t('SALARY SLIP')}</h2>
                 <p className="text-gray-600">{monthNames[selectedPayslip.month - 1]} {selectedPayslip.year}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-[11px]">
                 <div>
-                  <span className="text-gray-500 block">Employee:</span>
+                  <span className="text-gray-500 block">{t('Employee:')}</span>
                   <span className="font-bold text-gray-900">{selectedPayslip.employeeName}</span>
                 </div>
                 <div>
-                  <span className="text-gray-500 block">Designation:</span>
+                  <span className="text-gray-500 block">{t('Designation:')}</span>
                   <span className="font-bold text-gray-900">{selectedPayslip.designation}</span>
                 </div>
               </div>
 
               <div className="border-t border-b border-gray-300 py-2 space-y-1">
                 <div className="flex justify-between">
-                  <span>Basic Salary:</span>
+                  <span>{t('Basic Salary:')}</span>
                   <span className="font-bold">{format(selectedPayslip.basicSalary)}</span>
                 </div>
                 <div className="flex justify-between text-green-700">
-                  <span>Allowances:</span>
+                  <span>{t('Allowances:')}</span>
                   <span>+ {format(selectedPayslip.allowances)}</span>
                 </div>
                 <div className="flex justify-between text-red-700">
-                  <span>Deductions:</span>
+                  <span>{t('Deductions:')}</span>
                   <span>- {format(selectedPayslip.deductions)}</span>
                 </div>
               </div>
 
               <div className="flex justify-between font-bold text-sm text-gray-900 pt-1">
-                <span>NET SALARY:</span>
+                <span>{t('NET SALARY:')}</span>
                 <span>{format(selectedPayslip.netSalary)}</span>
               </div>
 
               <div className="text-[10px] text-gray-500 pt-2 border-t border-gray-200 flex justify-between">
-                <span>Status: {selectedPayslip.paymentStatus}</span>
-                <span>Method: {selectedPayslip.paymentMethod || 'N/A'}</span>
+                <span>{t('Status:')} {selectedPayslip.paymentStatus}</span>
+                <span>{t('Method:')} {selectedPayslip.paymentMethod || t('N/A')}</span>
               </div>
             </div>
 
@@ -1028,13 +1031,13 @@ export const HRMS = () => {
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs flex items-center gap-1.5"
               >
                 <Printer className="w-4 h-4" />
-                Print Payslip
+                {t('Print Payslip')}
               </button>
               <button
                 onClick={() => setPayslipModalOpen(false)}
                 className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold text-xs"
               >
-                Close
+                {t('Close')}
               </button>
             </div>
           </div>

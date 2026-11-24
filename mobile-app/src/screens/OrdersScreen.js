@@ -13,10 +13,14 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import axios from 'axios';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../contexts/I18nContext';
+import { useFormatCurrency } from '../utils/formatCurrency';
 
 const OrdersScreen = ({ navigation }) => {
   const { loadCartItems } = useCart();
   const { user } = useAuth();
+  const { t } = useI18n();
+  const formatMoney = useFormatCurrency();
   const defaultCurrency = user?.business?.currency || 'USD';
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -139,14 +143,14 @@ const OrdersScreen = ({ navigation }) => {
             <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Subtotal / Tax:</Text>
               <Text style={styles.metaValue}>
-                {order.currency || defaultCurrency} {parseFloat(order.subtotal).toFixed(2)} + Tax {order.currency || defaultCurrency} {parseFloat(order.taxAmount || 0).toFixed(2)}
+                {formatMoney(order.subtotal, { currency: order.currency || defaultCurrency })} + Tax {formatMoney(order.taxAmount || 0, { currency: order.currency || defaultCurrency })}
               </Text>
             </View>
           )}
 
           <View style={styles.metaRow}>
             <Text style={styles.metaLabel}>Total Payable:</Text>
-            <Text style={styles.metaAmount}>{order.currency || defaultCurrency} {order.totalAmount?.toFixed(2) || '0.00'}</Text>
+            <Text style={styles.metaAmount}>{formatMoney(order.totalAmount, { currency: order.currency || defaultCurrency })}</Text>
           </View>
 
           <View style={styles.metaRow}>
@@ -168,7 +172,7 @@ const OrdersScreen = ({ navigation }) => {
                 </Text>
                 <Text style={styles.lineItemQty}>× {item.quantity}</Text>
                 <Text style={styles.lineItemPrice}>
-                  {order.currency || defaultCurrency} {parseFloat(item.subtotal || (item.price * item.quantity)).toFixed(2)}
+                  {formatMoney(item.subtotal || item.price * item.quantity, { currency: order.currency || defaultCurrency })}
                 </Text>
               </View>
             ))}
@@ -209,7 +213,7 @@ const OrdersScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>My Orders</Text>
+        <Text style={styles.title}>{t('myOrders')}</Text>
         <Text style={styles.subtitle}>Track live order status & reorder past medicines</Text>
       </View>
 

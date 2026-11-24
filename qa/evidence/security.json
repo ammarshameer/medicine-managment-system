@@ -1,0 +1,1222 @@
+{
+  "probes": [
+    {
+      "method": "GET",
+      "route": "/medicines",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/medicines",
+      "caller": "STAFF",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"medicines\":[{\"id\":17,\"businessId\":4,\"name\":\"QA Exempt 50\",\"description\":\"QA fixture QA Exempt 50\",\"price\":50,\"averageCost\":0,\"stock\":10"
+    },
+    {
+      "method": "GET",
+      "route": "/medicines",
+      "caller": "CUSTOMER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"medicines\":[{\"id\":17,\"businessId\":4,\"name\":\"QA Exempt 50\",\"description\":\"QA fixture QA Exempt 50\",\"price\":50,\"averageCost\":0,\"stock\":10"
+    },
+    {
+      "method": "GET",
+      "route": "/medicines",
+      "caller": "BUSINESS_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"medicines\":[{\"id\":17,\"businessId\":4,\"name\":\"QA Exempt 50\",\"description\":\"QA fixture QA Exempt 50\",\"price\":50,\"averageCost\":0,\"stock\":10"
+    },
+    {
+      "method": "GET",
+      "route": "/medicines",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"medicines\":[{\"id\":23,\"businessId\":5,\"name\":\"QA Controlled Item\",\"description\":\"QA fixture QA Controlled Item\",\"price\":25,\"averageCost\":"
+    },
+    {
+      "method": "GET",
+      "route": "/categories",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/categories",
+      "caller": "STAFF",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"categories\":[{\"id\":21,\"businessId\":4,\"name\":\"Allergy\",\"description\":\"Default category for Allergy\"},{\"id\":17,\"businessId\":4,\"name\":\"Ant"
+    },
+    {
+      "method": "GET",
+      "route": "/categories",
+      "caller": "CUSTOMER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"categories\":[{\"id\":21,\"businessId\":4,\"name\":\"Allergy\",\"description\":\"Default category for Allergy\"},{\"id\":17,\"businessId\":4,\"name\":\"Ant"
+    },
+    {
+      "method": "GET",
+      "route": "/categories",
+      "caller": "BUSINESS_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"categories\":[{\"id\":21,\"businessId\":4,\"name\":\"Allergy\",\"description\":\"Default category for Allergy\"},{\"id\":17,\"businessId\":4,\"name\":\"Ant"
+    },
+    {
+      "method": "GET",
+      "route": "/categories",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"categories\":[{\"id\":31,\"businessId\":5,\"name\":\"Allergy\",\"description\":\"Default category for Allergy\"},{\"id\":27,\"businessId\":5,\"name\":\"Ant"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/dashboard",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/dashboard",
+      "caller": "STAFF",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"totalOrders\":0,\"pendingOrders\":0,\"lowStockMedicines\":1,\"pendingPrescriptions\":0,\"ordersByStatus\":{},\"recentOrders\":[]}}"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/dashboard",
+      "caller": "CUSTOMER",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/dashboard",
+      "caller": "BUSINESS_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"totalOrders\":0,\"pendingOrders\":0,\"lowStockMedicines\":1,\"pendingPrescriptions\":0,\"ordersByStatus\":{},\"recentOrders\":[],\"totalRevenue\":0,"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/dashboard",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"totalOrders\":2,\"pendingOrders\":1,\"lowStockMedicines\":0,\"pendingPrescriptions\":0,\"ordersByStatus\":{\"Delivered\":1,\"Pending\":1},\"recentOrd"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/dashboard/analytics",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/dashboard/analytics",
+      "caller": "STAFF",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/dashboard/analytics",
+      "caller": "CUSTOMER",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/dashboard/analytics",
+      "caller": "BUSINESS_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"period\":\"month\",\"year\":2026,\"totals\":{\"revenue\":0,\"cost\":0,\"profit\":0,\"ordersCount\":0},\"series\":[{\"label\":\"Jan 2026\",\"shortLabel\":\"Jan\""
+    },
+    {
+      "method": "GET",
+      "route": "/admin/dashboard/analytics",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"period\":\"month\",\"year\":2026,\"totals\":{\"revenue\":100,\"cost\":0,\"profit\":100,\"ordersCount\":1},\"series\":[{\"label\":\"Jan 2026\",\"shortLabel\":\""
+    },
+    {
+      "method": "GET",
+      "route": "/admin/users",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/users",
+      "caller": "STAFF",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"users\":[{\"id\":13,\"name\":\"QA usa825 c1\",\"email\":\"customer.c1.usa825@qa.local\",\"phone\":\"92300000001\",\"role\":\"CUSTOMER\",\"emiratesId\":null,"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/users",
+      "caller": "CUSTOMER",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/users",
+      "caller": "BUSINESS_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"users\":[{\"id\":13,\"name\":\"QA usa825 c1\",\"email\":\"customer.c1.usa825@qa.local\",\"phone\":\"92300000001\",\"role\":\"CUSTOMER\",\"emiratesId\":null,"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/users",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"users\":[{\"id\":17,\"name\":\"QA uae c1\",\"email\":\"customer.c1.uae@qa.local\",\"phone\":\"92300000002\",\"role\":\"CUSTOMER\",\"emiratesId\":\"784-1990-1"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/inventory",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/inventory",
+      "caller": "STAFF",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"medicines\":[{\"id\":20,\"name\":\"QA Low Stock Item\",\"price\":9,\"averageCost\":0,\"stock\":2,\"expiryDate\":\"2030-12-30T19:00:00.000Z\",\"manufactur"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/inventory",
+      "caller": "CUSTOMER",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/inventory",
+      "caller": "BUSINESS_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"medicines\":[{\"id\":20,\"name\":\"QA Low Stock Item\",\"price\":9,\"averageCost\":0,\"stock\":2,\"expiryDate\":\"2030-12-30T19:00:00.000Z\",\"manufactur"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/inventory",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"medicines\":[{\"id\":23,\"name\":\"QA Controlled Item\",\"price\":25,\"averageCost\":0,\"stock\":10,\"expiryDate\":\"2030-12-30T19:00:00.000Z\",\"manufac"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/reports/sales",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/reports/sales",
+      "caller": "STAFF",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/reports/sales",
+      "caller": "CUSTOMER",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/reports/sales",
+      "caller": "BUSINESS_OWNER",
+      "status": 400,
+      "ok": true,
+      "message": "Validation errors",
+      "sample": "{\"success\":false,\"message\":\"Validation errors\",\"errors\":[{\"type\":\"field\",\"msg\":\"Invalid start date format\",\"path\":\"startDate\",\"location\":\"query\"},{\"type\":\"field"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/reports/sales",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 400,
+      "ok": true,
+      "message": "Validation errors",
+      "sample": "{\"success\":false,\"message\":\"Validation errors\",\"errors\":[{\"type\":\"field\",\"msg\":\"Invalid start date format\",\"path\":\"startDate\",\"location\":\"query\"},{\"type\":\"field"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/settings",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/settings",
+      "caller": "STAFF",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/settings",
+      "caller": "CUSTOMER",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/settings",
+      "caller": "BUSINESS_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"id\":4,\"businessName\":\"QA USA Pharmacy\",\"legalName\":null,\"phone\":\"92300000001\",\"email\":\"owner.qausa001@qa.local\",\"address\":null,\"city\":n"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/settings",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"id\":5,\"businessName\":\"QA UAE Pharmacy\",\"legalName\":null,\"phone\":\"92300000002\",\"email\":\"owner.qauae002@qa.local\",\"address\":null,\"city\":n"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/compliance/controlled-logs",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/compliance/controlled-logs",
+      "caller": "STAFF",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/compliance/controlled-logs",
+      "caller": "CUSTOMER",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/compliance/controlled-logs",
+      "caller": "BUSINESS_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"logs\":[],\"pagination\":{\"page\":1,\"limit\":20,\"total\":0,\"pages\":0}}}"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/compliance/controlled-logs",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"logs\":[],\"pagination\":{\"page\":1,\"limit\":20,\"total\":0,\"pages\":0}}}"
+    },
+    {
+      "method": "GET",
+      "route": "/vendors",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/vendors",
+      "caller": "STAFF",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/vendors",
+      "caller": "CUSTOMER",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/vendors",
+      "caller": "BUSINESS_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"vendors\":[],\"pagination\":{\"page\":1,\"limit\":20,\"total\":0,\"pages\":0}}}"
+    },
+    {
+      "method": "GET",
+      "route": "/vendors",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"vendors\":[],\"pagination\":{\"page\":1,\"limit\":20,\"total\":0,\"pages\":0}}}"
+    },
+    {
+      "method": "GET",
+      "route": "/purchase-orders",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/purchase-orders",
+      "caller": "STAFF",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/purchase-orders",
+      "caller": "CUSTOMER",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/purchase-orders",
+      "caller": "BUSINESS_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"purchaseOrders\":[],\"pagination\":{\"page\":1,\"limit\":20,\"total\":0,\"pages\":0}}}"
+    },
+    {
+      "method": "GET",
+      "route": "/purchase-orders",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"purchaseOrders\":[],\"pagination\":{\"page\":1,\"limit\":20,\"total\":0,\"pages\":0}}}"
+    },
+    {
+      "method": "GET",
+      "route": "/hrms/employees",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/hrms/employees",
+      "caller": "STAFF",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/hrms/employees",
+      "caller": "CUSTOMER",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/hrms/employees",
+      "caller": "BUSINESS_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"employees\":[]}}"
+    },
+    {
+      "method": "GET",
+      "route": "/hrms/employees",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"employees\":[]}}"
+    },
+    {
+      "method": "GET",
+      "route": "/hrms/salaries",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/hrms/salaries",
+      "caller": "STAFF",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/hrms/salaries",
+      "caller": "CUSTOMER",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/hrms/salaries",
+      "caller": "BUSINESS_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"salaries\":[]}}"
+    },
+    {
+      "method": "GET",
+      "route": "/hrms/salaries",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"salaries\":[]}}"
+    },
+    {
+      "method": "GET",
+      "route": "/orders/admin/all",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/orders/admin/all",
+      "caller": "STAFF",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"orders\":[],\"pagination\":{\"page\":1,\"limit\":20,\"total\":0,\"pages\":0}}}"
+    },
+    {
+      "method": "GET",
+      "route": "/orders/admin/all",
+      "caller": "CUSTOMER",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/orders/admin/all",
+      "caller": "BUSINESS_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"orders\":[],\"pagination\":{\"page\":1,\"limit\":20,\"total\":0,\"pages\":0}}}"
+    },
+    {
+      "method": "GET",
+      "route": "/orders/admin/all",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"orders\":[{\"id\":9,\"businessId\":5,\"orderDate\":\"2026-11-24T13:38:09.000Z\",\"status\":\"Delivered\",\"source\":\"POS\",\"subtotal\":100,\"taxRate\":0.0"
+    },
+    {
+      "method": "GET",
+      "route": "/orders/my-orders",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/orders/my-orders",
+      "caller": "STAFF",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"orders\":[],\"pagination\":{\"page\":1,\"limit\":10,\"total\":0,\"pages\":0}}}"
+    },
+    {
+      "method": "GET",
+      "route": "/orders/my-orders",
+      "caller": "CUSTOMER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"orders\":[],\"pagination\":{\"page\":1,\"limit\":10,\"total\":0,\"pages\":0}}}"
+    },
+    {
+      "method": "GET",
+      "route": "/orders/my-orders",
+      "caller": "BUSINESS_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"orders\":[],\"pagination\":{\"page\":1,\"limit\":10,\"total\":0,\"pages\":0}}}"
+    },
+    {
+      "method": "GET",
+      "route": "/orders/my-orders",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"orders\":[],\"pagination\":{\"page\":1,\"limit\":10,\"total\":0,\"pages\":0}}}"
+    },
+    {
+      "method": "GET",
+      "route": "/prescriptions/admin/all",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/prescriptions/admin/all",
+      "caller": "STAFF",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"prescriptions\":[],\"pagination\":{\"page\":1,\"limit\":20,\"total\":0,\"pages\":0}}}"
+    },
+    {
+      "method": "GET",
+      "route": "/prescriptions/admin/all",
+      "caller": "CUSTOMER",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/prescriptions/admin/all",
+      "caller": "BUSINESS_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"prescriptions\":[],\"pagination\":{\"page\":1,\"limit\":20,\"total\":0,\"pages\":0}}}"
+    },
+    {
+      "method": "GET",
+      "route": "/prescriptions/admin/all",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"prescriptions\":[],\"pagination\":{\"page\":1,\"limit\":20,\"total\":0,\"pages\":0}}}"
+    },
+    {
+      "method": "GET",
+      "route": "/prescriptions/my-prescriptions",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/prescriptions/my-prescriptions",
+      "caller": "STAFF",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"prescriptions\":[],\"pagination\":{\"page\":1,\"limit\":10,\"total\":0,\"pages\":0}}}"
+    },
+    {
+      "method": "GET",
+      "route": "/prescriptions/my-prescriptions",
+      "caller": "CUSTOMER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"prescriptions\":[],\"pagination\":{\"page\":1,\"limit\":10,\"total\":0,\"pages\":0}}}"
+    },
+    {
+      "method": "GET",
+      "route": "/prescriptions/my-prescriptions",
+      "caller": "BUSINESS_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"prescriptions\":[],\"pagination\":{\"page\":1,\"limit\":10,\"total\":0,\"pages\":0}}}"
+    },
+    {
+      "method": "GET",
+      "route": "/prescriptions/my-prescriptions",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"prescriptions\":[],\"pagination\":{\"page\":1,\"limit\":10,\"total\":0,\"pages\":0}}}"
+    },
+    {
+      "method": "GET",
+      "route": "/users/profile",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/users/profile",
+      "caller": "STAFF",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"id\":12,\"businessId\":4,\"name\":\"QA usa825 Staff\",\"email\":\"staff.usa825@qa.local\",\"phone\":\"92300000001\",\"role\":\"STAFF\",\"profileImage\":null"
+    },
+    {
+      "method": "GET",
+      "route": "/users/profile",
+      "caller": "CUSTOMER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"id\":13,\"businessId\":4,\"name\":\"QA usa825 c1\",\"email\":\"customer.c1.usa825@qa.local\",\"phone\":\"92300000001\",\"role\":\"CUSTOMER\",\"profileImage"
+    },
+    {
+      "method": "GET",
+      "route": "/users/profile",
+      "caller": "BUSINESS_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"id\":11,\"businessId\":4,\"name\":\"QA USA Owner\",\"email\":\"owner.qausa001@qa.local\",\"phone\":\"92300000001\",\"role\":\"BUSINESS_OWNER\",\"profileIma"
+    },
+    {
+      "method": "GET",
+      "route": "/users/profile",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"id\":15,\"businessId\":5,\"name\":\"QA UAE Owner\",\"email\":\"owner.qauae002@qa.local\",\"phone\":\"92300000002\",\"role\":\"BUSINESS_OWNER\",\"profileIma"
+    },
+    {
+      "method": "GET",
+      "route": "/super-admin/businesses",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/super-admin/businesses",
+      "caller": "STAFF",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/super-admin/businesses",
+      "caller": "CUSTOMER",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/super-admin/businesses",
+      "caller": "BUSINESS_OWNER",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/super-admin/businesses",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/super-admin/businesses",
+      "caller": "SUPER_ADMIN",
+      "status": 200,
+      "ok": true,
+      "sample": "{\"success\":true,\"data\":{\"businesses\":[{\"BusinessId\":8,\"BusinessName\":\"QA NYC Pharmacy\",\"LegalName\":null,\"BusinessCode\":\"QANYC009\",\"Logo\":null,\"OwnerName\":\"QA NY"
+    },
+    {
+      "method": "POST",
+      "route": "/admin/inventory/adjust",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "POST",
+      "route": "/admin/inventory/adjust",
+      "caller": "STAFF",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "POST",
+      "route": "/admin/inventory/adjust",
+      "caller": "CUSTOMER",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "POST",
+      "route": "/admin/inventory/adjust",
+      "caller": "BUSINESS_OWNER",
+      "status": 400,
+      "ok": true,
+      "message": "Validation errors",
+      "sample": "{\"success\":false,\"message\":\"Validation errors\",\"errors\":[{\"type\":\"field\",\"msg\":\"Invalid medicine ID\",\"path\":\"medicineId\",\"location\":\"query\"},{\"type\":\"field\",\"ms"
+    },
+    {
+      "method": "POST",
+      "route": "/admin/inventory/adjust",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 400,
+      "ok": true,
+      "message": "Validation errors",
+      "sample": "{\"success\":false,\"message\":\"Validation errors\",\"errors\":[{\"type\":\"field\",\"msg\":\"Invalid medicine ID\",\"path\":\"medicineId\",\"location\":\"query\"},{\"type\":\"field\",\"ms"
+    },
+    {
+      "method": "POST",
+      "route": "/orders/pos",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "POST",
+      "route": "/orders/pos",
+      "caller": "STAFF",
+      "status": 400,
+      "ok": true,
+      "message": "Validation errors",
+      "sample": "{\"success\":false,\"message\":\"Validation errors\",\"errors\":[{\"type\":\"field\",\"msg\":\"At least one item is required in cart\",\"path\":\"items\",\"location\":\"body\"}]}"
+    },
+    {
+      "method": "POST",
+      "route": "/orders/pos",
+      "caller": "CUSTOMER",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "POST",
+      "route": "/orders/pos",
+      "caller": "BUSINESS_OWNER",
+      "status": 400,
+      "ok": true,
+      "message": "Validation errors",
+      "sample": "{\"success\":false,\"message\":\"Validation errors\",\"errors\":[{\"type\":\"field\",\"msg\":\"At least one item is required in cart\",\"path\":\"items\",\"location\":\"body\"}]}"
+    },
+    {
+      "method": "POST",
+      "route": "/orders/pos",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 400,
+      "ok": true,
+      "message": "Validation errors",
+      "sample": "{\"success\":false,\"message\":\"Validation errors\",\"errors\":[{\"type\":\"field\",\"msg\":\"At least one item is required in cart\",\"path\":\"items\",\"location\":\"body\"}]}"
+    },
+    {
+      "method": "POST",
+      "route": "/vendors",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "POST",
+      "route": "/vendors",
+      "caller": "STAFF",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "POST",
+      "route": "/vendors",
+      "caller": "CUSTOMER",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "POST",
+      "route": "/vendors",
+      "caller": "BUSINESS_OWNER",
+      "status": 400,
+      "ok": true,
+      "message": "Validation errors",
+      "sample": "{\"success\":false,\"message\":\"Validation errors\",\"errors\":[{\"type\":\"field\",\"value\":\"\",\"msg\":\"Vendor name is required\",\"path\":\"name\",\"location\":\"body\"}]}"
+    },
+    {
+      "method": "POST",
+      "route": "/vendors",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 400,
+      "ok": true,
+      "message": "Validation errors",
+      "sample": "{\"success\":false,\"message\":\"Validation errors\",\"errors\":[{\"type\":\"field\",\"value\":\"\",\"msg\":\"Vendor name is required\",\"path\":\"name\",\"location\":\"body\"}]}"
+    },
+    {
+      "method": "POST",
+      "route": "/purchase-orders",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "POST",
+      "route": "/purchase-orders",
+      "caller": "STAFF",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "POST",
+      "route": "/purchase-orders",
+      "caller": "CUSTOMER",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "POST",
+      "route": "/purchase-orders",
+      "caller": "BUSINESS_OWNER",
+      "status": 400,
+      "ok": true,
+      "message": "Validation errors",
+      "sample": "{\"success\":false,\"message\":\"Validation errors\",\"errors\":[{\"type\":\"field\",\"msg\":\"Valid vendor ID is required\",\"path\":\"vendorId\",\"location\":\"body\"},{\"type\":\"field"
+    },
+    {
+      "method": "POST",
+      "route": "/purchase-orders",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 400,
+      "ok": true,
+      "message": "Validation errors",
+      "sample": "{\"success\":false,\"message\":\"Validation errors\",\"errors\":[{\"type\":\"field\",\"msg\":\"Valid vendor ID is required\",\"path\":\"vendorId\",\"location\":\"body\"},{\"type\":\"field"
+    },
+    {
+      "method": "POST",
+      "route": "/hrms/employees",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "POST",
+      "route": "/hrms/employees",
+      "caller": "STAFF",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "POST",
+      "route": "/hrms/employees",
+      "caller": "CUSTOMER",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "POST",
+      "route": "/hrms/employees",
+      "caller": "BUSINESS_OWNER",
+      "status": 400,
+      "ok": true,
+      "message": "Validation errors",
+      "sample": "{\"success\":false,\"message\":\"Validation errors\",\"errors\":[{\"type\":\"field\",\"value\":\"\",\"msg\":\"Designation is required\",\"path\":\"designation\",\"location\":\"body\"},{\"ty"
+    },
+    {
+      "method": "POST",
+      "route": "/hrms/employees",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 400,
+      "ok": true,
+      "message": "Validation errors",
+      "sample": "{\"success\":false,\"message\":\"Validation errors\",\"errors\":[{\"type\":\"field\",\"value\":\"\",\"msg\":\"Designation is required\",\"path\":\"designation\",\"location\":\"body\"},{\"ty"
+    },
+    {
+      "method": "PATCH",
+      "route": "/orders/999999/status",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "PATCH",
+      "route": "/orders/999999/status",
+      "caller": "STAFF",
+      "status": 400,
+      "ok": true,
+      "message": "Validation errors",
+      "sample": "{\"success\":false,\"message\":\"Validation errors\",\"errors\":[{\"type\":\"field\",\"msg\":\"Invalid status\",\"path\":\"status\",\"location\":\"body\"}]}"
+    },
+    {
+      "method": "PATCH",
+      "route": "/orders/999999/status",
+      "caller": "CUSTOMER",
+      "status": 403,
+      "ok": true,
+      "message": "Insufficient permissions",
+      "sample": "{\"success\":false,\"message\":\"Insufficient permissions\"}"
+    },
+    {
+      "method": "PATCH",
+      "route": "/orders/999999/status",
+      "caller": "BUSINESS_OWNER",
+      "status": 400,
+      "ok": true,
+      "message": "Validation errors",
+      "sample": "{\"success\":false,\"message\":\"Validation errors\",\"errors\":[{\"type\":\"field\",\"msg\":\"Invalid status\",\"path\":\"status\",\"location\":\"body\"}]}"
+    },
+    {
+      "method": "PATCH",
+      "route": "/orders/999999/status",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 400,
+      "ok": true,
+      "message": "Validation errors",
+      "sample": "{\"success\":false,\"message\":\"Validation errors\",\"errors\":[{\"type\":\"field\",\"msg\":\"Invalid status\",\"path\":\"status\",\"location\":\"body\"}]}"
+    },
+    {
+      "method": "PATCH",
+      "route": "/orders/999999/cancel",
+      "caller": "NONE",
+      "status": 401,
+      "ok": true,
+      "message": "Access token required",
+      "sample": "{\"success\":false,\"message\":\"Access token required\"}"
+    },
+    {
+      "method": "PATCH",
+      "route": "/orders/999999/cancel",
+      "caller": "STAFF",
+      "status": 404,
+      "ok": true,
+      "message": "Order not found",
+      "sample": "{\"success\":false,\"message\":\"Order not found\"}"
+    },
+    {
+      "method": "PATCH",
+      "route": "/orders/999999/cancel",
+      "caller": "CUSTOMER",
+      "status": 404,
+      "ok": true,
+      "message": "Order not found",
+      "sample": "{\"success\":false,\"message\":\"Order not found\"}"
+    },
+    {
+      "method": "PATCH",
+      "route": "/orders/999999/cancel",
+      "caller": "BUSINESS_OWNER",
+      "status": 404,
+      "ok": true,
+      "message": "Order not found",
+      "sample": "{\"success\":false,\"message\":\"Order not found\"}"
+    },
+    {
+      "method": "PATCH",
+      "route": "/orders/999999/cancel",
+      "caller": "OTHER_TENANT_OWNER",
+      "status": 404,
+      "ok": true,
+      "message": "Order not found",
+      "sample": "{\"success\":false,\"message\":\"Order not found\"}"
+    }
+  ],
+  "crossTenant": [
+    {
+      "method": "GET",
+      "route": "/orders/admin/all?businessId=4",
+      "status": 200,
+      "leakedIds": 0,
+      "sample": "{\"success\":true,\"data\":{\"orders\":[{\"id\":9,\"businessId\":5,\"orderDate\":\"2026-11-24T13:38:09.000Z\",\"status\":\"Delivered\",\"source\":\"POS\",\"subtotal\":100,\"taxRate\":0.05,\"taxAmount\":5,\"totalAmount\":105,\"curre"
+    },
+    {
+      "method": "GET",
+      "route": "/admin/users?businessId=4",
+      "status": 200,
+      "leakedIds": 0,
+      "sample": "{\"success\":true,\"data\":{\"users\":[{\"id\":17,\"name\":\"QA uae c1\",\"email\":\"customer.c1.uae@qa.local\",\"phone\":\"92300000002\",\"role\":\"CUSTOMER\",\"emiratesId\":\"784-1990-1234567-1\",\"nationalIdLast4\":\"1234\",\"isAc"
+    },
+    {
+      "method": "GET",
+      "route": "/medicines?businessId=4",
+      "status": 200,
+      "leakedIds": 0,
+      "sample": "{\"success\":true,\"data\":{\"medicines\":[{\"id\":23,\"businessId\":5,\"name\":\"QA Controlled Item\",\"description\":\"QA fixture QA Controlled Item\",\"price\":25,\"averageCost\":0,\"stock\":10,\"expiryDate\":\"2030-12-30T19"
+    },
+    {
+      "method": "GET",
+      "route": "/orders/1",
+      "status": 404,
+      "leakedIds": 0,
+      "sample": "{\"success\":false,\"message\":\"Order not found\"}"
+    },
+    {
+      "method": "GET",
+      "route": "/orders/my-orders?businessId=4",
+      "status": 200,
+      "leakedIds": 0,
+      "sample": "{\"success\":true,\"data\":{\"orders\":[],\"pagination\":{\"page\":1,\"limit\":10,\"total\":0,\"pages\":0}}}"
+    }
+  ],
+  "masking": {
+    "staffStatus": 200,
+    "ownerStatus": 200,
+    "staffIds": [
+      "784-****-*******-1\"",
+      "784-****-*******-1\""
+    ],
+    "ownerIds": [
+      "784-1990-1234567-1\"",
+      "784-1990-1234567-1\""
+    ],
+    "staffSample": "{\"success\":true,\"data\":{\"users\":[{\"id\":17,\"name\":\"QA uae c1\",\"email\":\"customer.c1.uae@qa.local\",\"phone\":\"92300000002\",\"role\":\"CUSTOMER\",\"emiratesId\":\"784-****-*******-1\",\"nationalIdLast4\":\"1234\",\"isActive\":true,\"createdAt\":\"2026-11-24T13:38:04.000Z\"},{\"id\":18,\"name\":\"QA uae c2\",\"email\":\"customer.c2.uae@qa.local\",\"phone\":\"92300000002\",\"role\":\"CUSTOMER\",\"emiratesId\":\"784-****-*******-1\",\"nationalIdLast4\":\"1234\",\"isActive\":true,\"createdAt\":\"2026-11-24T13:38:04.000Z\"},{\"id\":16,\"name\":\"QA uae Staff\","
+  },
+  "staffOwnerOnly": {
+    "/hrms/employees": {
+      "status": 403,
+      "message": "Insufficient permissions"
+    },
+    "/vendors": {
+      "status": 403,
+      "message": "Insufficient permissions"
+    },
+    "/purchase-orders": {
+      "status": 403,
+      "message": "Insufficient permissions"
+    },
+    "/admin/dashboard/analytics": {
+      "status": 403,
+      "message": "Insufficient permissions"
+    },
+    "/admin/reports/sales": {
+      "status": 403,
+      "message": "Insufficient permissions"
+    },
+    "/admin/settings": {
+      "status": 403,
+      "message": "Insufficient permissions"
+    },
+    "/admin/compliance/controlled-logs": {
+      "status": 403,
+      "message": "Insufficient permissions"
+    }
+  },
+  "dashboard": {
+    "staffStatus": 200,
+    "ownerStatus": 200,
+    "staffFinancialKeys": [],
+    "staffSample": "{\"success\":true,\"data\":{\"totalOrders\":0,\"pendingOrders\":0,\"lowStockMedicines\":1,\"pendingPrescriptions\":0,\"ordersByStatus\":{},\"recentOrders\":[]}}",
+    "ownerFinancialKeys": [
+      "totalRevenue"
+    ]
+  }
+}

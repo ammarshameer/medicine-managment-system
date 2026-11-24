@@ -10,15 +10,16 @@ import {
   Trash2,
   Phone,
   Mail,
-  MapPin,
   CheckCircle2,
   XCircle,
   Loader2,
   X
 } from 'lucide-react';
+import { useTranslation } from '../i18n';
 
 export const Vendors = () => {
-  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('active');
   const [modalOpen, setModalOpen] = useState(false);
@@ -119,44 +120,44 @@ export const Vendors = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Truck className="w-7 h-7 text-blue-600" />
-            Vendor Management
+            {t('Vendor Management')}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Manage pharmaceutical suppliers, contacts, and procurement channels
+            {t('Manage pharmaceutical suppliers, contacts, and procurement channels')}
           </p>
         </div>
         <button
           onClick={openAddModal}
           className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-lg shadow-sm transition-colors"
         >
-          <Plus className="w-4 h-4 mr-1.5" />
-          Add Vendor
+          <Plus className="w-4 h-4 me-1.5" />
+          {t('Add Vendor')}
         </button>
       </div>
 
       {/* Filters and search */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col sm:flex-row gap-3 justify-between items-center">
         <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-gray-400 absolute start-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search vendor name, contact, phone..."
+            placeholder={t('Search vendor name, contact, phone...')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            className="w-full ps-9 pe-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
           />
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <span className="text-xs text-gray-500 font-medium">Status:</span>
+          <span className="text-xs text-gray-500 font-medium">{t('Status:')}</span>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="text-xs border border-gray-300 rounded-lg px-3 py-2 bg-white outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="active">Active Vendors</option>
-            <option value="inactive">Inactive Vendors</option>
-            <option value="all">All Vendors</option>
+            <option value="active">{t('Active Vendors')}</option>
+            <option value="inactive">{t('Inactive Vendors')}</option>
+            <option value="all">{t('All Vendors')}</option>
           </select>
         </div>
       </div>
@@ -170,20 +171,20 @@ export const Vendors = () => {
         ) : vendors.length === 0 ? (
           <div className="text-center py-16 text-gray-500">
             <Truck className="w-12 h-12 mx-auto text-gray-300 mb-2" />
-            <p className="text-base font-semibold">No vendors found</p>
-            <p className="text-xs text-gray-400 mt-1">Get started by adding your first supplier</p>
+            <p className="text-base font-semibold">{t('No vendors found')}</p>
+            <p className="text-xs text-gray-400 mt-1">{t('Get started by adding your first supplier')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-left text-sm">
+            <table className="min-w-full divide-y divide-gray-200 text-start text-sm">
               <thead className="bg-gray-50 text-xs font-semibold uppercase text-gray-500">
                 <tr>
-                  <th className="px-6 py-3">Vendor / Company</th>
-                  <th className="px-6 py-3">Contact Person</th>
-                  <th className="px-6 py-3">Phone & Email</th>
-                  <th className="px-6 py-3">Address</th>
-                  <th className="px-6 py-3">Status</th>
-                  <th className="px-6 py-3 text-right">Actions</th>
+                  <th className="px-6 py-3">{t('Vendor / Company')}</th>
+                  <th className="px-6 py-3">{t('Contact Person')}</th>
+                  <th className="px-6 py-3">{t('Phone & Email')}</th>
+                  <th className="px-6 py-3">{t('Address')}</th>
+                  <th className="px-6 py-3">{t('Status')}</th>
+                  <th className="px-6 py-3 text-end">{t('Actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -198,13 +199,13 @@ export const Vendors = () => {
                     <td className="px-6 py-4 space-y-0.5">
                       {vendor.phone && (
                         <div className="flex items-center text-xs text-gray-600">
-                          <Phone className="w-3 h-3 mr-1 text-gray-400" />
+                          <Phone className="w-3 h-3 me-1 text-gray-400" />
                           {vendor.phone}
                         </div>
                       )}
                       {vendor.email && (
                         <div className="flex items-center text-xs text-gray-600">
-                          <Mail className="w-3 h-3 mr-1 text-gray-400" />
+                          <Mail className="w-3 h-3 me-1 text-gray-400" />
                           {vendor.email}
                         </div>
                       )}
@@ -216,21 +217,21 @@ export const Vendors = () => {
                     <td className="px-6 py-4">
                       {vendor.isActive ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-                          <CheckCircle2 className="w-3 h-3 mr-1 text-green-600" />
-                          Active
+                          <CheckCircle2 className="w-3 h-3 me-1 text-green-600" />
+                          {t('Active')}
                         </span>
                       ) : (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
-                          <XCircle className="w-3 h-3 mr-1 text-gray-500" />
-                          Inactive
+                          <XCircle className="w-3 h-3 me-1 text-gray-500" />
+                          {t('Inactive')}
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-right space-x-2">
+                    <td className="px-6 py-4 text-end gap-2">
                       <button
                         onClick={() => openEditModal(vendor)}
                         className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Edit Vendor"
+                        title={t('Edit Vendor')}
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
@@ -242,7 +243,7 @@ export const Vendors = () => {
                             }
                           }}
                           className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Deactivate Vendor"
+                          title={t('Deactivate Vendor')}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -262,7 +263,7 @@ export const Vendors = () => {
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <h3 className="text-lg font-bold text-gray-900">
-                {editingVendor ? 'Edit Supplier / Vendor' : 'Add New Supplier / Vendor'}
+                {editingVendor ? t('Edit Supplier / Vendor') : t('Add New Supplier / Vendor')}
               </h3>
               <button onClick={closeModal} className="text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
@@ -272,12 +273,12 @@ export const Vendors = () => {
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
                 <label className="text-xs font-semibold text-gray-700 block mb-1">
-                  Vendor / Company Name <span className="text-red-500">*</span>
+                  {t('Vendor / Company Name')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Pfizer Distribution Ltd"
+                  placeholder={t('e.g. Pfizer Distribution Ltd')}
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
@@ -286,11 +287,11 @@ export const Vendors = () => {
 
               <div>
                 <label className="text-xs font-semibold text-gray-700 block mb-1">
-                  Contact Person
+                  {t('Contact Person')}
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Tariq Mehmood"
+                  placeholder={t('e.g. Tariq Mehmood')}
                   value={formData.contactPerson}
                   onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
@@ -299,7 +300,7 @@ export const Vendors = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1">Phone Number</label>
+                  <label className="text-xs font-semibold text-gray-700 block mb-1">{t('Phone Number')}</label>
                   <input
                     type="text"
                     placeholder="+92 300 1234567"
@@ -309,10 +310,10 @@ export const Vendors = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1">Email</label>
+                  <label className="text-xs font-semibold text-gray-700 block mb-1">{t('Email')}</label>
                   <input
                     type="email"
-                    placeholder="sales@vendor.com"
+                    placeholder={t('sales@vendor.com')}
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
@@ -321,10 +322,10 @@ export const Vendors = () => {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-gray-700 block mb-1">Address / Warehouse</label>
+                <label className="text-xs font-semibold text-gray-700 block mb-1">{t('Address / Warehouse')}</label>
                 <textarea
                   rows="2"
-                  placeholder="Plot # 12, Industrial Area, Karachi"
+                  placeholder={t('Plot # 12, Industrial Area, Karachi')}
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
@@ -337,7 +338,7 @@ export const Vendors = () => {
                   onClick={closeModal}
                   className="px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-lg"
                 >
-                  Cancel
+                  {t('Cancel')}
                 </button>
                 <button
                   type="submit"
@@ -345,7 +346,7 @@ export const Vendors = () => {
                   className="px-5 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm disabled:bg-gray-400 flex items-center gap-1.5"
                 >
                   {saveMutation.isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {editingVendor ? 'Update Vendor' : 'Create Vendor'}
+                  {editingVendor ? t('Update Vendor') : t('Create Vendor')}
                 </button>
               </div>
             </form>

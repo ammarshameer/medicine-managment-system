@@ -1,63 +1,72 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useQuery } from 'react-query';
 import axios from 'axios';
-import { 
-  Users, 
-  Building2, 
-  ShoppingCart, 
-  DollarSign, 
+import {
+  Users,
+  Building2,
+  ShoppingCart,
+  DollarSign,
   TrendingUp,
   Package,
   Clock,
-  CheckCircle,
-  XCircle
+  CheckCircle
 } from 'lucide-react';
+import { useTranslation } from '../i18n';
+import { formatCurrencyIntl, getCurrencyRevenueRows } from '../utils/formatCurrency';
 
-const StatCard = ({ title, value, icon: Icon, trend, color }) => (
-  <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-gray-500 text-sm font-medium">{title}</p>
-        <p className="text-3xl font-bold text-gray-800 mt-1">{value}</p>
-        {trend && (
-          <p className={`text-sm mt-2 ${trend > 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {trend > 0 ? '+' : ''}{trend}% from last month
-          </p>
-        )}
-      </div>
-      <div className={`p-3 rounded-full ${color}`}>
-        <Icon className="w-6 h-6 text-white" />
+const StatCard = ({ title, value, icon: Icon, trend, color }) => {
+  const { t } = useTranslation();
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6 border-s-4 border-blue-500">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-gray-500 text-sm font-medium">{title}</p>
+          <div className="text-3xl font-bold text-gray-800 mt-1">{value}</div>
+          {trend && (
+            <p className={`text-sm mt-2 ${trend > 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {trend > 0 ? '+' : ''}{trend}{t('% from last month')}
+            </p>
+          )}
+        </div>
+        <div className={`p-3 rounded-full ${color}`}>
+          <Icon className="w-6 h-6 text-white" />
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
-const RecentBusinessCard = ({ business, onViewDetails }) => (
-  <div className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow">
-    <div className="flex items-center justify-between mb-3">
-      <h3 className="font-semibold text-gray-800">{business.BusinessName}</h3>
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-        business.Status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-      }`}>
-        {business.Status}
-      </span>
+const RecentBusinessCard = ({ business, onViewDetails }) => {
+  const { t } = useTranslation();
+  return (
+    <div className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-semibold text-gray-800">{business.BusinessName}</h3>
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+          business.Status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+        }`}>
+          {business.Status}
+        </span>
+      </div>
+      <div className="space-y-2 text-sm text-gray-600">
+        <p><span className="font-medium">{t('Email:')}</span> {business.Email}</p>
+        <p><span className="font-medium">{t('Phone:')}</span> {business.Phone}</p>
+        <p><span className="font-medium">{t('Users:')}</span> {business.totalUsers || 0}</p>
+        <p><span className="font-medium">{t('Orders:')}</span> {business.orderCount || 0}</p>
+      </div>
+      <button
+        onClick={() => onViewDetails(business.BusinessId)}
+        className="mt-4 w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
+      >
+        {t('View Details')}
+      </button>
     </div>
-    <div className="space-y-2 text-sm text-gray-600">
-      <p><span className="font-medium">Email:</span> {business.Email}</p>
-      <p><span className="font-medium">Phone:</span> {business.Phone}</p>
-      <p><span className="font-medium">Users:</span> {business.totalUsers || 0}</p>
-      <p><span className="font-medium">Orders:</span> {business.orderCount || 0}</p>
-    </div>
-    <button
-      onClick={() => onViewDetails(business.BusinessId)}
-      className="mt-4 w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
-    >
-      View Details
-    </button>
-  </div>
-);
+  );
+};
 
 export const SuperAdminDashboard = () => {
+  const { t } = useTranslation();
+
   const { data: analytics, isLoading: analyticsLoading } = useQuery(
     'super-admin-analytics',
     () => axios.get('/api/super-admin/analytics').then(res => res.data.data),
@@ -71,9 +80,21 @@ export const SuperAdminDashboard = () => {
   );
 
   const handleViewDetails = (businessId) => {
-    // Navigate to business details page
     window.location.href = `/super-admin/businesses/${businessId}`;
   };
+
+  const stats = analytics?.overview || {};
+  const fallbackCurrency =
+    stats.currency || stats.Currency || analytics?.currency || analytics?.Currency || null;
+  const revenueRows = getCurrencyRevenueRows(
+    stats.byCurrency,
+    analytics?.byCurrency,
+    analytics?.revenueByCurrency,
+    stats.totalRevenueByCurrency,
+    analytics?.totalRevenueByCurrency,
+    stats.totalRevenue,
+    analytics?.totalRevenue
+  ).map(row => (row.code ? row : { ...row, code: fallbackCurrency }));
 
   if (analyticsLoading || businessesLoading) {
     return (
@@ -83,41 +104,50 @@ export const SuperAdminDashboard = () => {
     );
   }
 
-  const stats = analytics?.overview || {};
-
   return (
     <div className="p-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Super Admin Dashboard</h1>
-        <p className="text-gray-600 mt-2">Platform-wide analytics and business management</p>
+        <h1 className="text-3xl font-bold text-gray-800">{t('Super Admin Dashboard')}</h1>
+        <p className="text-gray-600 mt-2">{t('Platform-wide analytics and business management')}</p>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard
-          title="Total Businesses"
+          title={t('Total Businesses')}
           value={stats.totalBusinesses || 0}
           icon={Building2}
           trend={stats.businessGrowth || 0}
           color="bg-blue-500"
         />
         <StatCard
-          title="Total Users"
+          title={t('Total Users')}
           value={stats.totalUsers || 0}
           icon={Users}
           trend={stats.userGrowth || 0}
           color="bg-green-500"
         />
         <StatCard
-          title="Total Orders"
+          title={t('Total Orders')}
           value={stats.totalOrders || 0}
           icon={ShoppingCart}
           trend={stats.orderGrowth || 0}
           color="bg-purple-500"
         />
         <StatCard
-          title="Total Revenue"
-          value={`$${(stats.totalRevenue || 0).toLocaleString()}`}
+          title={t('Net Revenue by Currency')}
+          value={(
+            <div className="space-y-1">
+              {revenueRows.map(row => (
+                <div key={row.key} className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold text-blue-700">
+                    {row.code || t('Currency not specified')}
+                  </span>
+                  <span className="text-lg font-bold">{formatCurrencyIntl(row.amount, row.code)}</span>
+                </div>
+              ))}
+            </div>
+          )}
           icon={DollarSign}
           trend={stats.revenueGrowth || 0}
           color="bg-yellow-500"
@@ -127,19 +157,19 @@ export const SuperAdminDashboard = () => {
       {/* Additional Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <StatCard
-          title="Active Medicines"
+          title={t('Active Medicines')}
           value={stats.totalMedicines || 0}
           icon={Package}
           color="bg-indigo-500"
         />
         <StatCard
-          title="Pending Prescriptions"
+          title={t('Pending Prescriptions')}
           value={stats.pendingPrescriptions || 0}
           icon={Clock}
           color="bg-orange-500"
         />
         <StatCard
-          title="Completed Orders"
+          title={t('Completed Orders')}
           value={stats.completedOrders || 0}
           icon={CheckCircle}
           color="bg-teal-500"
@@ -149,15 +179,15 @@ export const SuperAdminDashboard = () => {
       {/* Recent Businesses */}
       <div className="bg-white rounded-lg shadow-md p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-800">Recent Businesses</h2>
+          <h2 className="text-xl font-bold text-gray-800">{t('Recent Businesses')}</h2>
           <button
             onClick={() => window.location.href = '/super-admin/businesses'}
             className="text-blue-600 hover:text-blue-800 font-medium"
           >
-            View All
+            {t('View All')}
           </button>
         </div>
-        
+
         {businesses?.businesses && businesses.businesses.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {businesses.businesses.map((business) => (
@@ -169,37 +199,39 @@ export const SuperAdminDashboard = () => {
             ))}
           </div>
         ) : (
-          <p className="text-gray-500 text-center py-8">No businesses registered yet</p>
+          <p className="text-gray-500 text-center py-8">{t('No businesses registered yet')}</p>
         )}
       </div>
 
       {/* Quick Actions */}
       <div className="mt-8 bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">Quick Actions</h2>
+        <h2 className="text-xl font-bold text-gray-800 mb-4">{t('Quick Actions')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
             onClick={() => window.location.href = '/super-admin/businesses/create'}
             className="flex items-center justify-center gap-2 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Building2 className="w-5 h-5" />
-            Add New Business
+            {t('Add New Business')}
           </button>
           <button
             onClick={() => window.location.href = '/super-admin/businesses'}
             className="flex items-center justify-center gap-2 bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors"
           >
             <Users className="w-5 h-5" />
-            Manage Businesses
+            {t('Manage Businesses')}
           </button>
           <button
             onClick={() => window.location.href = '/super-admin/reports'}
             className="flex items-center justify-center gap-2 bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors"
           >
             <TrendingUp className="w-5 h-5" />
-            View Reports
+            {t('View Reports')}
           </button>
         </div>
       </div>
     </div>
   );
 };
+
+export default SuperAdminDashboard;

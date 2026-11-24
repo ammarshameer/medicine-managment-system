@@ -1,0 +1,129 @@
+{
+  "T1": {
+    "preview": {
+      "subtotal": 70,
+      "tax": 1.6,
+      "total": 71.6,
+      "currency": "USD"
+    },
+    "pos": {
+      "subtotal": 70,
+      "tax": 1.6,
+      "total": 71.6,
+      "currency": "USD"
+    },
+    "online": {
+      "subtotal": 70,
+      "tax": 1.6,
+      "total": 71.6,
+      "currency": "USD"
+    },
+    "revenueDelta": 70,
+    "posReceipt": {
+      "name": "QA USA 8 Percent",
+      "legalName": null,
+      "phone": "92300000008",
+      "email": "owner.qausa008@qa.local",
+      "address": ",",
+      "taxRegistrationNumber": "EIN-QA-008",
+      "licenseNumber": "LIC-USA-008",
+      "licenseAuthority": "DEA",
+      "pharmacistInChargeName": "Dr QA USA8"
+    },
+    "posItems": [
+      {
+        "medicineId": 25,
+        "name": "QA T1 Taxable 20",
+        "quantity": 1,
+        "price": 20,
+        "isTaxable": true,
+        "priceIncludesTax": false,
+        "subtotal": 20,
+        "taxAmount": 1.6,
+        "lineTotal": 21.6
+      },
+      {
+        "medicineId": 26,
+        "name": "QA T1 Exempt 50",
+        "quantity": 1,
+        "price": 50,
+        "isTaxable": false,
+        "priceIncludesTax": false,
+        "subtotal": 50,
+        "taxAmount": 0,
+        "lineTotal": 50
+      }
+    ]
+  },
+  "T2": {
+    "preview": {
+      "subtotal": 100,
+      "tax": 5,
+      "total": 105,
+      "currency": "AED"
+    },
+    "pos": {
+      "subtotal": 100,
+      "tax": 5,
+      "total": 105,
+      "currency": "AED"
+    },
+    "online": {
+      "subtotal": 100,
+      "tax": 5,
+      "total": 105,
+      "currency": "AED"
+    },
+    "revenueDelta": 100
+  },
+  "T3": {
+    "preview": {
+      "subtotal": 100,
+      "tax": 0,
+      "total": 100,
+      "currency": "USD"
+    },
+    "pos": {
+      "subtotal": 100,
+      "tax": 0,
+      "total": 100,
+      "currency": "USD"
+    },
+    "receiptTax": 0,
+    "receiptItemFlags": [
+      {
+        "isTaxable": true,
+        "priceIncludesTax": false
+      }
+    ]
+  },
+  "T4": {
+    "subtotal": 100,
+    "tax": 8.88,
+    "total": 108.88,
+    "currency": "USD"
+  },
+  "T6": {
+    "updateStatus": 200,
+    "orderCurrencyBefore": "USD",
+    "orderCurrencyAfter": "USD",
+    "settingsCurrency": "AED"
+  },
+  "R21": {
+    "pharmacistInChargeName": "Dr QA USA8",
+    "licenseNumber": "LIC-USA-008",
+    "taxRegistrationNumber": "EIN-QA-008",
+    "perItemTaxFlags": [
+      {
+        "name": "QA T1 Taxable 20",
+        "isTaxable": true,
+        "priceIncludesTax": false
+      },
+      {
+        "name": "QA T1 Exempt 50",
+        "isTaxable": false,
+        "priceIncludesTax": false
+      }
+    ]
+  }
+}

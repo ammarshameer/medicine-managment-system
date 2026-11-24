@@ -46,10 +46,49 @@
   }
   
   .table-head {
-    @apply h-12 px-4 text-left align-middle font-medium text-gray-600;
+    @apply h-12 px-4 text-start align-middle font-medium text-gray-600;
   }
   
   .table-cell {
     @apply p-4 align-middle;
+  }
+}
+
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  /* Print only the receipt, keeping the document's LTR/RTL direction. */
+  body * {
+    visibility: hidden !important;
+  }
+
+  .printable-receipt,
+  .printable-receipt * {
+    visibility: visible !important;
+  }
+
+  .printable-receipt {
+    position: absolute;
+    inset-inline-start: 0;
+    inset-block-start: 0;
+    width: 100%;
+    margin: 0;
+    color: #000;
+    direction: inherit;
+  }
+
+  .printable-receipt table,
+  .printable-receipt th,
+  .printable-receipt td {
+    direction: inherit;
+  }
+
+  [dir='rtl'] .printable-receipt,
+  [dir='rtl'] .printable-receipt table,
+  [dir='rtl'] .printable-receipt th,
+  [dir='rtl'] .printable-receipt td {
+    direction: rtl;
   }
 }

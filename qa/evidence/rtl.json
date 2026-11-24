@@ -1,0 +1,17 @@
+{
+  "url": "http://localhost:3002/",
+  "english": {
+    "dir": "ltr",
+    "lang": "en",
+    "title": "MMS Admin Panel"
+  },
+  "arabic": {
+    "dir": "rtl",
+    "lang": "ar",
+    "stored": "ar",
+    "bodyText": "إدارة MMS\nتسجيل الدخول إلى حسابك\n\nلوحة إدارة نظام إدارة الأدوية\n\nالبريد الإلكتروني\nكلمة المرور\nتسجيل الدخول\n\nبيانات تجريبية: admin@mms.com / admin123",
+    "physicalClasses": 0,
+    "logicalClasses": 2
+  },
+  "screenshot": "qa/evidence/rtl_admin.png"
+}

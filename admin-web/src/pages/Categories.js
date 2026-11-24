@@ -4,11 +4,13 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { Tag, Plus, Edit, Trash2, Loader2, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../i18n';
 
 const emptyForm = { name: '', description: '' };
 
 export const Categories = () => {
-  const { user } = useAuth();
+  const { t } = useTranslation();
+const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const [showFormModal, setShowFormModal] = useState(false);
@@ -106,15 +108,15 @@ export const Categories = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Categories</h1>
-          <p className="mt-1 text-sm text-gray-600">Manage medicine categories</p>
+          <h1 className="text-2xl font-semibold text-gray-900">{t('Categories')}</h1>
+          <p className="mt-1 text-sm text-gray-600">{t('Manage medicine categories')}</p>
         </div>
         <button
           onClick={openAddModal}
           className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Category
+          <Plus className="h-4 w-4 me-2" />
+          {t('Add Category')}
         </button>
       </div>
 
@@ -123,17 +125,17 @@ export const Categories = () => {
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <Tag className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No categories yet</h3>
-              <p className="text-sm text-gray-500">Click "Add Category" to create your first one.</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">{t('No categories yet')}</h3>
+              <p className="text-sm text-gray-500">{t('Click "Add Category" to create your first one.')}</p>
             </div>
           </div>
         ) : (
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t('Name')}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t('Description')}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">{t('Actions')}</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -142,18 +144,18 @@ export const Categories = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{category.name}</td>
                   <td className="px-6 py-4 text-sm text-gray-500">{category.description || '—'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center gap-3">
                       <button
                         onClick={() => openEditModal(category)}
                         className="text-blue-600 hover:text-blue-900"
-                        title="Edit"
+                        title={t('Edit')}
                       >
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => setDeleteTarget(category)}
                         className="text-red-600 hover:text-red-900"
-                        title="Delete"
+                        title={t('Delete')}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -172,7 +174,7 @@ export const Categories = () => {
           <div className="bg-white rounded-lg w-full max-w-md">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h3 className="text-lg font-bold text-gray-800">
-                {editingCategory ? 'Edit Category' : 'Add Category'}
+                {editingCategory ? t('Edit Category') : t('Add Category')}
               </h3>
               <button onClick={closeFormModal} className="text-gray-400 hover:text-gray-600">
                 <X className="h-5 w-5" />
@@ -180,25 +182,25 @@ export const Categories = () => {
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('Name *')}</label>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g. Antibiotics"
+                  placeholder={t('e.g. Antibiotics')}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('Description')}</label>
                 <textarea
                   name="description"
                   value={formData.description}
                   onChange={handleChange}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Optional description"
+                  placeholder={t('Optional description')}
                 />
               </div>
               <div className="flex justify-end gap-3 pt-2">
@@ -207,14 +209,14 @@ export const Categories = () => {
                   onClick={closeFormModal}
                   className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
                 >
-                  Cancel
+                  {t('Cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={saveMutation.isLoading}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {saveMutation.isLoading ? 'Saving...' : (editingCategory ? 'Update' : 'Create')}
+                  {saveMutation.isLoading ? t('Saving...') : (editingCategory ? t('Update') : t('Create'))}
                 </button>
               </div>
             </form>
@@ -226,23 +228,23 @@ export const Categories = () => {
       {deleteTarget && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Confirm Delete</h3>
+            <h3 className="text-lg font-bold text-gray-800 mb-4">{t('Confirm Delete')}</h3>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to delete <strong>{deleteTarget.name}</strong>? This action cannot be undone.
+              {t('Are you sure you want to delete')} <strong>{deleteTarget.name}</strong>{t('? This action cannot be undone.')}
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setDeleteTarget(null)}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
               >
-                Cancel
+                {t('Cancel')}
               </button>
               <button
                 onClick={() => deleteMutation.mutate(deleteTarget.id)}
                 disabled={deleteMutation.isLoading}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
               >
-                {deleteMutation.isLoading ? 'Deleting...' : 'Delete'}
+                {deleteMutation.isLoading ? t('Deleting...') : t('Delete')}
               </button>
             </div>
           </div>
