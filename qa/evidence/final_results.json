@@ -6,7 +6,7 @@
     "npm": "11.19.0",
     "mysql": "8.4.13-0ubuntu0.26.04.2",
     "db": "mms_db reused sequentially through fresh, upgrade and documented paths; final DB restored from shipped schema_multi_tenant.sql",
-    "commit": "252e11835",
+    "commit": "eb76a6cee",
     "sourceZip": "medicine-managment-system-main.zip",
     "phase": "post-remediation verification"
   },
