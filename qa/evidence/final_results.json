@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-26T07:38:25.208Z",
+  "generatedAt": "2026-11-26T08:02:07.878Z",
   "environment": {
     "os": "Linux 7.0.0-43-generic #43-Ubuntu SMP PREEMPT_DYNAMIC Fri Oct 23 13:25:25 UTC 2026 x86_64",
     "node": "v26.7.0",
     "npm": "11.19.0",
     "mysql": "8.4.13-0ubuntu0.26.04.2",
     "db": "mms_db reused sequentially through fresh, upgrade and documented paths; final DB restored from shipped schema_multi_tenant.sql",
-    "commit": "248191b40",
+    "commit": "252e11835",
     "sourceZip": "medicine-managment-system-main.zip",
     "phase": "post-remediation verification"
   },

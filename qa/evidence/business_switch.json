@@ -1,0 +1,22 @@
+{
+  "checks": {
+    "SW1": {
+      "path": "/super-admin/dashboard",
+      "role": true,
+      "activeBusinessId": null
+    },
+    "SW2": {
+      "path": "/dashboard",
+      "role": true,
+      "activeBusinessId": "4",
+      "tenantDashboard": true
+    },
+    "SW3": {
+      "path": "/super-admin/dashboard",
+      "role": true,
+      "activeBusinessId": null
+    }
+  },
+  "selectedBusinessId": 4,
+  "checkedAt": "2026-11-26T08:02:07.796Z"
+}

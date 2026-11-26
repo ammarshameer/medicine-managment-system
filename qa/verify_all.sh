@@ -38,6 +38,7 @@ echo "[qa] RTL (optional)"
 if curl -fsS http://localhost:3002/ >/dev/null 2>&1; then
   node qa/10_rtl_check.js
   node qa/19_platform_ui_check.js
+  node qa/20_business_switch_ui.js
 else
   echo "[qa] admin-web not on 3002; reusing existing RTL evidence"
 fi

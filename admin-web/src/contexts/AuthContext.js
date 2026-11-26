@@ -7,6 +7,9 @@ const AuthContext = createContext();
 const PLATFORM_ROLES = ['SUPER_ADMIN', 'SUPPORT'];
 const REMEMBER_TOKEN_KEY = 'mmsPlatformRememberToken';
 const REMEMBER_EMAIL_KEY = 'mmsPlatformRememberEmail';
+// Short-lived sessionStorage copy of the super admin token, used only to step
+// back out of a support session opened from the business switcher.
+const PLATFORM_RETURN_KEY = 'mmsPlatformReturnToken';
 
 const applyBusinessHeader = (businessId) => {
   if (businessId) {
@@ -128,6 +131,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       return false;
     }
+    sessionStorage.removeItem(PLATFORM_RETURN_KEY);
     return true;
   };
 
@@ -152,6 +156,7 @@ export const AuthProvider = ({ children }) => {
         clearBusiness: true
       });
       if (!result.success) throw new Error(result.message);
+      sessionStorage.removeItem(PLATFORM_RETURN_KEY);
 
       toast.success('Login successful');
       return { success: true, user: result.user };
@@ -177,9 +182,59 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Switching from the dropdown is equivalent to the "Open as Support" action:
+  // a SUPER_ADMIN enters the tenant as the hidden SUPPORT identity, with no
+  // password prompt. SUPPORT can switch tenants with the same scoped token.
+  const switchToBusiness = async (businessId) => {
+    const id = parseInt(businessId, 10);
+    const hasBusiness = Number.isInteger(id) && id > 0;
+
+    if (!hasBusiness) {
+      const returnToken = sessionStorage.getItem(PLATFORM_RETURN_KEY);
+      if (returnToken) {
+        sessionStorage.removeItem(PLATFORM_RETURN_KEY);
+        const restored = await loginWithToken(returnToken, { clearBusiness: true });
+        if (restored.success && restored.user?.role === 'SUPER_ADMIN') {
+          toast.success('Platform view restored');
+          return { success: true, role: 'SUPER_ADMIN' };
+        }
+      }
+      selectBusiness('');
+      return { success: true, role: user?.role };
+    }
+
+    if (user?.role === 'SUPER_ADMIN') {
+      const superToken = localStorage.getItem('token');
+      try {
+        const response = await axios.post(`/api/super-admin/businesses/${id}/support-login`);
+        const { token, user: supportUser } = response.data.data;
+        const result = await loginWithToken(token, {
+          activeBusinessId: supportUser.businessId || id
+        });
+        if (!result.success) throw new Error(result.message);
+        sessionStorage.setItem(PLATFORM_RETURN_KEY, superToken);
+        toast.success(`Opened ${supportUser.business?.name || 'business'} as Support`);
+        return { success: true, role: 'SUPPORT' };
+      } catch (error) {
+        sessionStorage.removeItem(PLATFORM_RETURN_KEY);
+        toast.error(error.response?.data?.message || error.message || 'Failed to open business');
+        return { success: false, message: error.message };
+      }
+    }
+
+    if (PLATFORM_ROLES.includes(user?.role)) {
+      selectBusiness(id);
+      return { success: true, role: user.role };
+    }
+
+    toast.error('This account cannot switch business context');
+    return { success: false, message: 'Not allowed' };
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('activeBusinessId');
+    sessionStorage.removeItem(PLATFORM_RETURN_KEY);
     delete axios.defaults.headers.common['Authorization'];
     applyBusinessHeader(null);
     setActiveBusinessId(null);
@@ -204,6 +259,7 @@ export const AuthProvider = ({ children }) => {
     activeBusiness,
     businesses,
     selectBusiness,
+    switchToBusiness,
     refreshBusinesses,
     restorePlatformSession,
     forgetPlatformSession,

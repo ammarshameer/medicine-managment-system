@@ -73,8 +73,12 @@ const [page, setPage] = useState(1);
     {
       onSuccess: async (response) => {
         const { token, user } = response.data.data;
+        const superToken = localStorage.getItem('token');
         const result = await loginWithToken(token, { activeBusinessId: user.businessId });
-        if (result.success) navigate('/dashboard');
+        if (result.success) {
+          sessionStorage.setItem('mmsPlatformReturnToken', superToken);
+          navigate('/dashboard');
+        }
       },
       onError: (error) => {
         toast.error(error.response?.data?.message || 'Failed to start support session');

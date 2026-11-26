@@ -5,7 +5,7 @@
 - **OS:** Linux 7.0.0-43-generic #43-Ubuntu SMP PREEMPT_DYNAMIC Fri Oct 23 13:25:25 UTC 2026 x86_64
 - **Node:** v26.7.0; **npm:** 11.19.0
 - **MySQL:** 8.4.13-0ubuntu0.26.04.2
-- **Source:** commit `248191b40`; brief source zip `medicine-managment-system-main.zip`
+- **Source:** commit `252e11835`; brief source zip `medicine-managment-system-main.zip`
 - **Phase:** post-remediation verification
 - **Database path used:** all documented paths were rerun sequentially in `mms_db`: fresh (`schema_multi_tenant.sql` + `seed_data.sql`), upgrade (`schema.sql` + all migrations + `database/run_migration.js`), and the documented fresh-plus-migrations sequence. The final application-test DB was restored from the shipped multi-tenant schema; no QA-only columns are needed.
 - **Config:** `backend/.env` was untracked and added to `.gitignore`. Runtime secret values are not reproduced in this report. Stripe uses a placeholder key locally, so payment-intent creation correctly returns 503 instead of a fake success.

@@ -129,25 +129,25 @@
               "category": null
             },
             {
-              "id": 32,
+              "id": 88,
               "businessId": 4,
-              "name": "QA Exempt 50",
-              "description": "QA fixture QA Exempt 50",
-              "price": 50,
+              "name": "QA CRUD 1795680082454",
+              "description": null,
+              "price": 12,
               "averageCost": 0,
-              "stock": 100,
-              "expiryDate": "2030-12-30T19:00:00.000Z",
-              "manufacturer": "QAManufacturer",
+              "stock": 7,
+              "expiryDate": null,
+              "manufacturer": null,
               "imagePath": null,
               "requiresPrescription": false,
               "deaSchedule": "None",
-              "uaeClassification": "OTC",
-              "isTaxable": false,
-              "priceIncludesTax": false,
+              "uaeClassification": "POM",
+              "isTaxable": true,
+              "priceIncludesTax": true,
               "category": null
             },
             {
-              "id": 60,
+              "id": 45,
               "businessId": 4,
               "name": "QA Exempt 50",
               "description": "QA fixture QA Exempt 50",
@@ -168,8 +168,8 @@
           "pagination": {
             "page": 1,
             "limit": 5,
-            "total": 26,
-            "pages": 6
+            "total": 33,
+            "pages": 7
           }
         }
       },
@@ -194,5 +194,5 @@
       "lifetimeDays": 7
     }
   },
-  "checkedAt": "2026-11-26T07:37:28.158Z"
+  "checkedAt": "2026-11-26T08:01:24.668Z"
 }

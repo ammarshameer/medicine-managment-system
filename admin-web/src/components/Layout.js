@@ -38,7 +38,7 @@ export const Layout = ({ children }) => {
     activeBusinessId,
     activeBusiness,
     businesses,
-    selectBusiness
+    switchToBusiness
   } = useAuth();
   const { lang, setLang, t } = useTranslation();
 
@@ -77,21 +77,30 @@ export const Layout = ({ children }) => {
     { name: t('Businesses'), href: '/super-admin/businesses', icon: Building2 },
   ];
 
-  // Hidden SUPPORT role: full owner-level navigation plus a link back to the
-  // platform console. The selected business controls every tenant-scoped call.
-  const supportNavigation = [
+  // Platform admins inside a selected business get the full owner-level view
+  // plus a link back to the platform console.
+  const platformTenantNavigation = [
     ...businessOwnerNavigation,
     { name: t('Platform Console'), href: '/super-admin/dashboard', icon: Building2 }
   ];
 
   let navigation = businessOwnerNavigation;
   if (user?.role === 'SUPER_ADMIN') {
-    navigation = superAdminNavigation;
+    navigation = activeBusinessId ? platformTenantNavigation : superAdminNavigation;
   } else if (user?.role === 'SUPPORT') {
-    navigation = supportNavigation;
+    navigation = platformTenantNavigation;
   } else if (user?.role === 'STAFF') {
     navigation = staffNavigation;
   }
+
+  // Switching tenant must move the screen into that business, not leave the
+  // user staring at the platform dashboard with only a toast as feedback.
+  const handleBusinessChange = async (event) => {
+    const businessId = event.target.value;
+    const result = await switchToBusiness(businessId);
+    if (!result.success) return;
+    navigate(businessId ? '/dashboard' : '/super-admin/dashboard');
+  };
 
   const handleLogout = () => {
     logout();
@@ -129,7 +138,7 @@ export const Layout = ({ children }) => {
               <select
                 aria-label={t('Select Business')}
                 value={activeBusinessId || ''}
-                onChange={(event) => selectBusiness(event.target.value)}
+                onChange={handleBusinessChange}
                 className="w-full rounded-md border border-blue-200 bg-white px-2 py-1 text-xs text-blue-800"
               >
                 <option value="">{t('Platform View')}</option>
@@ -243,7 +252,7 @@ export const Layout = ({ children }) => {
                 <select
                   aria-label={t('Select Business')}
                   value={activeBusinessId || ''}
-                  onChange={(event) => selectBusiness(event.target.value)}
+                  onChange={handleBusinessChange}
                   className="max-w-[240px] rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-800"
                 >
                   <option value="">{t('Platform View')}</option>

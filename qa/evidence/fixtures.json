@@ -40,31 +40,31 @@
       "categoryId": null,
       "medicines": {
         "taxable20": {
-          "id": 59,
+          "id": 74,
           "name": "QA Taxable 20",
           "price": 20,
           "stock": 100
         },
         "exempt50": {
-          "id": 60,
+          "id": 75,
           "name": "QA Exempt 50",
           "price": 50,
           "stock": 100
         },
         "schedule2": {
-          "id": 61,
+          "id": 76,
           "name": "QA Schedule II Morphine",
           "price": 12,
           "stock": 10
         },
         "normal": {
-          "id": 62,
+          "id": 77,
           "name": "QA Normal Item",
           "price": 30,
           "stock": 50
         },
         "lowstock": {
-          "id": 63,
+          "id": 78,
           "name": "QA Low Stock Item",
           "price": 9,
           "stock": 2
@@ -110,19 +110,19 @@
       "categoryId": null,
       "medicines": {
         "inclusive105": {
-          "id": 64,
+          "id": 79,
           "name": "QA VAT Inclusive 105",
           "price": 105,
           "stock": 100
         },
         "narcotic": {
-          "id": 65,
+          "id": 80,
           "name": "QA Narcotic Item",
           "price": 40,
           "stock": 10
         },
         "controlled": {
-          "id": 66,
+          "id": 81,
           "name": "QA Controlled Item",
           "price": 25,
           "stock": 10
@@ -168,7 +168,7 @@
       "categoryId": null,
       "medicines": {
         "plain100": {
-          "id": 67,
+          "id": 82,
           "name": "QA NoTax 100",
           "price": 100,
           "stock": 100
@@ -214,19 +214,19 @@
       "categoryId": null,
       "medicines": {
         "taxable20": {
-          "id": 68,
+          "id": 83,
           "name": "QA T1 Taxable 20",
           "price": 20,
           "stock": 100
         },
         "exempt50": {
-          "id": 69,
+          "id": 84,
           "name": "QA T1 Exempt 50",
           "price": 50,
           "stock": 100
         },
         "normal100": {
-          "id": 70,
+          "id": 85,
           "name": "QA T5 Normal 100",
           "price": 100,
           "stock": 100
@@ -272,7 +272,7 @@
       "categoryId": null,
       "medicines": {
         "hundred": {
-          "id": 71,
+          "id": 86,
           "name": "QA NYC 100",
           "price": 100,
           "stock": 100
@@ -280,6 +280,6 @@
       }
     }
   },
-  "createdAt": "2026-11-26T07:37:16.153Z",
+  "createdAt": "2026-11-26T08:01:12.888Z",
   "password": "QaPass123"
 }

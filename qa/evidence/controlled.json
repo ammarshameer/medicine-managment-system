@@ -1,8 +1,8 @@
 {
   "prescriptions": {
     "uploadStatus": 201,
-    "rxPending": 11,
-    "rxOtherCustomer": 12,
+    "rxPending": 16,
+    "rxOtherCustomer": 17,
     "approvedStatus": 200
   },
   "T16": {
@@ -19,11 +19,11 @@
       "message": "POS checkout completed successfully"
     },
     "ledger": {
-      "Dispensed": 7,
-      "Received": 2,
-      "Adjusted": 2,
-      "Destroyed": 2,
-      "Reversed": 2
+      "Dispensed": 10,
+      "Received": 3,
+      "Adjusted": 3,
+      "Destroyed": 3,
+      "Reversed": 3
     }
   },
   "T17": {
@@ -69,25 +69,25 @@
     "deliveredStatus": 200,
     "cancelDeliveredStatus": 400,
     "before": {
-      "Dispensed": 7,
-      "Received": 2,
-      "Adjusted": 2,
-      "Destroyed": 2,
-      "Reversed": 2
+      "Dispensed": 10,
+      "Received": 3,
+      "Adjusted": 3,
+      "Destroyed": 3,
+      "Reversed": 3
     },
     "during": {
-      "Dispensed": 7,
-      "Received": 2,
-      "Adjusted": 2,
-      "Destroyed": 2,
-      "Reversed": 2
+      "Dispensed": 10,
+      "Received": 3,
+      "Adjusted": 3,
+      "Destroyed": 3,
+      "Reversed": 3
     },
     "afterDelivery": {
-      "Dispensed": 8,
-      "Received": 2,
-      "Adjusted": 2,
-      "Destroyed": 2,
-      "Reversed": 2
+      "Dispensed": 11,
+      "Received": 3,
+      "Adjusted": 3,
+      "Destroyed": 3,
+      "Reversed": 3
     },
     "dispensedAddedAtCreation": 0,
     "dispensedAddedAtDelivery": 1
@@ -95,32 +95,32 @@
   "T19": {
     "receive": {
       "poStatus": 201,
-      "poId": 12,
+      "poId": 16,
       "receiveStatus": 200,
-      "message": "Purchase order #PO-20261126-5829 received successfully. Inventory and average costs updated."
+      "message": "Purchase order #PO-20261126-4270 received successfully. Inventory and average costs updated."
     },
     "afterReceive": {
-      "Dispensed": 8,
-      "Received": 3,
-      "Adjusted": 2,
-      "Destroyed": 2,
-      "Reversed": 2
+      "Dispensed": 11,
+      "Received": 4,
+      "Adjusted": 3,
+      "Destroyed": 3,
+      "Reversed": 3
     },
     "adjustStatus": 200,
     "afterAdjust": {
-      "Dispensed": 8,
-      "Received": 3,
-      "Adjusted": 3,
-      "Destroyed": 2,
-      "Reversed": 2
+      "Dispensed": 11,
+      "Received": 4,
+      "Adjusted": 4,
+      "Destroyed": 3,
+      "Reversed": 3
     },
     "destroyStatus": 200,
     "afterDestroy": {
-      "Dispensed": 8,
-      "Received": 3,
-      "Adjusted": 3,
-      "Destroyed": 3,
-      "Reversed": 2
+      "Dispensed": 11,
+      "Received": 4,
+      "Adjusted": 4,
+      "Destroyed": 4,
+      "Reversed": 3
     },
     "complianceStatus": 200,
     "complianceActions": [

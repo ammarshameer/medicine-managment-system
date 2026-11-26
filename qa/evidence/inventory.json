@@ -18,12 +18,12 @@
     "first": {
       "poStatus": 201,
       "receiveStatus": 200,
-      "message": "Purchase order #PO-20261126-1039 received successfully. Inventory and average costs updated."
+      "message": "Purchase order #PO-20261126-1526 received successfully. Inventory and average costs updated."
     },
     "second": {
       "poStatus": 201,
       "receiveStatus": 200,
-      "message": "Purchase order #PO-20261126-3061 received successfully. Inventory and average costs updated."
+      "message": "Purchase order #PO-20261126-8738 received successfully. Inventory and average costs updated."
     },
     "doubleReceive": {
       "status": 400,
@@ -60,7 +60,7 @@
   },
   "T15": {
     "orderStatus": 201,
-    "orderId": 44,
+    "orderId": 59,
     "cancelStatus": 200,
     "stockBeforeCancel": 58,
     "stockAfterOrder": 56,
@@ -68,7 +68,7 @@
     "logRowsAdded": 2
   },
   "R6": {
-    "lowStockMedicines": 6,
+    "lowStockMedicines": 8,
     "status": 200
   }
 }

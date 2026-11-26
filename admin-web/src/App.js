@@ -36,8 +36,9 @@ const queryClient = new QueryClient({
 });
 
 const HomeRedirect = () => {
-  const { user, activeBusinessId } = useAuth();
-  if (user?.role === 'SUPER_ADMIN' || (user?.role === 'SUPPORT' && !activeBusinessId)) {
+  const { isPlatformAdmin, activeBusinessId } = useAuth();
+  // A platform admin with a selected business belongs in that tenant's view.
+  if (isPlatformAdmin && !activeBusinessId) {
     return <Navigate to="/super-admin/dashboard" replace />;
   }
   return <Navigate to="/dashboard" replace />;

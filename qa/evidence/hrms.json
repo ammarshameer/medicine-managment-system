@@ -6,8 +6,8 @@
         "success": true,
         "message": "Employee record created successfully",
         "data": {
-          "employeeId": 6,
-          "userId": 42,
+          "employeeId": 8,
+          "userId": 46,
           "designation": "Pharmacist",
           "department": "Pharmacy",
           "salary": 1000,
@@ -22,8 +22,8 @@
         "success": true,
         "message": "Employee record created successfully",
         "data": {
-          "employeeId": 7,
-          "userId": 43,
+          "employeeId": 9,
+          "userId": 47,
           "designation": "QA Linked Staff",
           "department": "Pharmacy",
           "salary": 500,
@@ -33,7 +33,7 @@
     },
     "deactivate": {
       "status": 200,
-      "id": 6
+      "id": 8
     },
     "loginAfterDeactivate": {
       "status": 401,
@@ -47,8 +47,8 @@
         "success": true,
         "message": "Salary record created successfully",
         "data": {
-          "salaryId": 6,
-          "employeeId": 6,
+          "salaryId": 8,
+          "employeeId": 8,
           "month": 6,
           "year": 2026,
           "basicSalary": 1000,
@@ -63,7 +63,7 @@
       "status": 200,
       "data": {
         "success": true,
-        "message": "Generated 1 salary records for 7/2026. (2 already existed)"
+        "message": "Generated 1 salary records for 7/2026. (3 already existed)"
       }
     },
     "pay": {
@@ -75,11 +75,11 @@
       "message": "This salary has already been paid"
     },
     "salaryRow": {
-      "id": 6,
+      "id": 8,
       "businessId": 4,
-      "employeeId": 6,
+      "employeeId": 8,
       "employeeName": "QA HRMS New",
-      "employeeEmail": "hrms.new.1795678643620@qa.local",
+      "employeeEmail": "hrms.new.1795680079906@qa.local",
       "employeePhone": "92300000123",
       "designation": "Pharmacist",
       "department": "Pharmacy",
@@ -93,8 +93,8 @@
       "paymentDate": "2026-06-29T19:00:00.000Z",
       "paymentMethod": "Bank Transfer",
       "notes": null,
-      "createdAt": "2026-11-26T07:37:24.000Z",
-      "updatedAt": "2026-11-26T07:37:24.000Z"
+      "createdAt": "2026-11-26T08:01:20.000Z",
+      "updatedAt": "2026-11-26T08:01:20.000Z"
     }
   },
   "R24": {
