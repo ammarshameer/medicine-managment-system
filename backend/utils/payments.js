@@ -1,5 +1,6 @@
 const Stripe = require('stripe');
 const { query } = require('../config/database');
+const { isPlatformAdmin, resolveBusinessId } = require('../middleware/auth');
 
 function stripeUnavailable(res) {
   res.status(503).json({
@@ -38,7 +39,9 @@ async function createPaymentIntent(req, res) {
     }
 
     const order = orders[0];
-    if (req.user.Role !== 'SUPER_ADMIN' && Number(order.BusinessId) !== Number(req.user.businessId)) {
+    const scopedBusinessId = resolveBusinessId(req);
+    const mustMatchBusiness = !isPlatformAdmin(req.user) || Boolean(scopedBusinessId);
+    if (mustMatchBusiness && Number(order.BusinessId) !== Number(scopedBusinessId)) {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
     if (req.user.Role === 'CUSTOMER' && Number(order.UserId) !== Number(req.user.UserId)) {

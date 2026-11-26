@@ -31,7 +31,15 @@ export const Layout = ({ children }) => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const {
+    user,
+    logout,
+    isPlatformAdmin,
+    activeBusinessId,
+    activeBusiness,
+    businesses,
+    selectBusiness
+  } = useAuth();
   const { lang, setLang, t } = useTranslation();
 
   // Navigation for Business Owners (Full features)
@@ -69,9 +77,18 @@ export const Layout = ({ children }) => {
     { name: t('Businesses'), href: '/super-admin/businesses', icon: Building2 },
   ];
 
+  // Hidden SUPPORT role: full owner-level navigation plus a link back to the
+  // platform console. The selected business controls every tenant-scoped call.
+  const supportNavigation = [
+    ...businessOwnerNavigation,
+    { name: t('Platform Console'), href: '/super-admin/dashboard', icon: Building2 }
+  ];
+
   let navigation = businessOwnerNavigation;
   if (user?.role === 'SUPER_ADMIN') {
     navigation = superAdminNavigation;
+  } else if (user?.role === 'SUPPORT') {
+    navigation = supportNavigation;
   } else if (user?.role === 'STAFF') {
     navigation = staffNavigation;
   }
@@ -104,10 +121,25 @@ export const Layout = ({ children }) => {
               <X className="h-6 w-6" />
             </button>
           </div>
-          <div className="px-4 py-2 border-b bg-blue-50 flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-blue-800">
+          <div className="px-4 py-2 border-b bg-blue-50 space-y-2">
+            <span className="block text-xs font-semibold uppercase tracking-wider text-blue-800">
               {t('Role:')} {user?.role?.replace('_', ' ')}
             </span>
+            {isPlatformAdmin && (
+              <select
+                aria-label={t('Select Business')}
+                value={activeBusinessId || ''}
+                onChange={(event) => selectBusiness(event.target.value)}
+                className="w-full rounded-md border border-blue-200 bg-white px-2 py-1 text-xs text-blue-800"
+              >
+                <option value="">{t('Platform View')}</option>
+                {businesses.map((business) => (
+                  <option key={business.BusinessId} value={business.BusinessId}>
+                    {business.BusinessName}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
           <nav className="flex-1 space-y-1 px-2 py-4 overflow-y-auto">
             {navigation.map((item) => {
@@ -205,7 +237,29 @@ export const Layout = ({ children }) => {
           </button>
 
           <div className="flex items-center gap-3">
-            {user?.business ? (
+            {isPlatformAdmin ? (
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-blue-600" />
+                <select
+                  aria-label={t('Select Business')}
+                  value={activeBusinessId || ''}
+                  onChange={(event) => selectBusiness(event.target.value)}
+                  className="max-w-[240px] rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-800"
+                >
+                  <option value="">{t('Platform View')}</option>
+                  {businesses.map((business) => (
+                    <option key={business.BusinessId} value={business.BusinessId}>
+                      {business.BusinessName} ({business.BusinessCode})
+                    </option>
+                  ))}
+                </select>
+                {activeBusiness && (
+                  <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
+                    {activeBusiness.Country || 'USA'} • {activeBusiness.Currency || 'USD'}
+                  </span>
+                )}
+              </div>
+            ) : user?.business ? (
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-gray-900 hidden sm:inline">
                   {user.business.name || 'MMS Pharmacy'}
@@ -283,7 +337,7 @@ export const Layout = ({ children }) => {
                     <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                   </div>
                   <div className="py-1">
-                    {user?.role === 'SUPER_ADMIN' && (
+                    {isPlatformAdmin && (
                       <Link
                         to="/super-admin/businesses/create"
                         onClick={() => setUserMenuOpen(false)}

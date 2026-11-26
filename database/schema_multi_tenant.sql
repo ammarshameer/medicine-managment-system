@@ -53,7 +53,7 @@ CREATE TABLE Users (
     EmiratesId VARCHAR(20) NULL,
     NationalIdLast4 VARCHAR(4) NULL,
     PasswordHash VARCHAR(255) NOT NULL,
-    Role ENUM('SUPER_ADMIN', 'BUSINESS_OWNER', 'CUSTOMER', 'STAFF') NOT NULL DEFAULT 'CUSTOMER',
+    Role ENUM('SUPER_ADMIN', 'SUPPORT', 'BUSINESS_OWNER', 'CUSTOMER', 'STAFF') NOT NULL DEFAULT 'CUSTOMER',
     IsActive BOOLEAN DEFAULT TRUE,
     ProfileImage VARCHAR(255),
     CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -427,6 +427,12 @@ CREATE TABLE IF NOT EXISTS ControlledSubstanceLog (
 -- Insert default Super Admin (no businessId - platform level)
 INSERT INTO Users (Name, Email, Phone, PasswordHash, Role, IsActive) VALUES
 ('Super Admin', 'superadmin@mms.com', '+923001234567', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'SUPER_ADMIN', TRUE);
+
+-- Hidden platform SUPPORT account (no businessId). This role is never returned
+-- by business user lists and cannot be assigned from the admin UI.
+INSERT INTO Users (Name, Email, Phone, PasswordHash, Role, IsActive)
+SELECT 'Platform Support', 'support@mms.com', '+923001234599', '$2a$10$RZBbComDFnmGJBwQ/ea8kekW.440330COHZIp14W5lOuOL988/Fni', 'SUPPORT', TRUE
+WHERE NOT EXISTS (SELECT 1 FROM Users WHERE Email = 'support@mms.com');
 
 -- Insert sample businesses
 INSERT INTO Businesses (BusinessName, LegalName, BusinessCode, OwnerName, Email, Phone, Address, City, State, ZipCode, Country, Currency, SubscriptionPlan, Status) VALUES

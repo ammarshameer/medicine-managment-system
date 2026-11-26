@@ -23,8 +23,7 @@ router.get('/analytics', async (req, res) => {
 
     // Get total users count
     const totalUsers = await query(
-      'SELECT COUNT(*) as count FROM Users WHERE Role != ?',
-      ['SUPER_ADMIN']
+      "SELECT COUNT(*) as count FROM Users WHERE Role NOT IN ('SUPER_ADMIN', 'SUPPORT')"
     );
 
     // Get total orders count
@@ -141,7 +140,7 @@ router.get('/businesses', async (req, res) => {
       `SELECT 
         b.*,
         (SELECT COUNT(*) FROM Users WHERE BusinessId = b.BusinessId AND Role = 'CUSTOMER') as customerCount,
-        (SELECT COUNT(*) FROM Users WHERE BusinessId = b.BusinessId AND Role != 'SUPER_ADMIN') as totalUsers,
+        (SELECT COUNT(*) FROM Users WHERE BusinessId = b.BusinessId AND Role NOT IN ('SUPER_ADMIN', 'SUPPORT')) as totalUsers,
         (SELECT COUNT(*) FROM Orders WHERE BusinessId = b.BusinessId) as orderCount
        FROM Businesses b
        ${whereClause}
@@ -723,7 +722,7 @@ router.get('/businesses/:id/users', async (req, res) => {
     const { id } = req.params;
     const { role } = req.query;
 
-    let whereClause = 'WHERE BusinessId = ?';
+    let whereClause = "WHERE BusinessId = ? AND Role != 'SUPPORT'";
     const params = [id];
 
     if (role) {

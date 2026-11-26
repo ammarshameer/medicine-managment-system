@@ -18,12 +18,12 @@
     "prescription": {
       "uploadStatus": 201,
       "approveStatus": 200,
-      "id": 5
+      "id": 10
     },
     "saleStatus": 201,
     "voidStatus": 200,
-    "reversedBefore": 0,
-    "reversedAfter": 1,
+    "reversedBefore": 1,
+    "reversedAfter": 2,
     "reversedRowsAdded": 1
   }
 }

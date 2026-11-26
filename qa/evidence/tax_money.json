@@ -32,7 +32,7 @@
     },
     "posItems": [
       {
-        "medicineId": 25,
+        "medicineId": 53,
         "name": "QA T1 Taxable 20",
         "quantity": 1,
         "price": 20,
@@ -43,7 +43,7 @@
         "lineTotal": 21.6
       },
       {
-        "medicineId": 26,
+        "medicineId": 54,
         "name": "QA T1 Exempt 50",
         "quantity": 1,
         "price": 50,

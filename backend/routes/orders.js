@@ -7,7 +7,8 @@ const {
   requireBusinessAccess,
   requireCustomer,
   requireRole,
-  requireBusinessOwnerAccess
+  requireBusinessOwnerAccess,
+  resolveBusinessId
 } = require('../middleware/auth');
 const { calculateOrderTax } = require('../utils/taxEngine');
 const {
@@ -1022,7 +1023,7 @@ router.get('/:id', authenticateToken, requireTenant, async (req, res) => {
   try {
     const orderId = parseInt(req.params.id, 10);
     const userId = req.user.UserId;
-    const businessId = req.user.businessId;
+    const businessId = resolveBusinessId(req);
 
     let whereClause = 'WHERE o.OrderId = ?';
     const params = [orderId];
@@ -1031,7 +1032,7 @@ router.get('/:id', authenticateToken, requireTenant, async (req, res) => {
       whereClause += ' AND o.UserId = ?';
       params.push(userId);
     }
-    if (req.user.Role !== 'SUPER_ADMIN') {
+    if (businessId) {
       whereClause += ' AND o.BusinessId = ?';
       params.push(businessId);
     }
@@ -1258,7 +1259,7 @@ router.patch('/:id/cancel', authenticateToken, requireTenant, async (req, res) =
   try {
     const orderId = parseInt(req.params.id, 10);
     const userId = req.user.UserId;
-    const businessId = req.user.businessId;
+    const businessId = resolveBusinessId(req);
 
     await connection.beginTransaction();
 
@@ -1269,7 +1270,7 @@ router.patch('/:id/cancel', authenticateToken, requireTenant, async (req, res) =
       whereClause += ' AND UserId = ?';
       params.push(userId);
     }
-    if (req.user.Role !== 'SUPER_ADMIN') {
+    if (businessId) {
       whereClause += ' AND BusinessId = ?';
       params.push(businessId);
     }

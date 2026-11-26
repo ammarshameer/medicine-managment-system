@@ -13,7 +13,7 @@
     "/medicines": {
       "status": 200,
       "callerBusinessId": 5,
-      "rowCount": 3,
+      "rowCount": 9,
       "businessIds": [
         5
       ],
@@ -22,7 +22,7 @@
     "/categories": {
       "status": 200,
       "callerBusinessId": 5,
-      "rowCount": 10,
+      "rowCount": 13,
       "businessIds": [
         5
       ],

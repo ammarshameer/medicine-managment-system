@@ -18,11 +18,27 @@ async function main() {
   // Link the existing STAFF user (id recovered from staff login response).
   const staffProfile = await request('GET', '/users/profile', { token: t.staffToken });
   const staffId = staffProfile.data?.data?.id;
-  const empLinkReal = await request('POST', '/hrms/employees', {
+  let empLinkReal = await request('POST', '/hrms/employees', {
     token: t.ownerToken,
     body: { mode: 'link_existing', userId: staffId, designation: 'QA Linked Staff',
       joiningDate: '2026-01-01', salary: 500 }
   });
+  // Re-runs may find the fixture STAFF user already linked; use a fresh one.
+  if (empLinkReal.status === 400 && /already has an employee profile/i.test(empLinkReal.raw)) {
+    const linkEmail = `hrms.link.${stamp}@qa.local`;
+    const createdUser = await request('POST', '/admin/users', {
+      token: t.ownerToken,
+      body: { name: 'QA HRMS Link', email: linkEmail, phone: '92300000124',
+        password: 'QaPass123', role: 'STAFF' }
+    });
+    const linkTargetId = createdUser.data?.data?.id;
+    if (!linkTargetId) throw new Error(`HRMS link user create failed: ${createdUser.raw}`);
+    empLinkReal = await request('POST', '/hrms/employees', {
+      token: t.ownerToken,
+      body: { mode: 'link_existing', userId: linkTargetId, designation: 'QA Linked Staff',
+        joiningDate: '2026-01-01', salary: 500 }
+    });
+  }
   const deactivateId = empNew.data?.data?.employeeId || empNew.data?.data?.id;
   const deactivate = deactivateId
     ? await request('PUT', `/hrms/employees/${deactivateId}`, { token: t.ownerToken, body: { employmentStatus: 'Inactive' } })

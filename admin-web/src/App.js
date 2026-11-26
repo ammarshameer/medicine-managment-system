@@ -35,8 +35,11 @@ const queryClient = new QueryClient({
 });
 
 const HomeRedirect = () => {
-  const { user } = useAuth();
-  return <Navigate to={user?.role === 'SUPER_ADMIN' ? '/super-admin/dashboard' : '/dashboard'} replace />;
+  const { user, activeBusinessId } = useAuth();
+  if (user?.role === 'SUPER_ADMIN' || (user?.role === 'SUPPORT' && !activeBusinessId)) {
+    return <Navigate to="/super-admin/dashboard" replace />;
+  }
+  return <Navigate to="/dashboard" replace />;
 };
 
 function App() {

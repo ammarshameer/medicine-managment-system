@@ -28,6 +28,8 @@ echo "[qa] public catalog isolation"
 node qa/12_public_catalog_isolation.js
 echo "[qa] phone validation"
 node qa/13_registration_phone_probe.js
+echo "[qa] hidden SUPPORT role"
+node qa/17_support_access.js
 echo "[qa] setup results"
 node qa/14_setup_results.js
 echo "[qa] RTL (optional)"

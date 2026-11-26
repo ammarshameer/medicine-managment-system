@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, query, validationResult } = require('express-validator');
 const { query: dbQuery } = require('../config/database');
-const { authenticateToken, requireTenant, requireBusinessAccess } = require('../middleware/auth');
+const { authenticateToken, requireTenant, requireBusinessAccess, resolveBusinessId } = require('../middleware/auth');
 const router = express.Router();
 
 // Get all categories (authenticated, tenant scoped; SUPER_ADMIN may opt into one business)
@@ -22,14 +22,10 @@ router.get('/', authenticateToken, requireTenant, [
     let whereClause = 'WHERE IsActive = TRUE';
     const params = [];
 
-    if (req.user.Role === 'SUPER_ADMIN') {
-      if (req.query.businessId) {
-        whereClause += ' AND BusinessId = ?';
-        params.push(parseInt(req.query.businessId, 10));
-      }
-    } else {
+    const scopedBusinessId = resolveBusinessId(req);
+    if (scopedBusinessId) {
       whereClause += ' AND BusinessId = ?';
-      params.push(req.user.businessId);
+      params.push(scopedBusinessId);
     }
 
     const categories = await dbQuery(`
@@ -80,14 +76,10 @@ router.get('/:id', authenticateToken, requireTenant, [
     let whereClause = 'WHERE CategoryId = ? AND IsActive = TRUE';
     const params = [categoryId];
 
-    if (req.user.Role === 'SUPER_ADMIN') {
-      if (req.query.businessId) {
-        whereClause += ' AND BusinessId = ?';
-        params.push(parseInt(req.query.businessId, 10));
-      }
-    } else {
+    const scopedBusinessId = resolveBusinessId(req);
+    if (scopedBusinessId) {
       whereClause += ' AND BusinessId = ?';
-      params.push(req.user.businessId);
+      params.push(scopedBusinessId);
     }
 
     const categories = await dbQuery(`
@@ -142,9 +134,7 @@ router.post('/', authenticateToken, requireTenant, requireBusinessAccess, [
     const { name, description } = req.body;
 
     // Get businessId from authenticated user
-    const businessId = req.user.Role === 'SUPER_ADMIN' 
-      ? (req.body.businessId || req.user.businessId) 
-      : req.user.businessId;
+    const businessId = resolveBusinessId(req);
 
     if (!businessId) {
       return res.status(400).json({
@@ -220,9 +210,7 @@ router.put('/:id', authenticateToken, requireTenant, requireBusinessAccess, [
     const params = [];
 
     // Get businessId from authenticated user
-    const businessId = req.user.Role === 'SUPER_ADMIN' 
-      ? (req.body.businessId || req.user.businessId) 
-      : req.user.businessId;
+    const businessId = resolveBusinessId(req);
 
     // Build dynamic update query
     const allowedFields = ['name', 'description', 'isActive'];
@@ -312,9 +300,7 @@ router.delete('/:id', authenticateToken, requireTenant, requireBusinessAccess, a
     const categoryId = req.params.id;
 
     // Get businessId from authenticated user
-    const businessId = req.user.Role === 'SUPER_ADMIN' 
-      ? (req.body.businessId || req.user.businessId) 
-      : req.user.businessId;
+    const businessId = resolveBusinessId(req);
 
     // Check if category exists and belongs to the business
     const categories = await dbQuery(

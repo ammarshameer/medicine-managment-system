@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, query, validationResult } = require('express-validator');
 const { query: dbQuery } = require('../config/database');
-const { authenticateToken, requireTenant, requireBusinessOwnerAccess } = require('../middleware/auth');
+const { authenticateToken, requireTenant, requireBusinessOwnerAccess, resolveBusinessId } = require('../middleware/auth');
 const { uploadSingle } = require('../middleware/upload');
 const router = express.Router();
 
@@ -39,16 +39,12 @@ router.get('/', [
     let whereClause = 'WHERE m.IsActive = TRUE';
     const params = [];
 
-    // Tenant filtering: non-super-admins always see their own business only.
-    // SUPER_ADMIN sees all businesses unless businessId is supplied.
-    if (req.user.Role === 'SUPER_ADMIN') {
-      if (req.query.businessId) {
-        whereClause += ' AND m.BusinessId = ?';
-        params.push(parseInt(req.query.businessId, 10));
-      }
-    } else {
+    // Tenant filtering: platform admins see all businesses unless a tenant is
+    // selected via X-Business-Id / businessId; everyone else is pinned to theirs.
+    const scopedBusinessId = resolveBusinessId(req);
+    if (scopedBusinessId) {
       whereClause += ' AND m.BusinessId = ?';
-      params.push(req.user.businessId);
+      params.push(scopedBusinessId);
     }
 
     if (category) {
@@ -160,14 +156,10 @@ router.get('/:id', authenticateToken, requireTenant, [
     let whereClause = 'WHERE m.MedicineId = ? AND m.IsActive = TRUE';
     const params = [medicineId];
 
-    if (req.user.Role === 'SUPER_ADMIN') {
-      if (req.query.businessId) {
-        whereClause += ' AND m.BusinessId = ?';
-        params.push(parseInt(req.query.businessId, 10));
-      }
-    } else {
+    const scopedBusinessId = resolveBusinessId(req);
+    if (scopedBusinessId) {
       whereClause += ' AND m.BusinessId = ?';
-      params.push(req.user.businessId);
+      params.push(scopedBusinessId);
     }
 
     const medicines = await dbQuery(`
@@ -268,9 +260,7 @@ router.post('/', authenticateToken, requireTenant, requireBusinessOwnerAccess, [
     } = req.body;
 
     // Get businessId from authenticated user (SUPER_ADMIN can specify businessId)
-    const businessId = req.user.Role === 'SUPER_ADMIN' 
-      ? (req.body.businessId || req.user.businessId) 
-      : req.user.businessId;
+    const businessId = resolveBusinessId(req);
 
     if (!businessId) {
       return res.status(400).json({
@@ -392,9 +382,7 @@ router.put('/:id', authenticateToken, requireTenant, requireBusinessOwnerAccess,
     const params = [];
 
     // Get businessId from authenticated user
-    const businessId = req.user.Role === 'SUPER_ADMIN' 
-      ? (req.body.businessId || req.user.businessId) 
-      : req.user.businessId;
+    const businessId = resolveBusinessId(req);
 
     // Build dynamic update query
     const allowedFields = [
@@ -530,9 +518,7 @@ router.delete('/:id', authenticateToken, requireTenant, requireBusinessOwnerAcce
     const medicineId = req.params.id;
 
     // Get businessId from authenticated user
-    const businessId = req.user.Role === 'SUPER_ADMIN' 
-      ? (req.body.businessId || req.user.businessId) 
-      : req.user.businessId;
+    const businessId = resolveBusinessId(req);
 
     // Check if medicine exists and belongs to the business
     const medicines = await dbQuery(
@@ -579,9 +565,7 @@ router.post('/:id/image', authenticateToken, requireTenant, requireBusinessOwner
     }
 
     // Get businessId from authenticated user
-    const businessId = req.user.Role === 'SUPER_ADMIN' 
-      ? (req.body.businessId || req.user.businessId) 
-      : req.user.businessId;
+    const businessId = resolveBusinessId(req);
 
     // Check if medicine exists and belongs to the business
     const medicines = await dbQuery(

@@ -18,7 +18,8 @@ export const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+  // SUPPORT is the hidden platform identity with full cross-tenant access.
+  if (allowedRoles && user && user.role !== 'SUPPORT' && !allowedRoles.includes(user.role)) {
     const defaultRedirect = user.role === 'SUPER_ADMIN' ? '/super-admin/dashboard' : '/dashboard';
     return <Navigate to={defaultRedirect} replace />;
   }

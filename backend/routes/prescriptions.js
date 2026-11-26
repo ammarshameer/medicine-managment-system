@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, query, validationResult } = require('express-validator');
 const { query: dbQuery } = require('../config/database');
-const { authenticateToken, requireTenant, requireBusinessAccess, requireCustomer } = require('../middleware/auth');
+const { authenticateToken, requireTenant, requireBusinessAccess, requireCustomer, resolveBusinessId } = require('../middleware/auth');
 const { uploadSingle } = require('../middleware/upload');
 const router = express.Router();
 
@@ -26,7 +26,7 @@ router.get('/my-prescriptions', authenticateToken, requireTenant, [
     const offset = (page - 1) * limit;
     const status = req.query.status;
     const userId = req.user.UserId;
-    const businessId = req.user.businessId;
+    const businessId = resolveBusinessId(req);
 
     // Build WHERE clause with tenant filtering
     let whereClause = 'WHERE p.UserId = ? AND p.BusinessId = ?';
@@ -118,7 +118,7 @@ router.post('/', authenticateToken, requireTenant, requireCustomer, uploadSingle
     }
 
     const userId = req.user.UserId;
-    const businessId = req.user.businessId;
+    const businessId = resolveBusinessId(req);
     const { notes } = req.body;
     const imagePath = req.file.path.replace(/\\/g, '/');
 
@@ -171,7 +171,7 @@ router.get('/:id', authenticateToken, requireTenant, async (req, res) => {
   try {
     const prescriptionId = req.params.id;
     const userId = req.user.UserId;
-    const businessId = req.user.businessId;
+    const businessId = resolveBusinessId(req);
 
     // Build WHERE clause with tenant filtering
     let whereClause = 'WHERE p.PrescriptionId = ?';
@@ -181,7 +181,7 @@ router.get('/:id', authenticateToken, requireTenant, async (req, res) => {
       whereClause += ' AND p.UserId = ?';
       params.push(userId);
     }
-    if (req.user.Role !== 'SUPER_ADMIN') {
+    if (businessId) {
       whereClause += ' AND p.BusinessId = ?';
       params.push(businessId);
     }
@@ -256,15 +256,13 @@ router.get('/admin/all', authenticateToken, requireTenant, requireBusinessAccess
     const offset = (page - 1) * limit;
     const status = req.query.status;
     const userId = req.query.userId;
-    const businessId = req.user.Role === 'SUPER_ADMIN' 
-      ? (req.body.businessId || req.user.businessId) 
-      : req.user.businessId;
+    const businessId = resolveBusinessId(req);
 
     // Build WHERE clause with tenant filtering
     let whereClause = 'WHERE 1=1';
     const params = [];
 
-    if (req.user.Role !== 'SUPER_ADMIN') {
+    if (businessId) {
       whereClause += ' AND p.BusinessId = ?';
       params.push(businessId);
     }
@@ -365,15 +363,13 @@ router.patch('/:id/status', authenticateToken, requireTenant, requireBusinessAcc
     const prescriptionId = req.params.id;
     const { status, notes } = req.body;
     const approvedBy = req.user.UserId;
-    const businessId = req.user.Role === 'SUPER_ADMIN' 
-      ? (req.body.businessId || req.user.businessId) 
-      : req.user.businessId;
+    const businessId = resolveBusinessId(req);
 
     // Get prescription with tenant filtering
     let whereClause = 'WHERE PrescriptionId = ?';
     const queryParams = [prescriptionId];
 
-    if (req.user.Role !== 'SUPER_ADMIN') {
+    if (businessId) {
       whereClause += ' AND BusinessId = ?';
       queryParams.push(businessId);
     }

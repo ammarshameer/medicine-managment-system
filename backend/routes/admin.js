@@ -366,7 +366,8 @@ router.get('/users', authenticateToken, requireTenant, requireBusinessAccess, [
     const role = req.query.role;
     const search = req.query.search;
 
-    let whereClause = 'WHERE BusinessId = ?';
+    // SUPPORT is a hidden platform role and must never appear in business lists.
+    let whereClause = "WHERE BusinessId = ? AND Role != 'SUPPORT'";
     const params = [businessId];
 
     if (role) {
@@ -460,7 +461,7 @@ router.patch('/users/:id/status', authenticateToken, requireTenant, requireBusin
     const isActive = req.query.isActive === 'true';
 
     const users = await dbQuery(
-      'SELECT UserId, Role FROM Users WHERE UserId = ? AND BusinessId = ?',
+      "SELECT UserId, Role FROM Users WHERE UserId = ? AND BusinessId = ? AND Role != 'SUPPORT'",
       [userId, businessId]
     );
 
@@ -601,7 +602,7 @@ router.put('/users/:id', authenticateToken, requireTenant, requireBusinessAccess
     let { name, phone, role } = req.body;
 
     const existing = await dbQuery(
-      'SELECT UserId, Role FROM Users WHERE UserId = ? AND BusinessId = ?',
+      "SELECT UserId, Role FROM Users WHERE UserId = ? AND BusinessId = ? AND Role != 'SUPPORT'",
       [userId, businessId]
     );
 
@@ -682,7 +683,7 @@ router.put('/users/:id/password', authenticateToken, requireTenant, requireBusin
     const { newPassword } = req.body;
 
     const existing = await dbQuery(
-      'SELECT UserId, Role FROM Users WHERE UserId = ? AND BusinessId = ?',
+      "SELECT UserId, Role FROM Users WHERE UserId = ? AND BusinessId = ? AND Role != 'SUPPORT'",
       [userId, businessId]
     );
 

@@ -30,7 +30,7 @@
         "150: isControlledMedicine,"
       ],
       "routeImports": [
-        "orders.js:18: } = require('../utils/controlledDrugs');",
+        "orders.js:19: } = require('../utils/controlledDrugs');",
         "purchase-orders.js:5: const { isControlledMedicine, insertControlledLog } = require('../utils/controlledDrugs');",
         "admin.js:6: const { isControlledMedicine, insertControlledLog } = require('../utils/controlledDrugs');"
       ]
@@ -38,14 +38,14 @@
     "D10": {
       "sumTotalAmount": [],
       "revenueByCurrency": [
-        "36: const revenueByCurrencyRows = await query(",
-        "37: `SELECT o.Currency as currency, SUM(oi.Subtotal) as revenue, COUNT(DISTINCT o.OrderId) as orderCount",
-        "43: const totalRevenueByCurrency = {};",
-        "44: const revenueByCurrency = revenueByCurrencyRows.map(row => {",
-        "46: totalRevenueByCurrency[row.currency] = revenue;",
-        "85: totalRevenue: totalRevenueByCurrency,",
-        "86: totalRevenueByCurrency,",
-        "87: currencyCount: revenueByCurrency.length"
+        "35: const revenueByCurrencyRows = await query(",
+        "36: `SELECT o.Currency as currency, SUM(oi.Subtotal) as revenue, COUNT(DISTINCT o.OrderId) as orderCount",
+        "42: const totalRevenueByCurrency = {};",
+        "43: const revenueByCurrency = revenueByCurrencyRows.map(row => {",
+        "45: totalRevenueByCurrency[row.currency] = revenue;",
+        "84: totalRevenue: totalRevenueByCurrency,",
+        "85: totalRevenueByCurrency,",
+        "86: currencyCount: revenueByCurrency.length"
       ],
       "hardcodedDollar": [],
       "intlFormatter": [
@@ -82,8 +82,8 @@
       ],
       "physicalClasses": [],
       "logicalClasses": [
-        "admin-web/src/components/Layout.js:127: <item.icon className={`me-3 h-5 w-5 ${isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}`} />",
-        "admin-web/src/components/Layout.js:170: <item.icon className={`me-3 h-5 w-5 transition-colors ${isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}`} />",
+        "admin-web/src/components/Layout.js:159: <item.icon className={`me-3 h-5 w-5 ${isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}`} />",
+        "admin-web/src/components/Layout.js:202: <item.icon className={`me-3 h-5 w-5 transition-colors ${isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}`} />",
         "admin-web/src/pages/Categories.js:118: <Plus className=\"h-4 w-4 me-2\" />",
         "admin-web/src/pages/Compliance.js:199: {log.orderId && <span className=\"font-semibold text-blue-600 me-2\">{t('Order #')}{log.orderId}</span>}",
         "admin-web/src/pages/HRMS.js:372: className=\"w-full ps-9 pe-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none\"",
@@ -119,18 +119,18 @@
     },
     "D14": {
       "medicineMutations": [
-        "231: router.post('/', authenticateToken, requireTenant, requireBusinessOwnerAccess, [",
-        "365: router.put('/:id', authenticateToken, requireTenant, requireBusinessOwnerAccess, [",
-        "528: router.delete('/:id', authenticateToken, requireTenant, requireBusinessOwnerAccess, async (req, res) => {",
-        "570: router.post('/:id/image', authenticateToken, requireTenant, requireBusinessOwnerAccess, uploadSingle('medicineImage'), async (req, res) => {"
+        "223: router.post('/', authenticateToken, requireTenant, requireBusinessOwnerAccess, [",
+        "355: router.put('/:id', authenticateToken, requireTenant, requireBusinessOwnerAccess, [",
+        "516: router.delete('/:id', authenticateToken, requireTenant, requireBusinessOwnerAccess, async (req, res) => {",
+        "556: router.post('/:id/image', authenticateToken, requireTenant, requireBusinessOwnerAccess, uploadSingle('medicineImage'), async (req, res) => {"
       ],
       "medicineStaffGuard": [],
       "medicineOwnerGuard": [
-        "4: const { authenticateToken, requireTenant, requireBusinessOwnerAccess } = require('../middleware/auth');",
-        "231: router.post('/', authenticateToken, requireTenant, requireBusinessOwnerAccess, [",
-        "365: router.put('/:id', authenticateToken, requireTenant, requireBusinessOwnerAccess, [",
-        "528: router.delete('/:id', authenticateToken, requireTenant, requireBusinessOwnerAccess, async (req, res) => {",
-        "570: router.post('/:id/image', authenticateToken, requireTenant, requireBusinessOwnerAccess, uploadSingle('medicineImage'), async (req, res) => {"
+        "4: const { authenticateToken, requireTenant, requireBusinessOwnerAccess, resolveBusinessId } = require('../middleware/auth');",
+        "223: router.post('/', authenticateToken, requireTenant, requireBusinessOwnerAccess, [",
+        "355: router.put('/:id', authenticateToken, requireTenant, requireBusinessOwnerAccess, [",
+        "516: router.delete('/:id', authenticateToken, requireTenant, requireBusinessOwnerAccess, async (req, res) => {",
+        "556: router.post('/:id/image', authenticateToken, requireTenant, requireBusinessOwnerAccess, uploadSingle('medicineImage'), async (req, res) => {"
       ],
       "inventoryOwnerGuard": [
         "adjust:true",
@@ -221,7 +221,7 @@
         "locale": "ar-AE",
         "timezone": "America/New_York",
         "createdAt": "2026-11-24T13:38:02.000Z",
-        "updatedAt": "2026-11-24T13:38:15.000Z"
+        "updatedAt": "2026-11-26T07:20:22.000Z"
       }
     },
     "R5": {
@@ -229,9 +229,9 @@
       "edit": 200,
       "read": 200,
       "data": {
-        "id": 30,
+        "id": 58,
         "businessId": 4,
-        "name": "QA CRUD 1795527495454",
+        "name": "QA CRUD 1795677622593",
         "description": null,
         "price": 12,
         "stock": 7,
@@ -260,39 +260,39 @@
         "status": 200,
         "seriesLength": 12,
         "totals": {
-          "revenue": 93,
+          "revenue": 186,
           "cost": 0,
-          "profit": 93,
-          "ordersCount": 4
+          "profit": 186,
+          "ordersCount": 8
         }
       },
       "quarter": {
         "status": 200,
         "seriesLength": 4,
         "totals": {
-          "revenue": 93,
+          "revenue": 186,
           "cost": 0,
-          "profit": 93,
-          "ordersCount": 4
+          "profit": 186,
+          "ordersCount": 8
         }
       },
       "year": {
         "status": 200,
         "seriesLength": 5,
         "totals": {
-          "revenue": 93,
+          "revenue": 186,
           "cost": 0,
-          "profit": 93,
-          "ordersCount": 4
+          "profit": 186,
+          "ordersCount": 8
         }
       }
     },
     "R9": {
       "imports": [
-        "12: const { calculateOrderTax } = require('../utils/taxEngine');",
-        "224: const taxResult = calculateOrderTax(enrichedItems, {",
-        "406: const taxResult = calculateOrderTax(cartItemsWithDetails, {",
-        "764: const taxResult = calculateOrderTax(orderItems, {"
+        "13: const { calculateOrderTax } = require('../utils/taxEngine');",
+        "225: const taxResult = calculateOrderTax(enrichedItems, {",
+        "407: const taxResult = calculateOrderTax(cartItemsWithDetails, {",
+        "765: const taxResult = calculateOrderTax(orderItems, {"
       ]
     },
     "R34": {

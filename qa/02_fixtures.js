@@ -56,10 +56,20 @@ async function main() {
       token: superToken,
       body: { ...spec, subscriptionPlan: 'Premium', password: PASSWORD }
     });
-    if (created.status !== 201) {
+    let businessId;
+    if (created.status === 201) {
+      businessId = created.data.data.businessId;
+    } else if (created.status === 409) {
+      // Re-runs reuse the tenant instead of requiring a destructive DB reset.
+      const listed = await request('GET', '/super-admin/businesses?limit=100', { token: superToken });
+      const existing = (listed.data?.data?.businesses || []).find(
+        (business) => business.BusinessCode === spec.businessCode
+      );
+      if (!existing) throw new Error(`existing business not found for ${spec.key}`);
+      businessId = existing.BusinessId;
+    } else {
       throw new Error(`business create failed for ${spec.key}: ${created.status} ${created.raw}`);
     }
-    const businessId = created.data.data.businessId;
     const ownerToken = await login(spec.email, PASSWORD);
 
     const staffEmail = `staff.${spec.key}@qa.local`;
@@ -67,7 +77,9 @@ async function main() {
       token: ownerToken,
       body: { name: `QA ${spec.key} Staff`, email: staffEmail, phone: spec.phone, password: PASSWORD, role: 'STAFF' }
     });
-    if (staffRes.status !== 201) throw new Error(`staff create failed: ${staffRes.raw}`);
+    if (staffRes.status !== 201 && staffRes.status !== 409) {
+      throw new Error(`staff create failed: ${staffRes.raw}`);
+    }
     const staffToken = await login(staffEmail, PASSWORD);
 
     const customers = {};
@@ -80,12 +92,18 @@ async function main() {
           ...(spec.country === 'UAE' ? { emiratesId: '784-1990-1234567-1', nationalIdLast4: '1234' } : {})
         }
       });
-      if (reg.status !== 201) throw new Error(`customer register failed: ${reg.raw}`);
+      if (reg.status !== 201 && reg.status !== 409) {
+        throw new Error(`customer register failed: ${reg.raw}`);
+      }
+      const customerToken = reg.status === 201 ? reg.data.data.token : await login(email, PASSWORD);
+      const profile = reg.status === 201
+        ? reg.data.data.user
+        : (await request('GET', '/users/profile', { token: customerToken })).data.data;
       customers[suffix] = {
-        userId: reg.data.data.user.id,
+        userId: profile.id,
         email,
-        token: reg.data.data.token,
-        emiratesId: reg.data.data.user.emiratesId
+        token: customerToken,
+        emiratesId: profile.emiratesId
       };
     }
 

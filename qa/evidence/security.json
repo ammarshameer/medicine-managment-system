@@ -15,7 +15,7 @@
       "caller": "STAFF",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"medicines\":[{\"id\":17,\"businessId\":4,\"name\":\"QA Exempt 50\",\"description\":\"QA fixture QA Exempt 50\",\"price\":50,\"averageCost\":0,\"stock\":10"
+      "sample": "{\"success\":true,\"data\":{\"medicines\":[{\"id\":30,\"businessId\":4,\"name\":\"QA CRUD 1795527495454\",\"description\":null,\"price\":12,\"averageCost\":0,\"stock\":7,\"expiryDate\""
     },
     {
       "method": "GET",
@@ -23,7 +23,7 @@
       "caller": "CUSTOMER",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"medicines\":[{\"id\":17,\"businessId\":4,\"name\":\"QA Exempt 50\",\"description\":\"QA fixture QA Exempt 50\",\"price\":50,\"averageCost\":0,\"stock\":10"
+      "sample": "{\"success\":true,\"data\":{\"medicines\":[{\"id\":30,\"businessId\":4,\"name\":\"QA CRUD 1795527495454\",\"description\":null,\"price\":12,\"averageCost\":0,\"stock\":7,\"expiryDate\""
     },
     {
       "method": "GET",
@@ -31,7 +31,7 @@
       "caller": "BUSINESS_OWNER",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"medicines\":[{\"id\":17,\"businessId\":4,\"name\":\"QA Exempt 50\",\"description\":\"QA fixture QA Exempt 50\",\"price\":50,\"averageCost\":0,\"stock\":10"
+      "sample": "{\"success\":true,\"data\":{\"medicines\":[{\"id\":30,\"businessId\":4,\"name\":\"QA CRUD 1795527495454\",\"description\":null,\"price\":12,\"averageCost\":0,\"stock\":7,\"expiryDate\""
     },
     {
       "method": "GET",
@@ -97,7 +97,7 @@
       "caller": "STAFF",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"totalOrders\":0,\"pendingOrders\":0,\"lowStockMedicines\":1,\"pendingPrescriptions\":0,\"ordersByStatus\":{},\"recentOrders\":[]}}"
+      "sample": "{\"success\":true,\"data\":{\"totalOrders\":7,\"pendingOrders\":0,\"lowStockMedicines\":4,\"pendingPrescriptions\":0,\"ordersByStatus\":{\"Delivered\":4,\"Cancelled\":3},\"recentO"
     },
     {
       "method": "GET",
@@ -114,7 +114,7 @@
       "caller": "BUSINESS_OWNER",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"totalOrders\":0,\"pendingOrders\":0,\"lowStockMedicines\":1,\"pendingPrescriptions\":0,\"ordersByStatus\":{},\"recentOrders\":[],\"totalRevenue\":0,"
+      "sample": "{\"success\":true,\"data\":{\"totalOrders\":7,\"pendingOrders\":0,\"lowStockMedicines\":4,\"pendingPrescriptions\":0,\"ordersByStatus\":{\"Delivered\":4,\"Cancelled\":3},\"recentO"
     },
     {
       "method": "GET",
@@ -122,7 +122,7 @@
       "caller": "OTHER_TENANT_OWNER",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"totalOrders\":2,\"pendingOrders\":1,\"lowStockMedicines\":0,\"pendingPrescriptions\":0,\"ordersByStatus\":{\"Delivered\":1,\"Pending\":1},\"recentOrd"
+      "sample": "{\"success\":true,\"data\":{\"totalOrders\":4,\"pendingOrders\":2,\"lowStockMedicines\":0,\"pendingPrescriptions\":0,\"ordersByStatus\":{\"Delivered\":2,\"Pending\":2},\"recentOrd"
     },
     {
       "method": "GET",
@@ -157,7 +157,7 @@
       "caller": "BUSINESS_OWNER",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"period\":\"month\",\"year\":2026,\"totals\":{\"revenue\":0,\"cost\":0,\"profit\":0,\"ordersCount\":0},\"series\":[{\"label\":\"Jan 2026\",\"shortLabel\":\"Jan\""
+      "sample": "{\"success\":true,\"data\":{\"period\":\"month\",\"year\":2026,\"totals\":{\"revenue\":93,\"cost\":0,\"profit\":93,\"ordersCount\":4},\"series\":[{\"label\":\"Jan 2026\",\"shortLabel\":\"Ja"
     },
     {
       "method": "GET",
@@ -165,7 +165,7 @@
       "caller": "OTHER_TENANT_OWNER",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"period\":\"month\",\"year\":2026,\"totals\":{\"revenue\":100,\"cost\":0,\"profit\":100,\"ordersCount\":1},\"series\":[{\"label\":\"Jan 2026\",\"shortLabel\":\""
+      "sample": "{\"success\":true,\"data\":{\"period\":\"month\",\"year\":2026,\"totals\":{\"revenue\":200,\"cost\":0,\"profit\":200,\"ordersCount\":2},\"series\":[{\"label\":\"Jan 2026\",\"shortLabel\":\""
     },
     {
       "method": "GET",
@@ -182,7 +182,7 @@
       "caller": "STAFF",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"users\":[{\"id\":13,\"name\":\"QA usa825 c1\",\"email\":\"customer.c1.usa825@qa.local\",\"phone\":\"92300000001\",\"role\":\"CUSTOMER\",\"emiratesId\":null,"
+      "sample": "{\"success\":true,\"data\":{\"users\":[{\"id\":31,\"name\":\"QA HRMS New\",\"email\":\"hrms.new.1795527493261@qa.local\",\"phone\":\"92300000123\",\"role\":\"STAFF\",\"emiratesId\":null,"
     },
     {
       "method": "GET",
@@ -199,7 +199,7 @@
       "caller": "BUSINESS_OWNER",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"users\":[{\"id\":13,\"name\":\"QA usa825 c1\",\"email\":\"customer.c1.usa825@qa.local\",\"phone\":\"92300000001\",\"role\":\"CUSTOMER\",\"emiratesId\":null,"
+      "sample": "{\"success\":true,\"data\":{\"users\":[{\"id\":31,\"name\":\"QA HRMS New\",\"email\":\"hrms.new.1795527493261@qa.local\",\"phone\":\"92300000123\",\"role\":\"STAFF\",\"emiratesId\":null,"
     },
     {
       "method": "GET",
@@ -224,7 +224,7 @@
       "caller": "STAFF",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"medicines\":[{\"id\":20,\"name\":\"QA Low Stock Item\",\"price\":9,\"averageCost\":0,\"stock\":2,\"expiryDate\":\"2030-12-30T19:00:00.000Z\",\"manufactur"
+      "sample": "{\"success\":true,\"data\":{\"medicines\":[{\"id\":20,\"name\":\"QA Low Stock Item\",\"price\":9,\"averageCost\":0,\"stock\":0,\"expiryDate\":\"2030-12-30T19:00:00.000Z\",\"manufactur"
     },
     {
       "method": "GET",
@@ -241,7 +241,7 @@
       "caller": "BUSINESS_OWNER",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"medicines\":[{\"id\":20,\"name\":\"QA Low Stock Item\",\"price\":9,\"averageCost\":0,\"stock\":2,\"expiryDate\":\"2030-12-30T19:00:00.000Z\",\"manufactur"
+      "sample": "{\"success\":true,\"data\":{\"medicines\":[{\"id\":20,\"name\":\"QA Low Stock Item\",\"price\":9,\"averageCost\":0,\"stock\":0,\"expiryDate\":\"2030-12-30T19:00:00.000Z\",\"manufactur"
     },
     {
       "method": "GET",
@@ -372,7 +372,7 @@
       "caller": "BUSINESS_OWNER",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"logs\":[],\"pagination\":{\"page\":1,\"limit\":20,\"total\":0,\"pages\":0}}}"
+      "sample": "{\"success\":true,\"data\":{\"logs\":[{\"id\":6,\"medicineId\":18,\"medicineName\":\"QA Schedule II Morphine\",\"deaSchedule\":\"II\",\"uaeClassification\":\"OTC\",\"orderId\":21,\"pres"
     },
     {
       "method": "GET",
@@ -415,7 +415,7 @@
       "caller": "BUSINESS_OWNER",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"vendors\":[],\"pagination\":{\"page\":1,\"limit\":20,\"total\":0,\"pages\":0}}}"
+      "sample": "{\"success\":true,\"data\":{\"vendors\":[{\"id\":2,\"businessId\":4,\"name\":\"QA Controlled Vendor 1795527492643\",\"contactPerson\":\"QA\",\"email\":\"vendor@qa.local\",\"phone\":\"92"
     },
     {
       "method": "GET",
@@ -458,7 +458,7 @@
       "caller": "BUSINESS_OWNER",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"purchaseOrders\":[],\"pagination\":{\"page\":1,\"limit\":20,\"total\":0,\"pages\":0}}}"
+      "sample": "{\"success\":true,\"data\":{\"purchaseOrders\":[{\"id\":4,\"businessId\":4,\"vendorId\":2,\"vendorName\":\"QA Controlled Vendor 1795527492643\",\"vendorPhone\":\"92300000000\",\"ord"
     },
     {
       "method": "GET",
@@ -501,7 +501,7 @@
       "caller": "BUSINESS_OWNER",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"employees\":[]}}"
+      "sample": "{\"success\":true,\"data\":{\"employees\":[{\"id\":2,\"businessId\":4,\"userId\":12,\"name\":\"QA usa825 Staff\",\"email\":\"staff.usa825@qa.local\",\"phone\":\"92300000001\",\"role\":\"S"
     },
     {
       "method": "GET",
@@ -544,7 +544,7 @@
       "caller": "BUSINESS_OWNER",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"salaries\":[]}}"
+      "sample": "{\"success\":true,\"data\":{\"salaries\":[{\"id\":2,\"businessId\":4,\"employeeId\":2,\"employeeName\":\"QA usa825 Staff\",\"employeeEmail\":\"staff.usa825@qa.local\",\"employeePhon"
     },
     {
       "method": "GET",
@@ -569,7 +569,7 @@
       "caller": "STAFF",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"orders\":[],\"pagination\":{\"page\":1,\"limit\":20,\"total\":0,\"pages\":0}}}"
+      "sample": "{\"success\":true,\"data\":{\"orders\":[{\"id\":21,\"businessId\":4,\"orderDate\":\"2026-11-24T13:38:16.000Z\",\"status\":\"Cancelled\",\"source\":\"POS\",\"subtotal\":12,\"taxRate\":0.0"
     },
     {
       "method": "GET",
@@ -586,7 +586,7 @@
       "caller": "BUSINESS_OWNER",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"orders\":[],\"pagination\":{\"page\":1,\"limit\":20,\"total\":0,\"pages\":0}}}"
+      "sample": "{\"success\":true,\"data\":{\"orders\":[{\"id\":21,\"businessId\":4,\"orderDate\":\"2026-11-24T13:38:16.000Z\",\"status\":\"Cancelled\",\"source\":\"POS\",\"subtotal\":12,\"taxRate\":0.0"
     },
     {
       "method": "GET",
@@ -594,7 +594,7 @@
       "caller": "OTHER_TENANT_OWNER",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"orders\":[{\"id\":9,\"businessId\":5,\"orderDate\":\"2026-11-24T13:38:09.000Z\",\"status\":\"Delivered\",\"source\":\"POS\",\"subtotal\":100,\"taxRate\":0.0"
+      "sample": "{\"success\":true,\"data\":{\"orders\":[{\"id\":24,\"businessId\":5,\"orderDate\":\"2026-11-26T07:20:16.000Z\",\"status\":\"Delivered\",\"source\":\"POS\",\"subtotal\":100,\"taxRate\":0."
     },
     {
       "method": "GET",
@@ -619,7 +619,7 @@
       "caller": "CUSTOMER",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"orders\":[],\"pagination\":{\"page\":1,\"limit\":10,\"total\":0,\"pages\":0}}}"
+      "sample": "{\"success\":true,\"data\":{\"orders\":[{\"id\":21,\"businessId\":4,\"orderDate\":\"2026-11-24T13:38:16.000Z\",\"status\":\"Cancelled\",\"source\":\"POS\",\"subtotal\":12.84,\"taxRate\":"
     },
     {
       "method": "GET",
@@ -652,7 +652,7 @@
       "caller": "STAFF",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"prescriptions\":[],\"pagination\":{\"page\":1,\"limit\":20,\"total\":0,\"pages\":0}}}"
+      "sample": "{\"success\":true,\"data\":{\"prescriptions\":[{\"id\":5,\"businessId\":4,\"imagePath\":\"uploads/prescriptions/prescription-1795527495998-179795050.png\",\"status\":\"Approved\""
     },
     {
       "method": "GET",
@@ -669,7 +669,7 @@
       "caller": "BUSINESS_OWNER",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"prescriptions\":[],\"pagination\":{\"page\":1,\"limit\":20,\"total\":0,\"pages\":0}}}"
+      "sample": "{\"success\":true,\"data\":{\"prescriptions\":[{\"id\":5,\"businessId\":4,\"imagePath\":\"uploads/prescriptions/prescription-1795527495998-179795050.png\",\"status\":\"Approved\""
     },
     {
       "method": "GET",
@@ -677,7 +677,7 @@
       "caller": "OTHER_TENANT_OWNER",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"prescriptions\":[],\"pagination\":{\"page\":1,\"limit\":20,\"total\":0,\"pages\":0}}}"
+      "sample": "{\"success\":true,\"data\":{\"prescriptions\":[{\"id\":3,\"businessId\":5,\"imagePath\":\"uploads/prescriptions/prescription-1795527492143-965843131.png\",\"status\":\"Approved\""
     },
     {
       "method": "GET",
@@ -702,7 +702,7 @@
       "caller": "CUSTOMER",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"prescriptions\":[],\"pagination\":{\"page\":1,\"limit\":10,\"total\":0,\"pages\":0}}}"
+      "sample": "{\"success\":true,\"data\":{\"prescriptions\":[{\"id\":5,\"businessId\":4,\"imagePath\":\"uploads/prescriptions/prescription-1795527495998-179795050.png\",\"status\":\"Approved\""
     },
     {
       "method": "GET",
@@ -812,7 +812,7 @@
       "caller": "SUPER_ADMIN",
       "status": 200,
       "ok": true,
-      "sample": "{\"success\":true,\"data\":{\"businesses\":[{\"BusinessId\":8,\"BusinessName\":\"QA NYC Pharmacy\",\"LegalName\":null,\"BusinessCode\":\"QANYC009\",\"Logo\":null,\"OwnerName\":\"QA NY"
+      "sample": "{\"success\":true,\"data\":{\"businesses\":[{\"BusinessId\":8,\"BusinessName\":\"QA NYC Pharmacy Edited\",\"LegalName\":null,\"BusinessCode\":\"QANYC009\",\"Logo\":null,\"OwnerName\""
     },
     {
       "method": "POST",
@@ -1136,7 +1136,7 @@
       "route": "/orders/admin/all?businessId=4",
       "status": 200,
       "leakedIds": 0,
-      "sample": "{\"success\":true,\"data\":{\"orders\":[{\"id\":9,\"businessId\":5,\"orderDate\":\"2026-11-24T13:38:09.000Z\",\"status\":\"Delivered\",\"source\":\"POS\",\"subtotal\":100,\"taxRate\":0.05,\"taxAmount\":5,\"totalAmount\":105,\"curre"
+      "sample": "{\"success\":true,\"data\":{\"orders\":[{\"id\":24,\"businessId\":5,\"orderDate\":\"2026-11-26T07:20:16.000Z\",\"status\":\"Delivered\",\"source\":\"POS\",\"subtotal\":100,\"taxRate\":0.05,\"taxAmount\":5,\"totalAmount\":105,\"curr"
     },
     {
       "method": "GET",
@@ -1214,9 +1214,15 @@
     "staffStatus": 200,
     "ownerStatus": 200,
     "staffFinancialKeys": [],
-    "staffSample": "{\"success\":true,\"data\":{\"totalOrders\":0,\"pendingOrders\":0,\"lowStockMedicines\":1,\"pendingPrescriptions\":0,\"ordersByStatus\":{},\"recentOrders\":[]}}",
+    "staffSample": "{\"success\":true,\"data\":{\"totalOrders\":7,\"pendingOrders\":0,\"lowStockMedicines\":4,\"pendingPrescriptions\":0,\"ordersByStatus\":{\"Delivered\":4,\"Cancelled\":3},\"recentOrders\":[{\"id\":21,\"date\":\"2026-11-24T13:38:16.000Z\",\"status\":\"Cancelled\",\"source\":\"POS\",\"customer\":\"QA Controlled Void\",\"itemCount\":1},{\"id\":20,\"date\":\"2026-11-24T13:38:15.000Z\",\"status\":\"Cancelled\",\"source\":\"POS\",\"customer\":\"QA D9\",\"itemCount\":1},{\"id\":15,\"date\":\"2026-11-24T13:38:12.000Z\",\"status\":\"Delivered\",\"source\":\"POS\",\"customer\":\"QA Controlled\",\"itemCount\":1},{\"id\":16,\"date\":\"2026-11-24T13:38:12.000Z\",\"status\":\"Delivered\",\"source\"",
     "ownerFinancialKeys": [
-      "totalRevenue"
+      "totalRevenue",
+      "revenue",
+      "profit",
+      "revenue",
+      "profit",
+      "revenue",
+      "profit"
     ]
   }
 }

@@ -1,8 +1,8 @@
 {
   "prescriptions": {
     "uploadStatus": 201,
-    "rxPending": 1,
-    "rxOtherCustomer": 2,
+    "rxPending": 6,
+    "rxOtherCustomer": 7,
     "approvedStatus": 200
   },
   "T16": {
@@ -19,7 +19,11 @@
       "message": "POS checkout completed successfully"
     },
     "ledger": {
-      "Dispensed": 1
+      "Dispensed": 4,
+      "Received": 1,
+      "Adjusted": 1,
+      "Destroyed": 1,
+      "Reversed": 1
     }
   },
   "T17": {
@@ -65,13 +69,25 @@
     "deliveredStatus": 200,
     "cancelDeliveredStatus": 400,
     "before": {
-      "Dispensed": 1
+      "Dispensed": 4,
+      "Received": 1,
+      "Adjusted": 1,
+      "Destroyed": 1,
+      "Reversed": 1
     },
     "during": {
-      "Dispensed": 1
+      "Dispensed": 4,
+      "Received": 1,
+      "Adjusted": 1,
+      "Destroyed": 1,
+      "Reversed": 1
     },
     "afterDelivery": {
-      "Dispensed": 2
+      "Dispensed": 5,
+      "Received": 1,
+      "Adjusted": 1,
+      "Destroyed": 1,
+      "Reversed": 1
     },
     "dispensedAddedAtCreation": 0,
     "dispensedAddedAtDelivery": 1
@@ -79,33 +95,40 @@
   "T19": {
     "receive": {
       "poStatus": 201,
-      "poId": 4,
+      "poId": 8,
       "receiveStatus": 200,
-      "message": "Purchase order #PO-20261124-6574 received successfully. Inventory and average costs updated."
+      "message": "Purchase order #PO-20261126-1029 received successfully. Inventory and average costs updated."
     },
     "afterReceive": {
-      "Dispensed": 2,
-      "Received": 1
+      "Dispensed": 5,
+      "Received": 2,
+      "Adjusted": 1,
+      "Destroyed": 1,
+      "Reversed": 1
     },
     "adjustStatus": 200,
     "afterAdjust": {
-      "Dispensed": 2,
-      "Received": 1,
-      "Adjusted": 1
+      "Dispensed": 5,
+      "Received": 2,
+      "Adjusted": 2,
+      "Destroyed": 1,
+      "Reversed": 1
     },
     "destroyStatus": 200,
     "afterDestroy": {
-      "Dispensed": 2,
-      "Received": 1,
-      "Adjusted": 1,
-      "Destroyed": 1
+      "Dispensed": 5,
+      "Received": 2,
+      "Adjusted": 2,
+      "Destroyed": 2,
+      "Reversed": 1
     },
     "complianceStatus": 200,
     "complianceActions": [
+      "Received",
       "Adjusted",
       "Destroyed",
       "Dispensed",
-      "Received"
+      "Reversed"
     ]
   }
 }
