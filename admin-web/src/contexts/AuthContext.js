@@ -5,6 +5,8 @@ import toast from 'react-hot-toast';
 const AuthContext = createContext();
 
 const PLATFORM_ROLES = ['SUPER_ADMIN', 'SUPPORT'];
+const REMEMBER_TOKEN_KEY = 'mmsPlatformRememberToken';
+const REMEMBER_EMAIL_KEY = 'mmsPlatformRememberEmail';
 
 const applyBusinessHeader = (businessId) => {
   if (businessId) {
@@ -40,6 +42,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loadCurrentUser = async () => {
+    const response = await axios.get('/api/auth/verify');
+    const verified = response.data.data.user;
+    setUser(verified);
+    if (PLATFORM_ROLES.includes(verified.role)) {
+      refreshBusinesses();
+    } else {
+      // Never let a platform switcher selection leak into a business account.
+      localStorage.removeItem('activeBusinessId');
+      setActiveBusinessId(null);
+      applyBusinessHeader(null);
+    }
+    return verified;
+  };
+
+  // Session restore is intentionally a mount-only operation.
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -49,57 +67,96 @@ export const AuthProvider = ({ children }) => {
         setActiveBusinessId(storedId);
         applyBusinessHeader(storedId);
       }
-      verifyToken();
+      loadCurrentUser()
+        .catch(() => {
+          localStorage.removeItem('token');
+          delete axios.defaults.headers.common['Authorization'];
+        })
+        .finally(() => setLoading(false));
     } else {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const verifyToken = async () => {
-    try {
-      const response = await axios.get('/api/auth/verify');
-      const verifiedUser = response.data.data.user;
-      setUser(verifiedUser);
-      if (PLATFORM_ROLES.includes(verifiedUser.role)) {
-        refreshBusinesses();
-      } else {
-        // Never let a platform switcher selection leak into a business account.
-        localStorage.removeItem('activeBusinessId');
-        setActiveBusinessId(null);
-        applyBusinessHeader(null);
-      }
-    } catch (error) {
-      console.error('Token verification failed:', error);
-      localStorage.removeItem('token');
+  // Installs a token issued by /auth/login or the one-click support endpoint.
+  // `remember` persists a dedicated platform session token, never a password.
+  const loginWithToken = async (token, options = {}) => {
+    localStorage.setItem('token', token);
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+    if (options.remember) {
+      localStorage.setItem(REMEMBER_TOKEN_KEY, token);
+      if (options.email) localStorage.setItem(REMEMBER_EMAIL_KEY, options.email);
+    }
+
+    const businessId = parseInt(options.activeBusinessId, 10);
+    if (Number.isInteger(businessId) && businessId > 0) {
+      localStorage.setItem('activeBusinessId', String(businessId));
+      applyBusinessHeader(businessId);
+      setActiveBusinessId(businessId);
+    } else if (options.clearBusiness) {
       localStorage.removeItem('activeBusinessId');
-      delete axios.defaults.headers.common['Authorization'];
       applyBusinessHeader(null);
-    } finally {
-      setLoading(false);
+      setActiveBusinessId(null);
+    }
+
+    try {
+      const verified = await loadCurrentUser();
+      return { success: true, user: verified };
+    } catch (error) {
+      localStorage.removeItem('token');
+      delete axios.defaults.headers.common['Authorization'];
+      if (options.remember) {
+        localStorage.removeItem(REMEMBER_TOKEN_KEY);
+        localStorage.removeItem(REMEMBER_EMAIL_KEY);
+      }
+      return { success: false, message: error.response?.data?.message || 'Session verification failed' };
     }
   };
 
-  const login = async (email, password) => {
+  const restorePlatformSession = async () => {
+    const remembered = localStorage.getItem(REMEMBER_TOKEN_KEY);
+    if (!remembered) return false;
+    const result = await loginWithToken(remembered, { clearBusiness: true });
+    const platformSession = result.success && PLATFORM_ROLES.includes(result.user?.role);
+    if (!platformSession) {
+      localStorage.removeItem('token');
+      delete axios.defaults.headers.common['Authorization'];
+      localStorage.removeItem(REMEMBER_TOKEN_KEY);
+      localStorage.removeItem(REMEMBER_EMAIL_KEY);
+      setUser(null);
+      return false;
+    }
+    return true;
+  };
+
+  const forgetPlatformSession = () => {
+    localStorage.removeItem(REMEMBER_TOKEN_KEY);
+    localStorage.removeItem(REMEMBER_EMAIL_KEY);
+  };
+
+  const getRememberedPlatformEmail = () => localStorage.getItem(REMEMBER_EMAIL_KEY) || '';
+
+  const login = async (email, password, options = {}) => {
     try {
-      const response = await axios.post('/api/auth/login', { email, password });
-      const { user: loggedInUser, token } = response.data.data;
-
-      localStorage.setItem('token', token);
-      localStorage.removeItem('activeBusinessId');
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      applyBusinessHeader(null);
-      setActiveBusinessId(null);
-      setBusinesses([]);
-      setUser(loggedInUser);
-
-      if (PLATFORM_ROLES.includes(loggedInUser.role)) {
-        refreshBusinesses();
-      }
+      const response = await axios.post('/api/auth/login', {
+        email,
+        password,
+        remember: Boolean(options.remember)
+      });
+      const { token } = response.data.data;
+      const result = await loginWithToken(token, {
+        remember: options.remember,
+        email,
+        clearBusiness: true
+      });
+      if (!result.success) throw new Error(result.message);
 
       toast.success('Login successful');
-      return { success: true };
+      return { success: true, user: result.user };
     } catch (error) {
-      const message = error.response?.data?.message || 'Login failed';
+      const message = error.response?.data?.message || error.message || 'Login failed';
       toast.error(message);
       return { success: false, message };
     }
@@ -138,6 +195,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     login,
+    loginWithToken,
     logout,
     loading,
     isAuthenticated: !!user,
@@ -146,7 +204,10 @@ export const AuthProvider = ({ children }) => {
     activeBusiness,
     businesses,
     selectBusiness,
-    refreshBusinesses
+    refreshBusinesses,
+    restorePlatformSession,
+    forgetPlatformSession,
+    getRememberedPlatformEmail
   };
 
   return (

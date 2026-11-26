@@ -56,7 +56,7 @@
               "MaxMedicines": 100,
               "Revenue": "0.00",
               "CreatedAt": "2026-11-24T13:38:07.000Z",
-              "UpdatedAt": "2026-11-26T07:20:22.000Z",
+              "UpdatedAt": "2026-11-26T07:37:25.000Z",
               "customerCount": 2,
               "totalUsers": 4,
               "orderCount": 0
@@ -91,9 +91,9 @@
               "Revenue": "0.00",
               "CreatedAt": "2026-11-24T13:38:06.000Z",
               "UpdatedAt": "2026-11-24T13:38:06.000Z",
-              "customerCount": 8,
-              "totalUsers": 10,
-              "orderCount": 10
+              "customerCount": 10,
+              "totalUsers": 12,
+              "orderCount": 15
             },
             {
               "BusinessId": 6,
@@ -124,10 +124,10 @@
               "MaxMedicines": 100,
               "Revenue": "0.00",
               "CreatedAt": "2026-11-24T13:38:05.000Z",
-              "UpdatedAt": "2026-11-26T07:20:17.000Z",
+              "UpdatedAt": "2026-11-26T07:37:19.000Z",
               "customerCount": 2,
               "totalUsers": 4,
-              "orderCount": 2
+              "orderCount": 3
             },
             {
               "BusinessId": 5,
@@ -161,7 +161,7 @@
               "UpdatedAt": "2026-11-24T13:38:03.000Z",
               "customerCount": 2,
               "totalUsers": 4,
-              "orderCount": 4
+              "orderCount": 6
             },
             {
               "BusinessId": 4,
@@ -192,10 +192,10 @@
               "MaxMedicines": 100,
               "Revenue": "0.00",
               "CreatedAt": "2026-11-24T13:38:02.000Z",
-              "UpdatedAt": "2026-11-26T07:20:22.000Z",
+              "UpdatedAt": "2026-11-26T07:37:26.000Z",
               "customerCount": 2,
-              "totalUsers": 6,
-              "orderCount": 14
+              "totalUsers": 10,
+              "orderCount": 21
             },
             {
               "BusinessId": 1,
@@ -352,21 +352,21 @@
               "category": null
             },
             {
-              "id": 45,
+              "id": 73,
               "businessId": 4,
-              "name": "QA Exempt 50",
-              "description": "QA fixture QA Exempt 50",
-              "price": 50,
+              "name": "QA CRUD 1795678646060",
+              "description": null,
+              "price": 12,
               "averageCost": 0,
-              "stock": 100,
-              "expiryDate": "2030-12-30T19:00:00.000Z",
-              "manufacturer": "QAManufacturer",
+              "stock": 7,
+              "expiryDate": null,
+              "manufacturer": null,
               "imagePath": null,
               "requiresPrescription": false,
               "deaSchedule": "None",
-              "uaeClassification": "OTC",
-              "isTaxable": false,
-              "priceIncludesTax": false,
+              "uaeClassification": "POM",
+              "isTaxable": true,
+              "priceIncludesTax": true,
               "category": null
             },
             {
@@ -388,7 +388,7 @@
               "category": null
             },
             {
-              "id": 17,
+              "id": 60,
               "businessId": 4,
               "name": "QA Exempt 50",
               "description": "QA fixture QA Exempt 50",
@@ -409,8 +409,8 @@
           "pagination": {
             "page": 1,
             "limit": 5,
-            "total": 19,
-            "pages": 4
+            "total": 26,
+            "pages": 6
           }
         }
       },
@@ -423,9 +423,9 @@
         "success": true,
         "message": "Category added successfully",
         "data": {
-          "id": 69,
+          "id": 70,
           "businessId": 5,
-          "name": "QA Support Category 1795677624061",
+          "name": "QA Support Category 1795678647665",
           "description": "QA support role check"
         }
       }
@@ -497,21 +497,21 @@
               "category": null
             },
             {
-              "id": 45,
+              "id": 73,
               "businessId": 4,
-              "name": "QA Exempt 50",
-              "description": "QA fixture QA Exempt 50",
-              "price": 50,
+              "name": "QA CRUD 1795678646060",
+              "description": null,
+              "price": 12,
               "averageCost": 0,
-              "stock": 100,
-              "expiryDate": "2030-12-30T19:00:00.000Z",
-              "manufacturer": "QAManufacturer",
+              "stock": 7,
+              "expiryDate": null,
+              "manufacturer": null,
               "imagePath": null,
               "requiresPrescription": false,
               "deaSchedule": "None",
-              "uaeClassification": "OTC",
-              "isTaxable": false,
-              "priceIncludesTax": false,
+              "uaeClassification": "POM",
+              "isTaxable": true,
+              "priceIncludesTax": true,
               "category": null
             },
             {
@@ -533,7 +533,7 @@
               "category": null
             },
             {
-              "id": 17,
+              "id": 60,
               "businessId": 4,
               "name": "QA Exempt 50",
               "description": "QA fixture QA Exempt 50",
@@ -554,13 +554,13 @@
           "pagination": {
             "page": 1,
             "limit": 5,
-            "total": 19,
-            "pages": 4
+            "total": 26,
+            "pages": 6
           }
         }
       },
       "rows": 5
     }
   },
-  "checkedAt": "2026-11-26T07:20:24.243Z"
+  "checkedAt": "2026-11-26T07:37:27.816Z"
 }

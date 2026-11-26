@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import { 
   Search, 
   Filter, 
@@ -11,9 +13,11 @@ import {
   CheckCircle,
   XCircle,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ShieldCheck
 } from 'lucide-react';
 import { useTranslation } from '../i18n';
+import { useAuth } from '../contexts/AuthContext';
 
 export const SuperAdminBusinesses = () => {
   const { t } = useTranslation();
@@ -25,6 +29,8 @@ const [page, setPage] = useState(1);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { loginWithToken } = useAuth();
 
   const { data: businessesData, isLoading } = useQuery(
     ['businesses', page, limit, search, statusFilter],
@@ -56,6 +62,22 @@ const [page, setPage] = useState(1);
     {
       onSuccess: () => {
         queryClient.invalidateQueries('businesses');
+      }
+    }
+  );
+
+  // The super admin opens a business as the hidden SUPPORT identity without
+  // asking for the support password anywhere in the browser.
+  const supportLoginMutation = useMutation(
+    (businessId) => axios.post(`/api/super-admin/businesses/${businessId}/support-login`),
+    {
+      onSuccess: async (response) => {
+        const { token, user } = response.data.data;
+        const result = await loginWithToken(token, { activeBusinessId: user.businessId });
+        if (result.success) navigate('/dashboard');
+      },
+      onError: (error) => {
+        toast.error(error.response?.data?.message || 'Failed to start support session');
       }
     }
   );
@@ -231,6 +253,17 @@ const [page, setPage] = useState(1);
                         >
                           <Eye className="w-4 h-4" />
                         </button>
+                        {business.Status === 'Active' && (
+                          <button
+                            onClick={() => supportLoginMutation.mutate(business.BusinessId)}
+                            disabled={supportLoginMutation.isLoading}
+                            className="text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
+                            title={t('Open as Support')}
+                            data-business-id={business.BusinessId}
+                          >
+                            <ShieldCheck className="w-4 h-4" />
+                          </button>
+                        )}
                         <button
                           onClick={() => window.location.href = `/super-admin/businesses/${business.BusinessId}/edit`}
                           className="text-green-600 hover:text-green-800"

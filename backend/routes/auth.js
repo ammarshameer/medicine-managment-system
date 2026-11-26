@@ -150,7 +150,8 @@ router.post('/register', [
 // Login endpoint
 router.post('/login', [
   body('email').isEmail().normalizeEmail().withMessage('Valid email required'),
-  body('password').notEmpty().withMessage('Password is required')
+  body('password').notEmpty().withMessage('Password is required'),
+  body('remember').optional().isBoolean().withMessage('Remember must be a boolean')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -162,7 +163,7 @@ router.post('/login', [
       });
     }
 
-    const { email, password } = req.body;
+    const { email, password, remember = false } = req.body;
 
     // Find user by email (include BusinessId)
     const users = await query(
@@ -195,11 +196,15 @@ router.post('/login', [
       });
     }
 
-    // Generate JWT token with businessId
+    // The dedicated platform login can request a longer-lived session so the
+    // super admin does not have to type credentials on every visit. Passwords
+    // are never stored in the browser; only this signed token is remembered.
+    const platformRemember = remember === true &&
+      (user.Role === 'SUPER_ADMIN' || user.Role === 'SUPPORT');
     const token = jwt.sign(
       { userId: user.UserId, businessId: user.BusinessId, email: user.Email, role: user.Role },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      { expiresIn: platformRemember ? '30d' : (process.env.JWT_EXPIRES_IN || '7d') }
     );
 
     // Load tenant business configuration if user belongs to a business

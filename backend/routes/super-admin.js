@@ -1,7 +1,8 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const { query } = require('../config/database');
-const { authenticateToken, requireSuperAdmin } = require('../middleware/auth');
+const { authenticateToken, requireSuperAdmin, requireRole } = require('../middleware/auth');
 const router = express.Router();
 
 // Apply authentication and super admin middleware to all routes
@@ -174,6 +175,75 @@ router.get('/businesses', async (req, res) => {
       success: false,
       message: 'Internal server error'
     });
+  }
+});
+
+// One-click support session for a selected business. Only a real SUPER_ADMIN
+// may mint this token; the hidden SUPPORT identity never handles a password in
+// the browser. The returned token is already scoped to the chosen tenant.
+router.post('/businesses/:id/support-login', requireRole(['SUPER_ADMIN']), async (req, res) => {
+  try {
+    const businessId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(businessId) || businessId <= 0) {
+      return res.status(400).json({ success: false, message: 'Valid business id required' });
+    }
+
+    const businesses = await query(
+      'SELECT BusinessId, BusinessName, BusinessCode, Country, Currency, TaxEnabled, TaxRate, Status FROM Businesses WHERE BusinessId = ?',
+      [businessId]
+    );
+    if (businesses.length === 0) {
+      return res.status(404).json({ success: false, message: 'Business not found' });
+    }
+    if (businesses[0].Status !== 'Active') {
+      return res.status(403).json({ success: false, message: 'Business is not active' });
+    }
+
+    const supportUsers = await query(
+      "SELECT UserId, Name, Email, Phone, Role, IsActive FROM Users WHERE Role = 'SUPPORT' AND IsActive = TRUE LIMIT 1"
+    );
+    if (supportUsers.length === 0) {
+      return res.status(503).json({ success: false, message: 'Support account is not configured' });
+    }
+    const supportUser = supportUsers[0];
+
+    const token = jwt.sign(
+      { userId: supportUser.UserId, businessId, email: supportUser.Email, role: 'SUPPORT' },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    );
+
+    const b = businesses[0];
+    console.info(`[platform-audit] ${req.user.Email} opened business ${businessId} as SUPPORT at ${new Date().toISOString()}`);
+
+    res.json({
+      success: true,
+      message: 'Support session started',
+      data: {
+        token,
+        user: {
+          id: supportUser.UserId,
+          businessId,
+          name: supportUser.Name,
+          email: supportUser.Email,
+          phone: supportUser.Phone,
+          role: 'SUPPORT',
+          isActive: true,
+          business: {
+            id: b.BusinessId,
+            name: b.BusinessName,
+            code: b.BusinessCode,
+            country: b.Country || 'USA',
+            currency: b.Currency || 'USD',
+            taxEnabled: Boolean(b.TaxEnabled !== 0),
+            taxRate: parseFloat(b.TaxRate) || 0
+          }
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Support login error:', error);
+    res.status(500).json({ success: false, message: 'Failed to start support session' });
   }
 });
 

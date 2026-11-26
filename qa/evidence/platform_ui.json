@@ -1,0 +1,23 @@
+{
+  "checks": {
+    "PLUI1": {
+      "path": "/super-admin/login",
+      "hasEmail": true,
+      "hasPassword": true,
+      "rememberVisible": true,
+      "separateCopy": true
+    },
+    "PLUI2": {
+      "path": "/super-admin/businesses",
+      "supportButtons": 8,
+      "body": "M\nMMS Platform\nROLE: SUPER ADMIN\nPlatform View\nQA NYC Pharmacy Edited\nQA USA 8 Percent\nQA Tax-Free Pharmacy\nQA UAE Pharmacy\nQA USA Pharmacy\nMediCare Pharmacy\nHealthPlus Drugs\nCureWell Pharmacy\nDashboa"
+    },
+    "PLUI3": {
+      "path": "/dashboard",
+      "activeBusinessId": "8",
+      "roleVisible": true,
+      "clickedId": 8
+    }
+  },
+  "checkedAt": "2026-11-26T07:37:51.916Z"
+}

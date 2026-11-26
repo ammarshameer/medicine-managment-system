@@ -1,0 +1,198 @@
+{
+  "checks": {
+    "PL1": {
+      "status": 200,
+      "body": {
+        "success": true,
+        "message": "Login successful",
+        "data": {
+          "user": {
+            "id": 1,
+            "businessId": null,
+            "name": "Super Admin",
+            "email": "superadmin@mms.com",
+            "phone": "+923001234567",
+            "role": "SUPER_ADMIN",
+            "isActive": 1,
+            "business": null
+          },
+          "token": "<redacted>"
+        }
+      },
+      "lifetimeDays": 30
+    },
+    "PL2": {
+      "status": 200,
+      "body": {
+        "success": true,
+        "message": "Token is valid",
+        "data": {
+          "user": {
+            "id": 1,
+            "businessId": null,
+            "name": "Super Admin",
+            "email": "superadmin@mms.com",
+            "phone": "+923001234567",
+            "role": "SUPER_ADMIN",
+            "isActive": 1,
+            "business": null
+          }
+        }
+      }
+    },
+    "PL3": {
+      "status": 200,
+      "body": {
+        "success": true,
+        "message": "Support session started",
+        "data": {
+          "token": "<redacted>",
+          "user": {
+            "id": 36,
+            "businessId": 4,
+            "name": "Platform Support",
+            "email": "support@mms.com",
+            "phone": "+923001234599",
+            "role": "SUPPORT",
+            "isActive": true,
+            "business": {
+              "id": 4,
+              "name": "QA USA Pharmacy",
+              "code": "QAUSA001",
+              "country": "USA",
+              "currency": "USD",
+              "taxEnabled": true,
+              "taxRate": 0.07
+            }
+          }
+        }
+      }
+    },
+    "PL3b": {
+      "status": 200,
+      "body": {
+        "success": true,
+        "data": {
+          "medicines": [
+            {
+              "id": 30,
+              "businessId": 4,
+              "name": "QA CRUD 1795527495454",
+              "description": null,
+              "price": 12,
+              "averageCost": 0,
+              "stock": 7,
+              "expiryDate": null,
+              "manufacturer": null,
+              "imagePath": null,
+              "requiresPrescription": false,
+              "deaSchedule": "None",
+              "uaeClassification": "POM",
+              "isTaxable": true,
+              "priceIncludesTax": true,
+              "category": null
+            },
+            {
+              "id": 58,
+              "businessId": 4,
+              "name": "QA CRUD 1795677622593",
+              "description": null,
+              "price": 12,
+              "averageCost": 0,
+              "stock": 7,
+              "expiryDate": null,
+              "manufacturer": null,
+              "imagePath": null,
+              "requiresPrescription": false,
+              "deaSchedule": "None",
+              "uaeClassification": "POM",
+              "isTaxable": true,
+              "priceIncludesTax": true,
+              "category": null
+            },
+            {
+              "id": 73,
+              "businessId": 4,
+              "name": "QA CRUD 1795678646060",
+              "description": null,
+              "price": 12,
+              "averageCost": 0,
+              "stock": 7,
+              "expiryDate": null,
+              "manufacturer": null,
+              "imagePath": null,
+              "requiresPrescription": false,
+              "deaSchedule": "None",
+              "uaeClassification": "POM",
+              "isTaxable": true,
+              "priceIncludesTax": true,
+              "category": null
+            },
+            {
+              "id": 32,
+              "businessId": 4,
+              "name": "QA Exempt 50",
+              "description": "QA fixture QA Exempt 50",
+              "price": 50,
+              "averageCost": 0,
+              "stock": 100,
+              "expiryDate": "2030-12-30T19:00:00.000Z",
+              "manufacturer": "QAManufacturer",
+              "imagePath": null,
+              "requiresPrescription": false,
+              "deaSchedule": "None",
+              "uaeClassification": "OTC",
+              "isTaxable": false,
+              "priceIncludesTax": false,
+              "category": null
+            },
+            {
+              "id": 60,
+              "businessId": 4,
+              "name": "QA Exempt 50",
+              "description": "QA fixture QA Exempt 50",
+              "price": 50,
+              "averageCost": 0,
+              "stock": 100,
+              "expiryDate": "2030-12-30T19:00:00.000Z",
+              "manufacturer": "QAManufacturer",
+              "imagePath": null,
+              "requiresPrescription": false,
+              "deaSchedule": "None",
+              "uaeClassification": "OTC",
+              "isTaxable": false,
+              "priceIncludesTax": false,
+              "category": null
+            }
+          ],
+          "pagination": {
+            "page": 1,
+            "limit": 5,
+            "total": 26,
+            "pages": 6
+          }
+        }
+      },
+      "rows": 5
+    },
+    "PL4": {
+      "status": 403,
+      "body": {
+        "success": false,
+        "message": "Insufficient permissions"
+      }
+    },
+    "PL5": {
+      "status": 403,
+      "body": {
+        "success": false,
+        "message": "Insufficient permissions"
+      }
+    },
+    "PL6": {
+      "status": 200,
+      "lifetimeDays": 7
+    }
+  },
+  "checkedAt": "2026-11-26T07:37:28.158Z"
+}

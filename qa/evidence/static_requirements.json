@@ -38,14 +38,14 @@
     "D10": {
       "sumTotalAmount": [],
       "revenueByCurrency": [
-        "35: const revenueByCurrencyRows = await query(",
-        "36: `SELECT o.Currency as currency, SUM(oi.Subtotal) as revenue, COUNT(DISTINCT o.OrderId) as orderCount",
-        "42: const totalRevenueByCurrency = {};",
-        "43: const revenueByCurrency = revenueByCurrencyRows.map(row => {",
-        "45: totalRevenueByCurrency[row.currency] = revenue;",
-        "84: totalRevenue: totalRevenueByCurrency,",
-        "85: totalRevenueByCurrency,",
-        "86: currencyCount: revenueByCurrency.length"
+        "36: const revenueByCurrencyRows = await query(",
+        "37: `SELECT o.Currency as currency, SUM(oi.Subtotal) as revenue, COUNT(DISTINCT o.OrderId) as orderCount",
+        "43: const totalRevenueByCurrency = {};",
+        "44: const revenueByCurrency = revenueByCurrencyRows.map(row => {",
+        "46: totalRevenueByCurrency[row.currency] = revenue;",
+        "85: totalRevenue: totalRevenueByCurrency,",
+        "86: totalRevenueByCurrency,",
+        "87: currencyCount: revenueByCurrency.length"
       ],
       "hardcodedDollar": [],
       "intlFormatter": [
@@ -107,8 +107,10 @@
         "admin-web/src/pages/Settings.js:212: className=\"w-full rounded-lg border-gray-300 pe-10 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2.5 disabled:bg-gray-100\"",
         "admin-web/src/pages/SuperAdminBusinessForm.js:384: className=\"w-full px-3.5 py-2.5 pe-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm\"",
         "admin-web/src/pages/SuperAdminBusinessForm.js:482: className=\"w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm font-bold pe-8\"",
-        "admin-web/src/pages/SuperAdminBusinesses.js:110: className=\"w-full ps-10 pe-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent\"",
-        "admin-web/src/pages/SuperAdminBusinesses.js:188: <div className=\"ms-1\">",
+        "admin-web/src/pages/SuperAdminBusinesses.js:132: className=\"w-full ps-10 pe-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent\"",
+        "admin-web/src/pages/SuperAdminBusinesses.js:210: <div className=\"ms-1\">",
+        "admin-web/src/pages/SuperAdminLogin.js:125: className=\"block w-full rounded-md border border-gray-300 px-3 py-2 pe-10 text-sm focus:border-blue-500 focus:ring-blue-500\"",
+        "admin-web/src/pages/SuperAdminLogin.js:130: className=\"absolute inset-y-0 end-0 pe-3 flex items-center\"",
         "admin-web/src/pages/Users.js:515: className=\"ps-9 pe-4 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 w-full\"",
         "admin-web/src/pages/Users.js:557: <div className=\"h-9 w-9 bg-blue-100 text-blue-700 font-bold rounded-full flex items-center justify-center me-3 text-sm\">",
         "admin-web/src/pages/Vendors.js:133: <Plus className=\"w-4 h-4 me-1.5\" />",
@@ -221,7 +223,7 @@
         "locale": "ar-AE",
         "timezone": "America/New_York",
         "createdAt": "2026-11-24T13:38:02.000Z",
-        "updatedAt": "2026-11-26T07:20:22.000Z"
+        "updatedAt": "2026-11-26T07:37:26.000Z"
       }
     },
     "R5": {
@@ -229,9 +231,9 @@
       "edit": 200,
       "read": 200,
       "data": {
-        "id": 58,
+        "id": 73,
         "businessId": 4,
-        "name": "QA CRUD 1795677622593",
+        "name": "QA CRUD 1795678646060",
         "description": null,
         "price": 12,
         "stock": 7,
@@ -260,30 +262,30 @@
         "status": 200,
         "seriesLength": 12,
         "totals": {
-          "revenue": 186,
+          "revenue": 279,
           "cost": 0,
-          "profit": 186,
-          "ordersCount": 8
+          "profit": 279,
+          "ordersCount": 12
         }
       },
       "quarter": {
         "status": 200,
         "seriesLength": 4,
         "totals": {
-          "revenue": 186,
+          "revenue": 279,
           "cost": 0,
-          "profit": 186,
-          "ordersCount": 8
+          "profit": 279,
+          "ordersCount": 12
         }
       },
       "year": {
         "status": 200,
         "seriesLength": 5,
         "totals": {
-          "revenue": 186,
+          "revenue": 279,
           "cost": 0,
-          "profit": 186,
-          "ordersCount": 8
+          "profit": 279,
+          "ordersCount": 12
         }
       }
     },

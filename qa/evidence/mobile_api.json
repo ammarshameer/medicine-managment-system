@@ -18,7 +18,7 @@
       "totalAmount": 216,
       "items": [
         {
-          "medicineId": 55,
+          "medicineId": 70,
           "name": "QA T5 Normal 100",
           "price": 100,
           "quantity": 2,
@@ -34,8 +34,8 @@
       ]
     },
     "order": {
-      "id": 32,
-      "orderNumber": "#32",
+      "id": 47,
+      "orderNumber": "#47",
       "subtotal": 200,
       "taxRate": 0.08,
       "taxAmount": 16,
@@ -51,12 +51,12 @@
   },
   "T24": {
     "uploadStatus": 201,
-    "prescriptionId": 9,
+    "prescriptionId": 14,
     "prescriptionOrder": {
       "status": 201,
       "data": {
-        "id": 33,
-        "orderNumber": "#33",
+        "id": 48,
+        "orderNumber": "#48",
         "subtotal": 0,
         "taxRate": 0.08,
         "taxAmount": 0,
@@ -65,7 +65,7 @@
         "status": "Pending",
         "source": "Online",
         "itemsCount": 0,
-        "prescriptionId": 9,
+        "prescriptionId": 14,
         "reorderedFromOrderId": null
       }
     },
@@ -73,11 +73,14 @@
   },
   "T25": {
     "reorderStatus": 201,
-    "stored": 32,
+    "stored": 47,
     "bogusStatus": 400
   },
   "R17": {
     "myIds": [
+      49,
+      47,
+      38,
       32,
       34,
       23,
@@ -86,6 +89,7 @@
       8
     ],
     "otherIds": [
+      48,
       33,
       18
     ],

@@ -6,6 +6,7 @@ import { I18nProvider } from './i18n';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
+import { SuperAdminLogin } from './pages/SuperAdminLogin';
 import { Dashboard } from './pages/Dashboard';
 import { POS } from './pages/POS';
 import { Medicines } from './pages/Medicines';
@@ -50,6 +51,7 @@ function App() {
           <Router>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/super-admin/login" element={<SuperAdminLogin />} />
               <Route
                 path="/*"
                 element={

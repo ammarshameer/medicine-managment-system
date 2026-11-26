@@ -30,11 +30,14 @@ echo "[qa] phone validation"
 node qa/13_registration_phone_probe.js
 echo "[qa] hidden SUPPORT role"
 node qa/17_support_access.js
+echo "[qa] platform login flow"
+node qa/18_platform_login_flow.js
 echo "[qa] setup results"
 node qa/14_setup_results.js
 echo "[qa] RTL (optional)"
 if curl -fsS http://localhost:3002/ >/dev/null 2>&1; then
   node qa/10_rtl_check.js
+  node qa/19_platform_ui_check.js
 else
   echo "[qa] admin-web not on 3002; reusing existing RTL evidence"
 fi

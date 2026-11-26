@@ -53,6 +53,9 @@ async function main() {
     await cdp.send('Runtime.enable');
     await cdp.send('Page.enable');
     await sleep(2000);
+    // Start from English regardless of a previous headless run.
+    await cdp.evaluate(`localStorage.removeItem('mms_lang'); location.reload(); true`);
+    await sleep(3000);
 
     const en = await cdp.evaluate(`({dir: document.documentElement.dir, lang: document.documentElement.lang, title: document.title})`);
     await cdp.evaluate(`localStorage.setItem('mms_lang','ar'); location.reload(); true`);
